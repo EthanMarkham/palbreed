@@ -1,0 +1,969 @@
+[
+    {
+      "number": 1,
+      "name": "Lamball",
+      "power": 1470,
+      "order": 27,
+      "imageUrl": "https://palworld.wiki.gg/images/e/ee/Lamball_icon.png"
+    },
+    {
+      "number": 2,
+      "name": "Cattiva",
+      "power": 1460,
+      "order": 46,
+      "imageUrl": "https://palworld.wiki.gg/images/6/6d/Cattiva_icon.png"
+    },
+    {
+      "number": 3,
+      "name": "Chikipi",
+      "power": 1500,
+      "order": 62,
+      "imageUrl": "https://palworld.wiki.gg/images/5/54/Chikipi_icon.png"
+    },
+    {
+      "number": 4,
+      "name": "Lifmunk",
+      "power": 1430,
+      "order": 7,
+      "imageUrl": "https://palworld.wiki.gg/images/8/89/Lifmunk_icon.png"
+    },
+    {
+      "number": 5,
+      "name": "Foxparks",
+      "power": 1400,
+      "order": 20,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/b/bf/T_Kitsunebi_icon_normal.png?width=325"
+    },
+    {
+      "number": 6,
+      "name": "Fuack",
+      "power": 1330,
+      "order": 59,
+      "imageUrl": "https://palworld.wiki.gg/images/a/ab/Fuack_icon.png"
+    },
+    {
+      "number": 7,
+      "name": "Sparkit",
+      "power": 1410,
+      "order": 65,
+      "imageUrl": "https://palworld.wiki.gg/images/5/56/Sparkit_icon.png"
+    },
+    {
+      "number": 8,
+      "name": "Tanzee",
+      "power": 1250,
+      "order": 107,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/f/f7/T_Monkey_icon_normal.png"
+    },
+    {
+      "number": 9,
+      "name": "Rooby",
+      "power": 1155,
+      "order": 138,
+      "imageUrl": "https://palworld.wiki.gg/images/b/b2/Rooby_icon.png"
+    },
+    {
+      "number": 10,
+      "name": "Pengullet",
+      "power": 1350,
+      "order": 23,
+      "imageUrl": "https://palworld.wiki.gg/images/5/5f/Pengullet_icon.png"
+    },
+    {
+      "number": 11,
+      "name": "Penking",
+      "power": 520,
+      "order": 122,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/6/69/T_CaptainPenguin_icon_normal.png"
+    },
+    {
+      "number": 12.1,
+      "name": "Jolthog",
+      "power": 1370,
+      "order": 17,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/2/23/T_Hedgehog_icon_normal.png"
+    },
+    {
+      "number": 12.2,
+      "name": "Jolthog Cryst",
+      "power": 1360,
+      "order": 18,
+      "imageUrl": "https://palworld.wiki.gg/images/b/b7/Jolthog_Cryst_icon.png"
+    },
+    {
+      "number": 13.1,
+      "name": "Gumoss",
+      "power": 1240,
+      "order": 112,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/6/61/T_PlantSlime_icon_normal.png?width=325"
+    },
+    {
+      "number": 13.2,
+      "name": "Gumoss (Special)",
+      "power": 1240,
+      "order": 113,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/6/61/T_PlantSlime_icon_normal.png?width=325"
+    },
+    {
+      "number": 14,
+      "name": "Vixy",
+      "power": 1450,
+      "order": 79,
+      "imageUrl": "https://palworld.wiki.gg/images/f/f6/Vixy_icon.png"
+    },
+    {
+      "number": 15,
+      "name": "Hoocrates",
+      "power": 1390,
+      "order": 82,
+      "imageUrl": "https://palworld.wiki.gg/images/d/de/Hoocrates_icon.png"
+    },
+    {
+      "number": 16,
+      "name": "Teafant",
+      "power": 1490,
+      "order": 14,
+      "imageUrl": "https://palworld.wiki.gg/images/0/09/Teafant_icon.png"
+    },
+    {
+      "number": 17,
+      "name": "Depresso",
+      "power": 1380,
+      "order": 47,
+      "imageUrl": "https://palworld.wiki.gg/images/5/52/Depresso_icon.png"
+    },
+    {
+      "number": 18,
+      "name": "Cremis",
+      "power": 1455,
+      "order": 135,
+      "imageUrl": "https://palworld.wiki.gg/images/c/c9/Cremis_icon.png"
+    },
+    {
+      "number": 19,
+      "name": "Daedream",
+      "power": 1230,
+      "order": 106,
+      "imageUrl": "https://palworld.wiki.gg/images/4/43/Daedream_icon.png"
+    },
+    {
+      "number": 20,
+      "name": "Rushoar",
+      "power": 1130,
+      "order": 6,
+      "imageUrl": "https://palworld.wiki.gg/images/1/18/Rushoar_icon.png"
+    },
+    {
+      "number": 21,
+      "name": "Nox",
+      "power": 1180,
+      "order": 121,
+      "imageUrl": "https://palworld.wiki.gg/images/d/d4/Nox_icon.png"
+    },
+    {
+      "number": 22,
+      "name": "Fuddler",
+      "power": 1220,
+      "order": 101,
+      "imageUrl": "https://palworld.wiki.gg/images/a/a5/Fuddler_icon.png"
+    },
+    {
+      "number": 23,
+      "name": "Killamari",
+      "power": 1290,
+      "order": 85,
+      "imageUrl": "https://palworld.wiki.gg/images/4/40/Killamari_icon.png"
+    },
+    {
+      "number": 24.1,
+      "name": "Mau",
+      "power": 1480,
+      "order": 4,
+      "imageUrl": "https://palworld.wiki.gg/images/9/96/Mau_icon.png"
+    },
+    {
+      "number": 24.2,
+      "name": "Mau Cryst",
+      "power": 1440,
+      "order": 5,
+      "imageUrl": "https://palworld.wiki.gg/images/c/c0/Mau_Cryst_icon.png"
+    },
+    {
+      "number": 25,
+      "name": "Celaray",
+      "power": 870,
+      "order": 128,
+      "imageUrl": "https://palworld.wiki.gg/images/0/0f/Celaray_icon.png"
+    },
+    {
+      "number": 26,
+      "name": "Direhowl",
+      "power": 1060,
+      "order": 15,
+      "imageUrl": "https://palworld.wiki.gg/images/a/a6/Direhowl_icon.png"
+    },
+    {
+      "number": 27,
+      "name": "Tocotoco",
+      "power": 1340,
+      "order": 8,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/0/0c/T_ColorfulBird_icon_normal.png"
+    },
+    {
+      "number": 28,
+      "name": "Flopie",
+      "power": 1280,
+      "order": 91,
+      "imageUrl": "https://palworld.wiki.gg/images/5/51/Flopie_icon.png"
+    },
+    {
+      "number": 29,
+      "name": "Mozzarina",
+      "power": 910,
+      "order": 86,
+      "imageUrl": "https://palworld.wiki.gg/images/5/51/Mozzarina_icon.png"
+    },
+    {
+      "number": 30,
+      "name": "Bristla",
+      "power": 1320,
+      "order": 21,
+      "imageUrl": "https://palworld.wiki.gg/images/b/b6/Bristla_icon.png"
+    },
+    {
+      "number": 31.1,
+      "name": "Gobfin",
+      "power": 1090,
+      "order": 25,
+      "imageUrl": "https://palworld.wiki.gg/images/f/fd/Gobfin_icon.png"
+    },
+    {
+      "number": 31.2,
+      "name": "Gobfin Ignis",
+      "power": 1100,
+      "order": 26,
+      "imageUrl": "https://palworld.wiki.gg/images/thumb/d/d3/Gobfin_Ignis_icon.png/300px-Gobfin_Ignis_icon.png"
+    },
+    {
+      "number": 32.1,
+      "name": "Hangyu",
+      "power": 1420,
+      "order": 31,
+      "imageUrl": "https://palworld.wiki.gg/images/9/9c/Hangyu_icon.png"
+    },
+    {
+      "number": 32.2,
+      "name": "Hangyu Cryst",
+      "power": 1422,
+      "order": 32,
+      "imageUrl": "https://palworld.wiki.gg/images/c/c0/Hangyu_Cryst_icon.png"
+    },
+    {
+      "number": 33.1,
+      "name": "Mossanda",
+      "power": 430,
+      "order": 97,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/a/ab/T_GrassPanda_icon_normal.png"
+    },
+    {
+      "number": 33.2,
+      "name": "Mossanda Lux",
+      "power": 390,
+      "order": 98,
+      "imageUrl": "https://palworld.wiki.gg/images/6/62/Mossanda_Lux_icon.png"
+    },
+    {
+      "number": 34,
+      "name": "Woolipop",
+      "power": 1190,
+      "order": 39,
+      "imageUrl": "https://palworld.wiki.gg/images/a/a7/Woolipop_icon.png"
+    },
+    {
+      "number": 35,
+      "name": "Caprity",
+      "power": 930,
+      "order": 75,
+      "imageUrl": "https://palworld.wiki.gg/images/8/86/Caprity_icon.png"
+    },
+    {
+      "number": 36,
+      "name": "Melpaca",
+      "power": 890,
+      "order": 41,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/9/99/T_Alpaca_icon_normal.png"
+    },
+    {
+      "number": 37.1,
+      "name": "Eikthyrdeer",
+      "power": 920,
+      "order": 9,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/1/1b/T_Deer_icon_normal.png"
+    },
+    {
+      "number": 37.2,
+      "name": "Eikthyrdeer Terra",
+      "power": 900,
+      "order": 10,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/9/9f/T_Deer_Ground_icon_normal.png?width=325"
+    },
+    {
+      "number": 38.1,
+      "name": "Nitewing",
+      "power": 420,
+      "order": 90,
+      "imageUrl": "https://palworld.wiki.gg/images/f/f8/Nitewing_icon.png"
+    },
+    {
+      "number": 39,
+      "name": "Ribunny",
+      "power": 1310,
+      "order": 117,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/e/e9/T_PinkRabbit_icon_normal.png"
+    },
+    {
+      "number": 40,
+      "name": "Incineram",
+      "power": 590,
+      "order": 2,
+      "imageUrl": "https://palworld.wiki.gg/images/0/0b/Incineram_icon.png"
+    },
+    {
+      "number": 40.2,
+      "name": "Incineram Noct",
+      "power": 580,
+      "order": 3,
+      "imageUrl": "https://palworld.wiki.gg/images/thumb/d/d7/Incineram_Noct_icon.png/300px-Incineram_Noct_icon.png"
+    },
+    {
+      "number": 41,
+      "name": "Cinnamoth",
+      "power": 490,
+      "order": 132,
+      "imageUrl": "https://palworld.wiki.gg/images/a/a5/Cinnamoth_icon.png"
+    },
+    {
+      "number": 42,
+      "name": "Arsox",
+      "power": 790,
+      "order": 99,
+      "imageUrl": "https://palworld.wiki.gg/images/2/21/Arsox_icon.png"
+    },
+    {
+      "number": 43,
+      "name": "Dumud",
+      "power": 895,
+      "order": 136,
+      "imageUrl": "https://palworld.wiki.gg/images/8/80/Dumud_icon.png"
+    },
+    {
+      "number": 44,
+      "name": "Cawgnito",
+      "power": 1080,
+      "order": 44,
+      "imageUrl": "https://palworld.wiki.gg/images/d/d2/Cawgnito_icon.png"
+    },
+    {
+      "number": 45.1,
+      "name": "Leezpunk",
+      "power": 1120,
+      "order": 57,
+      "imageUrl": "https://palworld.wiki.gg/images/3/33/Leezpunk_icon.png"
+    },
+    {
+      "number": 45.2,
+      "name": "Leezpunk Ignis",
+      "power": 1140,
+      "order": 58,
+      "imageUrl": "https://palworld.wiki.gg/images/7/7e/Leezpunk_Ignis_icon.png"
+    },
+    {
+      "number": 46,
+      "name": "Loupmoon",
+      "power": 950,
+      "order": 30,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/1/1e/T_Werewolf_icon_normal.png"
+    },
+    {
+      "number": 47,
+      "name": "Galeclaw",
+      "power": 1030,
+      "order": 12,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/0/0b/T_Eagle_icon_normal.png?width=325"
+    },
+    {
+      "number": 48.1,
+      "name": "Robinquill",
+      "power": 1020,
+      "order": 52,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/8/8d/T_RobinHood_icon_normal.png?width=325"
+    },
+    {
+      "number": 48.2,
+      "name": "Robinquill Terra",
+      "power": 1000,
+      "order": 53,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/4/45/T_RobinHood_Ground_icon_normal.png?width=325"
+    },
+    {
+      "number": 49,
+      "name": "Gorirat",
+      "power": 1040,
+      "order": 16,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/f/fa/T_Gorilla_icon_normal.png?width=325"
+    },
+    {
+      "number": 50,
+      "name": "Beegarde",
+      "power": 1070,
+      "order": 95,
+      "imageUrl": "https://palworld.wiki.gg/images/3/37/Beegarde_icon.png"
+    },
+    {
+      "number": 51,
+      "name": "Elizabee",
+      "power": 330,
+      "order": 94,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/d/db/T_QueenBee_icon_normal.png"
+    },
+    {
+      "number": 52,
+      "name": "Grintale",
+      "power": 510,
+      "order": 131,
+      "imageUrl": "https://palworld.wiki.gg/images/4/4d/Grintale_icon.png"
+    },
+    {
+      "number": 53,
+      "name": "Swee",
+      "power": 1300,
+      "order": 114,
+      "imageUrl": "https://palworld.wiki.gg/images/d/d5/Swee_icon.png"
+    },
+    {
+      "number": 54,
+      "name": "Sweepa",
+      "power": 410,
+      "order": 115,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/6/65/T_MopKing_icon_normal.png?width=325"
+    },
+    {
+      "number": 55,
+      "name": "Chillet",
+      "power": 800,
+      "order": 123,
+      "imageUrl": "https://palworld.wiki.gg/images/0/0f/Chillet_icon.png"
+    },
+    {
+      "number": 56,
+      "name": "Univolt",
+      "power": 680,
+      "order": 19,
+      "imageUrl": "https://palworld.wiki.gg/images/b/ba/Univolt_icon.png"
+    },
+    {
+      "number": 57,
+      "name": "Foxcicle",
+      "power": 760,
+      "order": 104,
+      "imageUrl": "https://palworld.wiki.gg/images/2/2d/Foxcicle_icon.png"
+    },
+    {
+      "number": 58.1,
+      "name": "Pyrin",
+      "power": 360,
+      "order": 35,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/7/7c/T_FireKirin_icon_normal.png"
+    },
+    {
+      "number": 58.2,
+      "name": "Pyrin Noct",
+      "power": 240,
+      "order": 36,
+      "imageUrl": "https://palworld.wiki.gg/images/8/81/Pyrin_Noct_icon.png"
+    },
+    {
+      "number": 59,
+      "name": "Reindrix",
+      "power": 880,
+      "order": 76,
+      "imageUrl": "https://palworld.wiki.gg/images/1/1e/Reindrix_icon.png"
+    },
+    {
+      "number": 60,
+      "name": "Rayhound",
+      "power": 740,
+      "order": 100,
+      "imageUrl": "https://palworld.wiki.gg/images/d/dc/Rayhound_icon.png"
+    },
+    {
+      "number": 61,
+      "name": "Kitsun",
+      "power": 830,
+      "order": 56,
+      "imageUrl": "https://palworld.wiki.gg/images/0/00/Kitsun_icon.png"
+    },
+    {
+      "number": 62,
+      "name": "Dazzi",
+      "power": 1210,
+      "order": 24,
+      "imageUrl": "https://palworld.wiki.gg/images/6/62/Dazzi_icon.png"
+    },
+    {
+      "number": 63,
+      "name": "Lunaris",
+      "power": 1110,
+      "order": 22,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/d/d2/T_Mutant_icon_normal.png?width=325"
+    },
+    {
+      "number": 64.1,
+      "name": "Dinossom",
+      "power": 820,
+      "order": 63,
+      "imageUrl": "https://palworld.wiki.gg/images/9/9e/Dinossom_icon.png"
+    },
+    {
+      "number": 64.2,
+      "name": "Dinossom Lux",
+      "power": 810,
+      "order": 64,
+      "imageUrl": "https://palworld.wiki.gg/images/8/8f/Dinossom_Lux_icon.png"
+    },
+    {
+      "number": 65.1,
+      "name": "Surfent",
+      "power": 560,
+      "order": 42,
+      "imageUrl": "https://static0.hardcoregamerimages.com/wordpress/wp-content/uploads/2024/01/palworld-surfent-icon-2.png"
+    },
+    {
+      "number": 65.2,
+      "name": "Surfent Terra",
+      "power": 550,
+      "order": 43,
+      "imageUrl": "https://genshinlab.com/wp-content/uploads/2024/01/Surfent-Terra.webp"
+    },
+    {
+      "number": 66,
+      "name": "Maraith",
+      "power": 1150,
+      "order": 51,
+      "imageUrl": "https://palworld.wiki.gg/images/d/da/Maraith_icon.png"
+    },
+    {
+      "number": 67,
+      "name": "Digtoise",
+      "power": 850,
+      "order": 11,
+      "imageUrl": "https://palworld.wiki.gg/images/3/3b/Digtoise_icon.png"
+    },
+    {
+      "number": 68,
+      "name": "Tombat",
+      "power": 750,
+      "order": 96,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/d/d8/T_CatBat_icon_normal.png"
+    },
+    {
+      "number": 69,
+      "name": "Lovander",
+      "power": 940,
+      "order": 81,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/3/37/T_PinkLizard_icon_normal.png"
+    },
+    {
+      "number": 70,
+      "name": "Flambelle",
+      "power": 1405,
+      "order": 137,
+      "imageUrl": "https://palworld.wiki.gg/images/c/ca/Flambelle_icon.png"
+    },
+    {
+      "number": 71.1,
+      "name": "Vanwyrm",
+      "power": 660,
+      "order": 60,
+      "imageUrl": "https://palworld.wiki.gg/images/3/34/Vanwyrm_icon.png"
+    },
+    {
+      "number": 71.2,
+      "name": "Vanwyrm Cryst",
+      "power": 620,
+      "order": 61,
+      "imageUrl": "https://palworld.wiki.gg/images/b/b7/Vanwyrm_Cryst_icon.png"
+    },
+    {
+      "number": 72,
+      "name": "Bushi",
+      "power": 640,
+      "order": 127,
+      "imageUrl": "https://palworld.wiki.gg/images/1/1d/Bushi_icon.png"
+    },
+    {
+      "number": 73,
+      "name": "Beakon",
+      "power": 220,
+      "order": 118,
+      "imageUrl": "https://palworld.wiki.gg/images/b/b7/Beakon_icon.png"
+    },
+    {
+      "number": 74,
+      "name": "Ragnahawk",
+      "power": 380,
+      "order": 126,
+      "imageUrl": "https://palworld.wiki.gg/images/6/6f/Ragnahawk_icon.png"
+    },
+    {
+      "number": 75,
+      "name": "Katress",
+      "power": 700,
+      "order": 116,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/b/bd/T_CatMage_icon_normal.png"
+    },
+    {
+      "number": 76,
+      "name": "Wixen",
+      "power": 1160,
+      "order": 80,
+      "imageUrl": "https://palworld.wiki.gg/images/a/a9/Wixen_icon.png"
+    },
+    {
+      "number": 77,
+      "name": "Verdash",
+      "power": 990,
+      "order": 103,
+      "imageUrl": "https://palworld.wiki.gg/images/a/a2/Verdash_icon.png"
+    },
+    {
+      "number": 78,
+      "name": "Vaelet",
+      "power": 1050,
+      "order": 89,
+      "imageUrl": "https://palworld.wiki.gg/images/1/1d/Vaelet_icon.png"
+    },
+    {
+      "number": 79,
+      "name": "Sibelyx",
+      "power": 450,
+      "order": 78,
+      "imageUrl": "https://palworld.wiki.gg/images/4/49/Sibelyx_icon.png"
+    },
+    {
+      "number": 80.1,
+      "name": "Elphidran",
+      "power": 540,
+      "order": 37,
+      "imageUrl": "https://palworld.wiki.gg/images/8/8d/Elphidran_icon.png"
+    },
+    {
+      "number": 80.2,
+      "name": "Elphidran Aqua",
+      "power": 530,
+      "order": 38,
+      "imageUrl": "https://palworld.wiki.gg/images/f/fd/Elphidran_Aqua_icon.png"
+    },
+    {
+      "number": 81.1,
+      "name": "Kelpsea",
+      "power": 1260,
+      "order": 83,
+      "imageUrl": "https://palworld.wiki.gg/images/5/5f/Kelpsea_icon.png"
+    },
+    {
+      "number": 81.2,
+      "name": "Kelpsea Ignis",
+      "power": 1270,
+      "order": 84,
+      "imageUrl": "https://palworld.wiki.gg/images/0/05/Kelpsea_Ignis_icon.png"
+    },
+    {
+      "number": 82,
+      "name": "Azurobe",
+      "power": 500,
+      "order": 45,
+      "imageUrl": "https://palworld.wiki.gg/images/b/bc/Azurobe_icon.png"
+    },
+    {
+      "number": 83,
+      "name": "Cryolinx",
+      "power": 130,
+      "order": 40,
+      "imageUrl": "https://palworld.wiki.gg/images/3/38/Cryolinx_icon.png"
+    },
+    {
+      "number": 84.1,
+      "name": "Blazehowl",
+      "power": 710,
+      "order": 108,
+      "imageUrl": "https://palworld.wiki.gg/images/9/97/Blazehowl_icon.png"
+    },
+    {
+      "number": 84.2,
+      "name": "Blazehowl Noct",
+      "power": 670,
+      "order": 109,
+      "imageUrl": "https://palworld.wiki.gg/images/d/d1/Blazehowl_Noct_icon.png"
+    },
+    {
+      "number": 85.1,
+      "name": "Relaxaurus",
+      "power": 280,
+      "order": 54,
+      "imageUrl": "https://palworld.wiki.gg/images/6/6f/Relaxaurus_icon.png"
+    },
+    {
+      "number": 85.2,
+      "name": "Relaxaurus Lux",
+      "power": 270,
+      "order": 55,
+      "imageUrl": "https://palworld.wiki.gg/images/7/7e/Relaxaurus_Lux_icon.png"
+    },
+    {
+      "number": 86.1,
+      "name": "Broncherry",
+      "power": 860,
+      "order": 71,
+      "imageUrl": "https://palworld.wiki.gg/images/5/5f/Broncherry_icon.png"
+    },
+    {
+      "number": 86.2,
+      "name": "Broncherry Aqua",
+      "power": 840,
+      "order": 72,
+      "imageUrl": "https://palworld.wiki.gg/images/3/38/Broncherry_Aqua_icon.png"
+    },
+    {
+      "number": 87,
+      "name": "Petallia",
+      "power": 780,
+      "order": 130,
+      "imageUrl": "https://palworld.wiki.gg/images/6/65/Petallia_icon.png"
+    },
+    {
+      "number": 88.1,
+      "name": "Reptyro",
+      "power": 320,
+      "order": 49,
+      "imageUrl": "https://palworld.wiki.gg/images/f/f5/Reptyro_icon.png"
+    },
+    {
+      "number": 88.2,
+      "name": "Ice Reptyro",
+      "power": 230,
+      "order": 50,
+      "imageUrl": "https://palworld.wiki.gg/images/c/c1/Reptyro_Cryst_icon.png"
+    },
+    {
+      "number": 89.1,
+      "name": "Kingpaca",
+      "power": 470,
+      "order": 110,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/b/b5/T_KingAlpaca_icon_normal.png"
+    },
+    {
+      "number": 89.2,
+      "name": "Ice Kingpaca",
+      "power": 440,
+      "order": 111,
+      "imageUrl": "https://palworld.wiki.gg/images/a/a2/Kingpaca_Cryst_icon.png"
+    },
+    {
+      "number": 90.1,
+      "name": "Mammorest",
+      "power": 300,
+      "order": 68,
+      "imageUrl": "https://palworld.wiki.gg/images/2/27/Mammorest_icon.png"
+    },
+    {
+      "number": 90.2,
+      "name": "Mammorest Cryst",
+      "power": 290,
+      "order": 69,
+      "imageUrl": "https://palworld.wiki.gg/images/e/e4/Mammorest_Cryst_icon.png"
+    },
+    {
+      "number": 91,
+      "name": "Wumpo",
+      "power": 460,
+      "order": 87,
+      "imageUrl": "https://palworld.wiki.gg/images/a/a7/Wumpo_icon.png"
+    },
+    {
+      "number": 91.1,
+      "name": "Wumpo Botan",
+      "power": 480,
+      "order": 88,
+      "imageUrl": "https://palworld.wiki.gg/images/d/da/Wumpo_Botan_icon.png"
+    },
+    {
+      "number": 92,
+      "name": "Warsect",
+      "power": 340,
+      "order": 119,
+      "imageUrl": "https://paldex.io/cdn-cgi/image/format=auto,width=300/images/pal-icons/T_HerculesBeetle_icon_normal.png"
+    },
+    {
+      "number": 93,
+      "name": "Fenglope",
+      "power": 980,
+      "order": 48,
+      "imageUrl": "https://palworld.wiki.gg/images/a/a5/Fenglope_icon.png"
+    },
+    {
+      "number": 94,
+      "name": "Felbat",
+      "power": 1010,
+      "order": 70,
+      "imageUrl": "https://static0.hardcoregamerimages.com/wordpress/wp-content/uploads/2024/01/palworld-felbat-icon-2.png"
+    },
+    {
+      "number": 95,
+      "name": "Quivern",
+      "power": 350,
+      "order": 124,
+      "imageUrl": "https://palworld.wiki.gg/images/d/d5/Quivern_icon.png"
+    },
+    {
+      "number": 96,
+      "name": "Blazamut",
+      "power": 10,
+      "order": 74,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/e/eb/T_KingBahamut_icon_normal.png"
+    },
+    {
+      "number": 97,
+      "name": "Helzephyr",
+      "power": 190,
+      "order": 125,
+      "imageUrl": "https://palworld.wiki.gg/images/9/98/Helzephyr_icon.png"
+    },
+    {
+      "number": 98,
+      "name": "Astegon",
+      "power": 150,
+      "order": 102,
+      "imageUrl": "https://palworld.wiki.gg/images/d/d0/Astegon_icon.png"
+    },
+    {
+      "number": 99,
+      "name": "Menasting",
+      "power": 260,
+      "order": 133,
+      "imageUrl": "https://palworld.wiki.gg/images/2/23/Menasting_icon.png"
+    },
+    {
+      "number": 100,
+      "name": "Anubis",
+      "power": 570,
+      "order": 1,
+      "imageUrl": "https://paldex.io/cdn-cgi/image/format=auto,width=300/images/pal-icons/T_Anubis_icon_normal.png"
+    },
+    {
+      "number": 101.1,
+      "name": "Jormuntide",
+      "power": 310,
+      "order": 28,
+      "imageUrl": "https://palworld.wiki.gg/images/e/e7/Jormuntide_icon.png"
+    },
+    {
+      "number": 101.2,
+      "name": "Jormuntide Ignis",
+      "power": 315,
+      "order": 29,
+      "imageUrl": "https://static0.hardcoregamerimages.com/wordpress/wp-content/uploads/2024/01/palworld-jormuntide-ignis-icon-2.png"
+    },
+    {
+      "number": 102.1,
+      "name": "Suzaku",
+      "power": 50,
+      "order": 33,
+      "imageUrl": "https://paldex.io/cdn-cgi/image/format=auto,width=300/images/pal-icons/T_Suzaku_icon_normal.png"
+    },
+    {
+      "number": 102.2,
+      "name": "Suzaku Aqua",
+      "power": 30,
+      "order": 34,
+      "imageUrl": "https://paldex.io/cdn-cgi/image/format=auto,width=300/images/pal-icons/T_Suzaku_Water_icon_normal.png"
+    },
+    {
+      "number": 103,
+      "name": "Grizzbolt",
+      "power": 200,
+      "order": 13,
+      "imageUrl": "https://palworld.wiki.gg/images/3/3c/Grizzbolt_icon.png"
+    },
+    {
+      "number": 104.1,
+      "name": "Lyleen",
+      "power": 250,
+      "order": 92,
+      "imageUrl": "https://oyster.ignimgs.com/mediawiki/apis.ign.com/palworld/d/d0/T_LilyQueen_icon_normal.png?width=325"
+    },
+    {
+      "number": 104.2,
+      "name": "Lyleen Noct",
+      "power": 210,
+      "order": 93,
+      "imageUrl": "https://palworld.wiki.gg/images/6/6b/Lyleen_Noct_icon.png"
+    },
+    {
+      "number": 105,
+      "name": "Faleris",
+      "power": 370,
+      "order": 73,
+      "imageUrl": "https://palworld.wiki.gg/images/b/b9/Faleris_icon.png"
+    },
+    {
+      "number": 106,
+      "name": "Orserk",
+      "power": 140,
+      "order": 134,
+      "imageUrl": "https://palworld.wiki.gg/images/3/3e/Orserk_icon.png"
+    },
+    {
+      "number": 107,
+      "name": "Shadowbeak",
+      "power": 60,
+      "order": 77,
+      "imageUrl": "https://palworld.wiki.gg/images/0/00/Shadowbeak_icon.png"
+    },
+    {
+      "number": 108,
+      "name": "Paladius",
+      "power": 80,
+      "order": 120,
+      "imageUrl": "https://palworld.wiki.gg/images/6/63/Paladius_icon.png"
+    },
+    {
+      "number": 109,
+      "name": "Necromus",
+      "power": 70,
+      "order": 129,
+      "imageUrl": "https://palworld.wiki.gg/images/1/17/Necromus_icon.png"
+    },
+    {
+      "number": 110.1,
+      "name": "Frostallion",
+      "power": 120,
+      "order": 66,
+      "imageUrl": "https://palworld.wiki.gg/images/b/b1/Frostallion_icon.png"
+    },
+    {
+      "number": 110.2,
+      "name": "Frostallion Noct",
+      "power": 100,
+      "order": 67,
+      "imageUrl": "https://palworld.wiki.gg/images/a/a0/Frostallion_Noct_icon.png"
+    },
+    {
+      "number": 111,
+      "name": "Jetragon",
+      "power": 90,
+      "order": 105,
+      "imageUrl": "https://palworld.wiki.gg/images/a/ab/Jetragon_icon.png"
+    }
+  ]
+  
