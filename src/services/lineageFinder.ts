@@ -1,0 +1,40 @@
+import type { LineageResult, PalId } from "../domain/pal";
+import { breedingRepository } from "../data/breedingRepository";
+
+/** Finds a shortest, deterministic route from an owned Pal to a target Pal. */
+export function findLineage(startId: PalId, targetId: PalId): LineageResult {
+  if (!breedingRepository.getPal(startId) || !breedingRepository.getPal(targetId)) {
+    return { status: "invalid-input", reason: "Choose two valid Pals." };
+  }
+  if (startId === targetId) return { status: "same-pal", steps: [] };
+
+  const queue: PalId[] = [targetId];
+  const visited = new Set<PalId>(queue);
+  const previous = new Map<PalId, { child: PalId; partners: PalId[] }>();
+
+  for (let head = 0; head < queue.length; head += 1) {
+    const child = queue[head];
+    for (const [first, second] of breedingRepository.getParentPairs(child)) {
+      for (const [parent, partner] of [[first, second], [second, first]] as const) {
+        if (visited.has(parent)) continue;
+        visited.add(parent);
+        previous.set(parent, { child, partners: [partner] });
+        if (parent === startId) return reconstruct(startId, targetId, previous);
+        queue.push(parent);
+      }
+    }
+  }
+  return { status: "no-route", reason: "No breeding route was found in the loaded data." };
+}
+
+function reconstruct(startId: PalId, targetId: PalId, previous: Map<PalId, { child: PalId; partners: PalId[] }>): LineageResult {
+  const steps = [];
+  let current = startId;
+  while (current !== targetId) {
+    const edge = previous.get(current);
+    if (!edge) return { status: "no-route", reason: "The lineage could not be reconstructed." };
+    steps.push({ from: current, partners: edge.partners, result: edge.child });
+    current = edge.child;
+  }
+  return { status: "found", steps };
+}
