@@ -1,10 +1,21 @@
-import { useMemo } from "react";
-import { Button } from "react-aria-components";
+import { useMemo, useState } from "react";
+import {
+  Button,
+  ListBox,
+  ListBoxItem,
+  Radio,
+  RadioGroup,
+} from "react-aria-components";
 import PalPicker from "../../components/PalPicker";
+import {
+  filterPals,
+  formatPalMeta,
+  formatPalNumber,
+} from "../../components/palPickerUtils";
 import { breedingRepository } from "../../data/breedingRepository";
 import type { LineageResult, Pal, PalGender, PalId } from "../../domain/pal";
 import { findLineage } from "../../services/lineageFinder";
-import { getPlannerInputValue, type PlannerSearchState } from "./plannerSearch";
+import type { PlannerSearchState } from "./plannerSearch";
 
 const pals = breedingRepository.allPals();
 
@@ -25,14 +36,43 @@ export default function PlannerPage({
   onToSelectionChange,
   onSwap,
 }: PlannerPageProps) {
+  const [activeField, setActiveField] = useState<"from" | "to">("from");
   const startId = search.from ?? "";
   const targetId = search.to ?? "";
-  const startInputValue = getPlannerInputValue(search, "from");
-  const targetInputValue = getPlannerInputValue(search, "to");
+  const startInputValue = search.fromQuery ?? "";
+  const targetInputValue = search.toQuery ?? "";
+  const activeInputValue =
+    activeField === "from" ? startInputValue : targetInputValue;
+  const activeSelectedId = activeField === "from" ? search.from : search.to;
+  const passiveSelectedId = activeField === "from" ? search.to : search.from;
+  const activeSelected = pals.find((pal) => pal.id === activeSelectedId);
+  const visiblePals = useMemo(
+    () => filterPals(pals, activeInputValue),
+    [activeInputValue],
+  );
   const result = useMemo(
     () => (startId && targetId ? findLineage(startId, targetId) : null),
     [startId, targetId],
   );
+  const activeFieldName = activeField === "from" ? "Starting Pal" : "Target Pal";
+  const hasPlannerState = Boolean(
+    search.from || search.to || search.fromQuery || search.toQuery,
+  );
+
+  const handleBrowserSelection = (palId: PalId) => {
+    if (activeField === "from") {
+      onFromSelectionChange(palId);
+      return;
+    }
+
+    onToSelectionChange(palId);
+  };
+
+  const handleFieldChange = (value: string) => {
+    if (value === "from" || value === "to") {
+      setActiveField(value);
+    }
+  };
 
   return (
     <main className="workspace">
@@ -52,15 +92,19 @@ export default function PlannerPage({
               description="HAS PASSIVES"
               selectedId={search.from}
               inputValue={startInputValue}
-              onInputChange={onFromInputChange}
-              onSelectionChange={onFromSelectionChange}
+              onInputChange={(value) => {
+                setActiveField("from");
+                onFromInputChange(value);
+              }}
+              onActivate={() => setActiveField("from")}
+              isActive={activeField === "from"}
               pals={pals}
               placeholder="Search starting Pal"
             />
             <Button
               className="swap-button"
               onPress={onSwap}
-              isDisabled={!startInputValue && !targetInputValue}
+              isDisabled={!hasPlannerState}
               aria-label="Swap starting and target Pals"
             >
               <SwapIcon />
@@ -70,12 +114,118 @@ export default function PlannerPage({
               description="NEEDS PASSIVES"
               selectedId={search.to}
               inputValue={targetInputValue}
-              onInputChange={onToInputChange}
-              onSelectionChange={onToSelectionChange}
+              onInputChange={(value) => {
+                setActiveField("to");
+                onToInputChange(value);
+              }}
+              onActivate={() => setActiveField("to")}
+              isActive={activeField === "to"}
               pals={pals}
               placeholder="Search target Pal"
             />
           </div>
+
+          <section className="picker-browser" aria-label={`${activeFieldName} browser`}>
+            <div className="picker-browser-head">
+              <div className="picker-browser-title">
+                <span className="picker-browser-kicker">
+                  {activeField === "from" ? "CHOOSING THE CARRIER" : "CHOOSING THE TARGET"}
+                </span>
+                <h2>{activeFieldName}</h2>
+                <RadioGroup
+                  className="field-mode-group"
+                  aria-label="Choose which planner field to browse"
+                  value={activeField}
+                  onChange={handleFieldChange}
+                >
+                  <Radio className="field-mode-chip" value="from">
+                    Starting
+                  </Radio>
+                  <Radio className="field-mode-chip" value="to">
+                    Target
+                  </Radio>
+                </RadioGroup>
+              </div>
+              <div className="picker-browser-summary">
+                <span>
+                  {visiblePals.length} {visiblePals.length === 1 ? "pal" : "pals"} shown
+                </span>
+                <strong>
+                  {activeSelected
+                    ? activeSelected.name
+                    : `Select a ${activeField === "from" ? "starting" : "target"} pal`}
+                </strong>
+                <small>Full catalog stays visible until you search.</small>
+              </div>
+            </div>
+
+            <ListBox<Pal>
+              aria-label={`${activeFieldName} options`}
+              className="picker-browser-grid"
+              items={visiblePals}
+              layout="grid"
+              onSelectionChange={(keys) => {
+                if (keys === "all") return;
+
+                const nextKey = [...keys][0];
+                if (typeof nextKey === "string") {
+                  handleBrowserSelection(nextKey);
+                }
+              }}
+              selectionMode="single"
+              selectedKeys={activeSelectedId ? new Set([activeSelectedId]) : new Set()}
+              renderEmptyState={() => (
+                <div className="picker-empty">
+                  <strong>No matching Pal</strong>
+                  <span>Try a different name, variant, or number.</span>
+                </div>
+              )}
+            >
+              {(pal) => (
+                <ListBoxItem
+                  id={pal.id}
+                  textValue={pal.name}
+                  className="picker-browser-option"
+                >
+                  {({ isSelected }) => (
+                    <>
+                      <div className="picker-browser-option-top">
+                        <span className="picker-option-badge">
+                          {formatPalNumber(pal.number)}
+                        </span>
+                        {isSelected ? (
+                          <span className="picker-browser-chip is-selected">
+                            <CheckIcon />
+                            Selected
+                          </span>
+                        ) : passiveSelectedId === pal.id ? (
+                          <span className="picker-browser-chip">
+                            {activeField === "from" ? "Target chosen" : "Start chosen"}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="picker-browser-option-body">
+                        <div className="picker-option-media">
+                          <img src={pal.image} alt="" loading="lazy" />
+                        </div>
+                        <span className="picker-browser-option-copy">
+                          <strong>{pal.name}</strong>
+                          <small>{formatPalMeta(pal.id)}</small>
+                        </span>
+                        <span
+                          className={`picker-browser-check${isSelected ? " is-visible" : ""}`}
+                          aria-hidden="true"
+                        >
+                          <CheckIcon />
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </ListBoxItem>
+              )}
+            </ListBox>
+          </section>
         </div>
       </section>
 
