@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Button } from "react-aria-components";
 import PalPicker from "../../components/PalPicker";
 import { breedingRepository } from "../../data/breedingRepository";
 import type { LineageResult, Pal, PalGender, PalId } from "../../domain/pal";
@@ -44,36 +45,37 @@ export default function PlannerPage({
           <p>Select the Pal carrying the passives, then the Pal you want them on.</p>
         </div>
 
-        <div className="route-controls">
-          <PalPicker
-            label="Starting Pal"
-            description="HAS PASSIVES"
-            selectedId={search.from}
-            inputValue={startInputValue}
-            onInputChange={onFromInputChange}
-            onSelectionChange={onFromSelectionChange}
-            pals={pals}
-            placeholder="Search starting Pal"
-          />
-          <button
-            className="swap-button"
-            type="button"
-            onClick={onSwap}
-            disabled={!startInputValue && !targetInputValue}
-            aria-label="Swap starting and target Pals"
-          >
-            <SwapIcon />
-          </button>
-          <PalPicker
-            label="Target Pal"
-            description="NEEDS PASSIVES"
-            selectedId={search.to}
-            inputValue={targetInputValue}
-            onInputChange={onToInputChange}
-            onSelectionChange={onToSelectionChange}
-            pals={pals}
-            placeholder="Search target Pal"
-          />
+        <div className="route-controls-shell">
+          <div className="route-controls">
+            <PalPicker
+              label="Starting Pal"
+              description="HAS PASSIVES"
+              selectedId={search.from}
+              inputValue={startInputValue}
+              onInputChange={onFromInputChange}
+              onSelectionChange={onFromSelectionChange}
+              pals={pals}
+              placeholder="Search starting Pal"
+            />
+            <Button
+              className="swap-button"
+              onPress={onSwap}
+              isDisabled={!startInputValue && !targetInputValue}
+              aria-label="Swap starting and target Pals"
+            >
+              <SwapIcon />
+            </Button>
+            <PalPicker
+              label="Target Pal"
+              description="NEEDS PASSIVES"
+              selectedId={search.to}
+              inputValue={targetInputValue}
+              onInputChange={onToInputChange}
+              onSelectionChange={onToSelectionChange}
+              pals={pals}
+              placeholder="Search target Pal"
+            />
+          </div>
         </div>
       </section>
 

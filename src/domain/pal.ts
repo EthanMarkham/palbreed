@@ -3,6 +3,7 @@ export type PalGender = "F" | "M";
 
 export type Pal = {
   id: PalId;
+  number: number;
   name: string;
   image: string;
 };

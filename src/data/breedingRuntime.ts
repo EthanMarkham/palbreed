@@ -1,16 +1,7 @@
 import runtimeData from "./breeding-runtime-1.0.json";
-import { pairKey, type PalGender, type PalId } from "../domain/pal";
+import { pairKey, type Pal, type PalGender, type PalId } from "../domain/pal";
 
 const BASE36 = "0123456789abcdefghijklmnopqrstuvwxyz";
-
-type RuntimePalRecord = {
-  id: PalId;
-  name: string;
-};
-
-type RuntimePal = RuntimePalRecord & {
-  image: string;
-};
 
 type RuntimeBreedingOutcome = {
   firstParentId: PalId;
@@ -21,8 +12,9 @@ type RuntimeBreedingOutcome = {
 };
 
 export const runtimeMetadata = runtimeData.metadata;
-export const runtimePals: readonly RuntimePal[] = runtimeData.pals.map((pal) => ({
+export const runtimePals: readonly Pal[] = runtimeData.pals.map((pal, index) => ({
   ...pal,
+  number: index + 1,
   image: `${runtimeMetadata.imageBaseUrl}${pal.id}.webp`,
 }));
 
