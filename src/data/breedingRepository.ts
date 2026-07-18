@@ -1,6 +1,7 @@
 import { forEachBreedingOutcome, runtimeMetadata, runtimePals } from "./breedingRuntime";
 import {
   pairKey,
+  type BreedingOutcome,
   type GenderRequirement,
   type Pal,
   type PalGender,
@@ -14,8 +15,10 @@ const pals: Pal[] = [...runtimePals].sort((a, b) => a.name.localeCompare(b.name)
 const palsById = new Map(pals.map((pal) => [pal.id, pal]));
 const parentPairsByChild = new Map<PalId, ParentPair[]>();
 const genderedOutcomesByParents = new Map<string, GenderedBreedingOutcome[]>();
+const outcomesByParents = new Map<string, BreedingOutcome[]>();
 
 forEachBreedingOutcome((outcome) => {
+  addForwardOutcome(outcome);
   const pair: ParentPair = outcome.firstParentId.localeCompare(outcome.secondParentId) <= 0
     ? [outcome.firstParentId, outcome.secondParentId]
     : [outcome.secondParentId, outcome.firstParentId];
@@ -60,6 +63,13 @@ function addGenderedOutcome(
   genderedOutcomesByParents.set(key, outcomes);
 }
 
+function addForwardOutcome(outcome: BreedingOutcome) {
+  const key = pairKey(outcome.firstParentId, outcome.secondParentId);
+  const outcomes = outcomesByParents.get(key) ?? [];
+  outcomes.push(outcome);
+  outcomesByParents.set(key, outcomes);
+}
+
 function orientedParentKey(first: PalId, second: PalId) {
   return `${first}|${second}`;
 }
@@ -67,6 +77,8 @@ function orientedParentKey(first: PalId, second: PalId) {
 export const breedingRepository = {
   allPals: (): readonly Pal[] => pals,
   getPal: (id: PalId): Pal | undefined => palsById.get(id),
+  getOutcomes: (first: PalId, second: PalId): readonly BreedingOutcome[] =>
+    outcomesByParents.get(pairKey(first, second)) ?? [],
   getParentPairs: (childId: PalId): readonly ParentPair[] => parentPairsByChild.get(childId) ?? [],
   getGenderRequirement: (first: PalId, second: PalId, childId: PalId): GenderRequirement | undefined => {
     const outcome = genderedOutcomesByParents

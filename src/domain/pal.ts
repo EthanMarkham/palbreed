@@ -10,6 +10,14 @@ export type Pal = {
 
 export type ParentPair = readonly [PalId, PalId];
 
+export type BreedingOutcome = {
+  firstParentId: PalId;
+  secondParentId: PalId;
+  childId: PalId;
+  firstParentGender?: PalGender;
+  secondParentGender?: PalGender;
+};
+
 export type GenderRequirement = {
   firstGender: PalGender;
   secondGender: PalGender;

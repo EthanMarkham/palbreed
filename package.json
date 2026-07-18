@@ -5,14 +5,18 @@
   "type": "module",
   "scripts": {
     "data:generate": "node dataFormatter/generateBreedingData.mjs",
+    "data:passives": "node dataFormatter/generatePassives.mjs",
+    "data:save-aliases": "node dataFormatter/generateSaveAliases.mjs",
     "dev": "vite",
     "build": "vite build && tsc -p tsconfig.json",
     "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.170.18",
+    "ooz-wasm": "^2.0.0",
     "react": "^18.2.0",
     "react-aria-components": "^1.19.0",
     "react-dom": "^18.2.0",
@@ -31,6 +35,7 @@
     "globals": "^17.7.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.64.0",
-    "vite": "^8.1.5"
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
   }
 }

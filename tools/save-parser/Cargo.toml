@@ -1,0 +1,15 @@
+[package]
+name = "palpath-save-parser"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+console_error_panic_hook = "0.1"
+serde_json = { version = "1", features = ["float_roundtrip"] }
+uesave = { git = "https://github.com/oMaN-Rod/uesave-rs.git", rev = "11b2b4907ef6f34337135faed783fef2e450fcaf" }
+wasm-bindgen = "0.2"

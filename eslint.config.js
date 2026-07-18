@@ -7,7 +7,7 @@ import tseslint from "typescript-eslint";
 const tsFiles = ["**/*.{ts,tsx}"];
 
 export default tseslint.config(
-  { ignores: ["dist", "src/routeTree.gen.ts"] },
+  { ignores: ["dist", "src/routeTree.gen.ts", "src/vendor/**", "tools/save-parser/target/**"] },
   eslint.configs.recommended,
   {
     files: ["dataFormatter/**/*.mjs"],

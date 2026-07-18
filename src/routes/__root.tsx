@@ -1,4 +1,4 @@
-import { Outlet, createRootRoute } from "@tanstack/react-router";
+import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import "../App.css";
 import { breedingRepository } from "../data/breedingRepository";
@@ -17,11 +17,17 @@ function RootLayout() {
       <div className="ambient ambient-two" aria-hidden="true" />
 
       <header className="site-header">
-        <div className="brand" aria-label="Palpath home">
+        <Link className="brand" to="/" aria-label="Palpath home">
           <span className="brand-mark">PP</span>
           <span className="brand-name">PALPATH</span>
-        </div>
-        <span className="version-label">Palworld {metadata.gameVersion}</span>
+        </Link>
+        <nav className="site-nav" aria-label="Primary navigation">
+          <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "is-active" }}>Planner</Link>
+          <Link to="/pair" activeProps={{ className: "is-active" }}>Pair</Link>
+          <Link to="/inventory" activeProps={{ className: "is-active" }}>Inventory</Link>
+          <Link to="/builder" activeProps={{ className: "is-active" }}>Builder</Link>
+        </nav>
+        <span className="version-label">v{metadata.gameVersion}</span>
       </header>
 
       <Outlet />

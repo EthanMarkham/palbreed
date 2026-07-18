@@ -1,0 +1,16 @@
+{
+  "name": "palpath-save-parser",
+  "type": "module",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "palpath_save_parser_bg.wasm",
+    "palpath_save_parser.js",
+    "palpath_save_parser.d.ts"
+  ],
+  "main": "palpath_save_parser.js",
+  "types": "palpath_save_parser.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

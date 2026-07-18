@@ -1,0 +1,803 @@
+{
+  "gameVersion": "1.0",
+  "passives": [
+    {
+      "id": "ElementResist_Normal_1_PAL",
+      "name": "Abnormal",
+      "description": "10.0% decrease in incoming Neutral damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "SwimSpeed_up_2",
+      "name": "Ace Swimmer",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_oraora",
+      "name": "Aggressive",
+      "description": "No in-game description is available.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "CraftSpeed_up2",
+      "name": "Artisan",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "MutationPal_Babysitter",
+      "name": "Babysitter",
+      "description": "While at a base, increases egg production speed by +30.0% and incubation speed by +30.0% for Pals assigned to a Breeding Farm.",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "ElementBoost_Dragon_1_PAL",
+      "name": "Blood of the Dragon",
+      "description": "10.0% increase in Dragon attack damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementResist_Leaf_1_PAL",
+      "name": "Botanical Barrier",
+      "description": "10.0% decrease in incoming Grass damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_FullStomach_Up_2",
+      "name": "Bottomless Stomach",
+      "description": "Hunger decreases +15.0% faster.",
+      "rank": -2,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_ALLAttack_up1",
+      "name": "Brave",
+      "description": "No in-game description is available.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "Deffence_down2",
+      "name": "Brittle",
+      "description": "No in-game description is available.",
+      "rank": -3,
+      "randomEligible": true
+    },
+    {
+      "id": "Deffence_up2",
+      "name": "Burly Body",
+      "description": "Defense +20.0% Immune to Flinch",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Thunder_1_PAL",
+      "name": "Capacitor",
+      "description": "10.0% increase in Lightning attack damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Normal_2_PAL",
+      "name": "Celestial Emperor",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": false
+    },
+    {
+      "id": "ElementResist_Dark_1_PAL",
+      "name": "Cheery",
+      "description": "10.0% decrease in incoming Dark damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "CraftSpeed_down1",
+      "name": "Clumsy",
+      "description": "No in-game description is available.",
+      "rank": -1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Ice_1_PAL",
+      "name": "Coldblooded",
+      "description": "10.0% increase in Ice attack damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_conceited",
+      "name": "Conceited",
+      "description": "No in-game description is available.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_ALLAttack_down1",
+      "name": "Coward",
+      "description": "No in-game description is available.",
+      "rank": -1,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_FullStomach_Down_1",
+      "name": "Dainty Eater",
+      "description": "Hunger decreases +10.0% slower.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_ALLAttack_up3",
+      "name": "Demon God",
+      "description": "No in-game description is available.",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "WorldTree_CraftSpeed",
+      "name": "Demon’s Hand",
+      "description": "Work Speed +90.0% SAN dreceases +15.0% faster World Tree harvestables won't vanish when approached.",
+      "rank": 5,
+      "randomEligible": false
+    },
+    {
+      "id": "PAL_Sanity_Up_2",
+      "name": "Destructive",
+      "description": "SAN drops +15.0% faster.",
+      "rank": -2,
+      "randomEligible": true
+    },
+    {
+      "id": "Deffence_up3",
+      "name": "Diamond Body",
+      "description": "Defense +30.0% Immune to Flinch Immune to Knockback",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_FullStomach_Down_2",
+      "name": "Diet Lover",
+      "description": "Hunger decreases +15.0% slower.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "WorldTree_MoveSpeed",
+      "name": "Dimensional Leap",
+      "description": "Movement Speed +50.0% Increases Hunger depletion rate by +15.0% World Tree resources will not vanish when approached.",
+      "rank": 5,
+      "randomEligible": false
+    },
+    {
+      "id": "ElementBoost_Dragon_2_PAL",
+      "name": "Divine Dragon",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": false
+    },
+    {
+      "id": "Deffence_down1",
+      "name": "Downtrodden",
+      "description": "No in-game description is available.",
+      "rank": -1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementResist_Dragon_1_PAL",
+      "name": "Dragonkiller",
+      "description": "10.0% decrease in incoming Dragon damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Earth_2_PAL",
+      "name": "Earth Emperor",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": false
+    },
+    {
+      "id": "ElementResist_Earth_1_PAL",
+      "name": "Earthquake Resistant",
+      "description": "10.0% decrease in incoming Earth damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "CoolTimeReduction_Down_1",
+      "name": "Easygoing",
+      "description": "Active skill cooldown extension -15.0%",
+      "rank": -1,
+      "randomEligible": true
+    },
+    {
+      "id": "Stamina_Up_3",
+      "name": "Eternal Engine",
+      "description": "Max stamina +75.0% *This effect is only valid for rideable pals.",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "EternalFlame",
+      "name": "Eternal Flame",
+      "description": "No in-game description is available.",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "WorkSuitabilityAddRank_MonsterFarm_1",
+      "name": "Farmhand",
+      "description": "Farming's Work Suitability +1",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_ALLAttack_up2",
+      "name": "Ferocious",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "SalePrice_Up_2",
+      "name": "Fine Furs",
+      "description": "Increases the value of items when sold by +3.0%",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "Stamina_Up_2",
+      "name": "Fit as a Fiddle",
+      "description": "Max stamina +25.0% *This effect is only valid for rideable pals.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Fire_2_PAL",
+      "name": "Flame Emperor",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": false
+    },
+    {
+      "id": "ElementBoost_Leaf_1_PAL",
+      "name": "Fragrant Foliage",
+      "description": "10.0% increase in Grass attack damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_FullStomach_Up_1",
+      "name": "Glutton",
+      "description": "Hunger decreases +10.0% faster.",
+      "rank": -1,
+      "randomEligible": true
+    },
+    {
+      "id": "WorldTree_ATK_DEF",
+      "name": "God of Destruction",
+      "description": "Attack +40.0% Defense +20.0% Max Health -50.0% World Tree resources will not vanish when approached.",
+      "rank": 5,
+      "randomEligible": false
+    },
+    {
+      "id": "Deffence_up1",
+      "name": "Hard Skin",
+      "description": "No in-game description is available.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "AutoHPRegeneRate_Passive",
+      "name": "Healing Coach",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_Sanity_Down_3",
+      "name": "Heart of the Immovable King",
+      "description": "SAN drops +20.0% slower.",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementResist_Ice_1_PAL",
+      "name": "Heated Body",
+      "description": "10.0% decrease in incoming Ice damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "MutationPal_ExplosionResist",
+      "name": "Heavily Armored",
+      "description": "Immune to Explosion Damage",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "Deffence_up2_2",
+      "name": "Heavyweight",
+      "description": "Defense +20.0% Immune to Knockback",
+      "rank": 2,
+      "randomEligible": true
+    },
+    {
+      "id": "WorldTree_Sanity",
+      "name": "Hermit Sage",
+      "description": "SAN depletion rate -50.0% Work Speed -20.0% World Tree resources will not vanish when approached.",
+      "rank": 5,
+      "randomEligible": false
+    },
+    {
+      "id": "PAL_rude",
+      "name": "Hooligan",
+      "description": "No in-game description is available.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Aqua_1_PAL",
+      "name": "Hydromaniac",
+      "description": "10.0% increase in Water attack damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Ice_2_PAL",
+      "name": "Ice Emperor",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": false
+    },
+    {
+      "id": "MutationPal_Mutant",
+      "name": "Idiosyncratic",
+      "description": "Pal and Player Auto Health Regeneration Rate +50.0% Defense +{EffectValue4}% Immune to Poison Damage Immune to Burn Damage",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "MutationPal_Immortal",
+      "name": "Immortality",
+      "description": "Life Steal +5.0% Pal Auto Health Regeneration Rate +100.0% Attack +15.0%",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "CoolTimeReduction_Up_2",
+      "name": "Impatient",
+      "description": "Active skill cooldown reduction 15.0%",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "Stamina_Up_1",
+      "name": "Infinite Stamina",
+      "description": "Max stamina +50.0% *This effect is only valid for rideable pals.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "Nocturnal",
+      "name": "Insomnia",
+      "description": "Does not sleep and continues to work even at night.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementResist_Thunder_1_PAL",
+      "name": "Insulated Body",
+      "description": "10.0% decrease in incoming Lightning damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "Invader",
+      "name": "Invader",
+      "description": "No in-game description is available.",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "SwimSpeed_up_3",
+      "name": "King of the Waves",
+      "description": "No in-game description is available.",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "SelfDeathAddItemDrop_up_3",
+      "name": "Lavish Hospitality",
+      "description": "Your Dropped Items + 100.0%",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "Legend",
+      "name": "Legend",
+      "description": "Attack +20.0% Defense +20.0% Movement Speed increases 20.0%",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "RideJumpCount_Increase1",
+      "name": "Lightfooted",
+      "description": "Mounted Jump Count +1",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "TrainerLogging_up1",
+      "name": "Logging Foreman",
+      "description": "25.0% increase in Player Logging Efficiency.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Thunder_2_PAL",
+      "name": "Lord of Lightning",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": false
+    },
+    {
+      "id": "ElementBoost_Aqua_2_PAL",
+      "name": "Lord of the Sea",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": false
+    },
+    {
+      "id": "ElementBoost_Dark_2_PAL",
+      "name": "Lord of the Underworld",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": false
+    },
+    {
+      "id": "Rare",
+      "name": "Lucky",
+      "description": "No in-game description is available.",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "Nushi",
+      "name": "Lunker",
+      "description": "20.0% increase to Water attack damage 20.0% increase to Ice attack damage 20.0% increase to defense.",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "PAL_masochist",
+      "name": "Masochist",
+      "description": "No in-game description is available.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_FullStomach_Down_3",
+      "name": "Mastery of Fasting",
+      "description": "Hunger decreases +20.0% slower.",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "NonKilling",
+      "name": "Mercy Hit",
+      "description": "Pacifist. Will not reduce the target's Health below 1.",
+      "rank": -1,
+      "randomEligible": true
+    },
+    {
+      "id": "TrainerMining_up1",
+      "name": "Mine Foreman",
+      "description": "25.0% increase in Player Mining Efficiency.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "TrainerWorkSpeed_UP_1",
+      "name": "Motivational Leader",
+      "description": "25.0% increase in Player Work Speed.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "Noukin",
+      "name": "Musclehead",
+      "description": "No in-game description is available.",
+      "rank": 2,
+      "randomEligible": true
+    },
+    {
+      "id": "NightOwl",
+      "name": "Night Owl",
+      "description": "Tends to nap through the day, due to being nocturnal.",
+      "rank": -1,
+      "randomEligible": true
+    },
+    {
+      "id": "MoveSpeed_up_1",
+      "name": "Nimble",
+      "description": "10.0% increase to movement speed.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "SalePrice_Up_1",
+      "name": "Noble",
+      "description": "Increases the value of items when sold by +5.0%",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "Alien",
+      "name": "Otherworldly Cells",
+      "description": "Attack +10.0% Fire damage reduction 15.0% Lightning damage reduction 15.0%",
+      "rank": 1,
+      "randomEligible": false
+    },
+    {
+      "id": "PAL_ALLAttack_down2",
+      "name": "Pacifist",
+      "description": "No in-game description is available.",
+      "rank": -3,
+      "randomEligible": true
+    },
+    {
+      "id": "Test_PalEgg_HatchingSpeed_Up",
+      "name": "Philanthropist",
+      "description": "When assigned to a Breeding Farm, breeding speed is increased by 100.0%.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_Sanity_Down_1",
+      "name": "Positive Thinker",
+      "description": "SAN drops +10.0% slower.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Earth_1_PAL",
+      "name": "Power of Gaia",
+      "description": "10.0% increase in Earth attack damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Fire_1_PAL",
+      "name": "Pyromaniac",
+      "description": "10.0% increase in Fire attack damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "WorkSuitabilityAddRank_MonsterFarm_2",
+      "name": "Ranch Master",
+      "description": "Farming's Work Suitability +2",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "ReloadSpeedUp_Passive",
+      "name": "Reload Master",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "CraftSpeed_up3",
+      "name": "Remarkable Craftsmanship",
+      "description": "No in-game description is available.",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "MoveSpeed_up_2",
+      "name": "Runner",
+      "description": "20.0% increase to movement speed.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_sadist",
+      "name": "Sadist",
+      "description": "No in-game description is available.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "WorldTree_DEF",
+      "name": "Sanctified Meat Shield",
+      "description": "Defense +50.0% Attack -30.0% World Tree resources will not vanish when approached.",
+      "rank": 5,
+      "randomEligible": false
+    },
+    {
+      "id": "Salvation",
+      "name": "Savior",
+      "description": "No in-game description is available.",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "CoolTimeReduction_Up_1",
+      "name": "Serenity",
+      "description": "Active skill cooldown reduction 30.0% Attack +10.0%",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "CraftSpeed_up1",
+      "name": "Serious",
+      "description": "No in-game description is available.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "SelfDeathAddItemDrop_up_2",
+      "name": "Service-Minded",
+      "description": "Your Dropped Items + 50.0%",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "SalePrice_Down_1",
+      "name": "Shabby",
+      "description": "Decrease the value of items when sold by -10.0%",
+      "rank": -1,
+      "randomEligible": true
+    },
+    {
+      "id": "Stamina_Down_1",
+      "name": "Sickly",
+      "description": "Max Stamina -25.0% *This effect is only valid for rideable pals.",
+      "rank": -1,
+      "randomEligible": true
+    },
+    {
+      "id": "Witch",
+      "name": "Siren of the Void",
+      "description": "No in-game description is available.",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "RideJumpCount_Increase2",
+      "name": "Skymarcher",
+      "description": "Mounted Jump Count +2",
+      "rank": 4,
+      "randomEligible": false
+    },
+    {
+      "id": "CraftSpeed_down2",
+      "name": "Slacker",
+      "description": "No in-game description is available.",
+      "rank": -3,
+      "randomEligible": true
+    },
+    {
+      "id": "SwimSpeed_up_1",
+      "name": "Sleek Stroke",
+      "description": "30.0% increase movement speed on water.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Leaf_2_PAL",
+      "name": "Spirit Emperor",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": false
+    },
+    {
+      "id": "ElementBoost_Normal_1_PAL",
+      "name": "Spirit of Zen",
+      "description": "10.0% increase in Neutral attack damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "TrainerDEF_UP_1",
+      "name": "Stronghold Strategist",
+      "description": "10.0% increase in Player Defense.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementResist_Fire_1_PAL",
+      "name": "Suntan Lover",
+      "description": "10.0% decrease in incoming Fire damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "MoveSpeed_up_3",
+      "name": "Swift",
+      "description": "30.0% increase to movement speed.",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "WorldTree_ATK",
+      "name": "Twin-Edged Holy Blade",
+      "description": "Attack +50.0% Defense -30.0% World Tree resources will not vanish when approached.",
+      "rank": 5,
+      "randomEligible": false
+    },
+    {
+      "id": "PAL_Sanity_Up_1",
+      "name": "Unstable",
+      "description": "SAN drops +10.0% faster.",
+      "rank": -1,
+      "randomEligible": true
+    },
+    {
+      "id": "Vampire",
+      "name": "Vampiric",
+      "description": "Absorbs a portion of the damage dealt to restore Health. Does not sleep at night and continues to work.",
+      "rank": 4,
+      "randomEligible": true
+    },
+    {
+      "id": "TrainerATK_UP_1",
+      "name": "Vanguard",
+      "description": "10.0% increase in Player Attack.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementBoost_Dark_1_PAL",
+      "name": "Veil of Darkness",
+      "description": "10.0% increase in Dark attack damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "ElementResist_Aqua_1_PAL",
+      "name": "Waterproof",
+      "description": "10.0% decrease in incoming Water damage.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "PlayerSP_DecreaseRate_Passive",
+      "name": "Wellness Watcher",
+      "description": "No in-game description is available.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_CorporateSlave",
+      "name": "Work Slave",
+      "description": "No in-game description is available.",
+      "rank": 1,
+      "randomEligible": true
+    },
+    {
+      "id": "PAL_Sanity_Down_2",
+      "name": "Workaholic",
+      "description": "SAN drops +15.0% slower.",
+      "rank": 3,
+      "randomEligible": true
+    },
+    {
+      "id": "WorldTree_FullStomach",
+      "name": "World Tree Seedbed",
+      "description": "Decrease Hunger depletion rate by +50.0% HP -20.0% World Tree resources will not vanish when approached.",
+      "rank": 5,
+      "randomEligible": false
+    }
+  ]
+}

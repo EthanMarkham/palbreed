@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+tools/save-parser/target
+.tanstack
 
 # Editor directories and files
 .vscode/*

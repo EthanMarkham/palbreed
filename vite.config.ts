@@ -16,6 +16,13 @@ export default defineConfig({
         codeSplitting: {
           groups: [
             {
+              // Keep the GPL Oodle compatibility layer behind the save-import
+              // boundary instead of shipping it in the initial app bundle.
+              name: "oodle",
+              test: /node_modules[\\/](ooz-wasm)[\\/]/,
+              priority: 30,
+            },
+            {
               name: "react",
               test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/,
               priority: 20,

@@ -10,33 +10,63 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BuilderRouteImport } from './routes/builder'
+import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as PairRouteImport } from './routes/pair'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuilderRoute = BuilderRouteImport.update({
+  id: '/builder',
+  path: '/builder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryRoute = InventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PairRoute = PairRouteImport.update({
+  id: '/pair',
+  path: '/pair',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/builder': typeof BuilderRoute
+  '/inventory': typeof InventoryRoute
+  '/pair': typeof PairRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/builder': typeof BuilderRoute
+  '/inventory': typeof InventoryRoute
+  '/pair': typeof PairRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/builder': typeof BuilderRoute
+  '/inventory': typeof InventoryRoute
+  '/pair': typeof PairRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/builder' | '/inventory' | '/pair'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/builder' | '/inventory' | '/pair'
+  id: '__root__' | '/' | '/builder' | '/inventory' | '/pair'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BuilderRoute: typeof BuilderRoute
+  InventoryRoute: typeof InventoryRoute
+  PairRoute: typeof PairRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +78,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/builder': {
+      id: '/builder'
+      path: '/builder'
+      fullPath: '/builder'
+      preLoaderRoute: typeof BuilderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory': {
+      id: '/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof InventoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pair': {
+      id: '/pair'
+      path: '/pair'
+      fullPath: '/pair'
+      preLoaderRoute: typeof PairRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BuilderRoute: BuilderRoute,
+  InventoryRoute: InventoryRoute,
+  PairRoute: PairRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
