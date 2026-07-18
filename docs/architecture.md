@@ -8,7 +8,7 @@ Migrating to Next.js is not inherently a bad refactor, but it would add routing,
 
 - React components access Pals only through `breedingRepository`.
 - The lineage service is a pure client-side algorithm.
-- Generated static data is the production read path.
+- The compact generated matrix is the production read path; the full canonical artifact remains an audit and release-validation asset.
 - Advertising is configured at build time and loads only after a route is found and a valid AdSense client/slot configuration exists.
 
 ## Future migration path

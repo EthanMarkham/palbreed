@@ -21,9 +21,15 @@ export default function PalPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
   const selected = pals.find((pal) => pal.id === value);
+  const closePicker = () => {
+    setOpen(false);
+    setQuery("");
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  };
   const filteredPals = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     if (!normalizedQuery) return pals.slice(0, 80);
@@ -42,10 +48,13 @@ export default function PalPicker({
     inputRef.current?.focus();
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") closePicker();
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -58,8 +67,7 @@ export default function PalPicker({
 
   const selectPal = (palId: PalId) => {
     onChange(palId);
-    setQuery("");
-    setOpen(false);
+    closePicker();
   };
 
   return (
@@ -69,8 +77,10 @@ export default function PalPicker({
         {eyebrow && <span className="picker-eyebrow">{eyebrow}</span>}
       </div>
       <button
+        ref={triggerRef}
         className={`picker-trigger${selected ? " has-selection" : ""}`}
         type="button"
+        aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listboxId}
         onClick={() => setOpen((current) => !current)}
@@ -102,7 +112,7 @@ export default function PalPicker({
               <span className="picker-eyebrow">PALDEX 1.0</span>
               <strong>Choose {label.toLocaleLowerCase()}</strong>
             </div>
-            <button className="picker-close" type="button" onClick={() => setOpen(false)} aria-label="Close picker">
+            <button className="picker-close" type="button" onClick={closePicker} aria-label="Close picker">
               <CloseIcon />
             </button>
           </div>
@@ -111,6 +121,7 @@ export default function PalPicker({
             <span className="sr-only">Search Pals</span>
             <input
               ref={inputRef}
+              aria-label="Search Pals"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Type a Pal name"

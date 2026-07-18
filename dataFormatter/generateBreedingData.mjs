@@ -5,16 +5,21 @@ import path from "node:path";
 const DEFAULT_SOURCE_PAGE = "https://palbreeder.com/";
 const ICON_BASE_URL = new URL("/pal-icons/", DEFAULT_SOURCE_PAGE).href;
 const OUTPUT_PATH = new URL("../src/data/breeding-1.0.json", import.meta.url);
+const RUNTIME_OUTPUT_PATH = new URL("../src/data/breeding-runtime-1.0.json", import.meta.url);
 const BASE36 = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 const source = await loadSource(process.argv[2]);
 const { payload, sourceText } = extractPayload(source.text);
 const artifact = buildArtifact(payload, source.url, sourceText);
+const runtimeArtifact = buildRuntimeArtifact(payload, artifact);
 
-await writeFile(OUTPUT_PATH, `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
+await Promise.all([
+  writeFile(OUTPUT_PATH, `${JSON.stringify(artifact, null, 2)}\n`, "utf8"),
+  writeFile(RUNTIME_OUTPUT_PATH, `${JSON.stringify(runtimeArtifact)}\n`, "utf8"),
+]);
 
 console.log(
-  `Generated ${artifact.metadata.palCount} Pals and ${artifact.metadata.parentPairCount} parent pairs in ${path.normalize(OUTPUT_PATH.pathname.slice(1))}.`,
+  `Generated ${artifact.metadata.palCount} Pals and ${artifact.metadata.parentPairCount} parent pairs in ${path.normalize(OUTPUT_PATH.pathname.slice(1))} and ${path.normalize(RUNTIME_OUTPUT_PATH.pathname.slice(1))}.`,
 );
 
 async function loadSource(sourceArgument) {
@@ -207,6 +212,23 @@ function buildArtifact(raw, sourceUrl, sourceText) {
     partnerIdsByParentAndChild,
     genderedChildrenByParentPair,
     genderedRules,
+  };
+}
+
+function buildRuntimeArtifact(raw, artifact) {
+  return {
+    metadata: {
+      gameVersion: artifact.metadata.gameVersion,
+      imageBaseUrl: artifact.metadata.imageBaseUrl,
+      palCount: artifact.metadata.palCount,
+      parentPairCount: artifact.metadata.parentPairCount,
+    },
+    pals: raw.pals.map((pal) => ({
+      id: pal.s,
+      name: pal.n,
+    })),
+    matrix: raw.matrix,
+    genderedRules: artifact.genderedRules,
   };
 }
 

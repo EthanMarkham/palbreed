@@ -4,9 +4,7 @@ export type PalGender = "F" | "M";
 export type Pal = {
   id: PalId;
   name: string;
-  image?: string;
-  elements: readonly string[];
-  breedable: boolean;
+  image: string;
 };
 
 export type ParentPair = readonly [PalId, PalId];

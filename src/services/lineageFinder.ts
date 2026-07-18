@@ -1,7 +1,7 @@
 import type { LineageResult, PalGender, PalId } from "../domain/pal";
 import { breedingRepository } from "../data/breedingRepository";
 
-/** Finds a shortest, deterministic route from an owned Pal to a target Pal. */
+/** Finds the fewest breeding hops, assuming each listed partner is available. */
 export function findLineage(startId: PalId, targetId: PalId): LineageResult {
   if (!breedingRepository.getPal(startId) || !breedingRepository.getPal(targetId)) {
     return { status: "invalid-input", reason: "Choose two valid Pals." };
