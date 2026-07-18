@@ -1,7 +1,7 @@
 import type { LineageResult, PalGender, PalId } from "../domain/pal";
 import { breedingRepository } from "../data/breedingRepository";
 
-/** Finds the fewest breeding hops, assuming each listed partner is available. */
+/** Finds the shortest route, assuming each listed partner is available. */
 export function findLineage(startId: PalId, targetId: PalId): LineageResult {
   if (!breedingRepository.getPal(startId) || !breedingRepository.getPal(targetId)) {
     return { status: "invalid-input", reason: "Choose two valid Pals." };
@@ -30,7 +30,7 @@ export function findLineage(startId: PalId, targetId: PalId): LineageResult {
       }
     }
   }
-  return { status: "no-route", reason: "No breeding route was found in the loaded data." };
+  return { status: "no-route", reason: "No route was found in the loaded data." };
 }
 
 type PreviousEdge = {

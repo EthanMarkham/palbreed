@@ -52,13 +52,13 @@ function App() {
       <div className="ambient ambient-two" aria-hidden="true" />
 
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Breedpath home">
-          <span className="brand-mark">BP</span>
-          <span className="brand-name">BREEDPATH</span>
+        <a className="brand" href="#top" aria-label="Palpath home">
+          <span className="brand-mark">PP</span>
+          <span className="brand-name">PALPATH</span>
         </a>
         <div className="data-signal">
           <span className="signal-dot" />
-          <span>Verified 1.0 data</span>
+          <span>Indexed 1.0 data</span>
           <strong>{metadata.palCount} Pals</strong>
         </div>
       </header>
@@ -66,26 +66,41 @@ function App() {
       <main className="app-shell" id="top">
         <section className="hero-grid">
           <div className="hero-copy">
-            <h1>Fewest steps. <em>Exact outcomes.</em></h1>
+            <span className="section-kicker">PALWORLD 1.0 REFERENCE</span>
+            <h1>Route planner and pair lookup.</h1>
             <p className="hero-lede">
-              Build a lineage or check any parent pair against the complete Palworld 1.0 breeding table.
+              Check any pair result, map the shortest route to a target Pal, and see when gender direction changes the outcome.
             </p>
+            <div className="hero-notes" aria-label="Tool highlights">
+              <HeroNote
+                title="Lineage mode"
+                detail="Finds the shortest route from a Pal you have to one you want."
+              />
+              <HeroNote
+                title="Pair lookup"
+                detail="Shows the direct result for any two parents and flags direction-locked cases."
+              />
+              <HeroNote
+                title="Current runtime table"
+                detail="Uses the complete loaded 1.0 dataset instead of a hand-picked subset."
+              />
+            </div>
             <div className="hero-metrics" aria-label="Dataset summary">
-              <Metric value={metadata.palCount.toString()} label="Breedable forms" />
+              <Metric value={metadata.palCount.toString()} label="Indexed pals" />
               <Metric value={metadata.parentPairCount.toLocaleString()} label="Pair outcomes" />
             </div>
           </div>
 
-          <section className="calculator-card" aria-label="Palworld breeding calculator">
+          <section className="calculator-card" aria-label="Palworld route and pair lookup">
             <div className="calculator-head">
               <div>
-                <span className="section-kicker">BREEDING PLANNER</span>
-                <h2>{mode === "lineage" ? "Fewest breeding steps" : "Check a pair"}</h2>
+                <span className="section-kicker">ROUTE TOOL</span>
+                <h2>{mode === "lineage" ? "Shortest route" : "Pair lookup"}</h2>
               </div>
               <span className="version-tag">v{metadata.gameVersion}</span>
             </div>
 
-            <div className="mode-tabs" role="tablist" aria-label="Calculator mode" onKeyDown={handleModeKeyDown}>
+            <div className="mode-tabs" role="tablist" aria-label="Lookup mode" onKeyDown={handleModeKeyDown}>
               <ModeTab
                 id="lineage-tab"
                 controls="lineage-panel"
@@ -102,7 +117,7 @@ function App() {
                 onClick={() => setMode("pair")}
                 icon={<EggIcon />}
               >
-                Check pair
+                Pair lookup
               </ModeTab>
             </div>
 
@@ -133,7 +148,7 @@ function App() {
                 />
                 <div className="tool-hint">
                   <ShieldIcon />
-                  <span>Fewest breed hops, assuming every listed partner is already available.</span>
+                  <span>Shortest route, assuming every listed partner is already available.</span>
                 </div>
               </div>
             ) : (
@@ -186,6 +201,15 @@ function Metric({ value, label }: { value: string; label: string }) {
     <div className="metric">
       <strong>{value}</strong>
       <span>{label}</span>
+    </div>
+  );
+}
+
+function HeroNote({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className="hero-note">
+      <strong>{title}</strong>
+      <span>{detail}</span>
     </div>
   );
 }
@@ -262,7 +286,7 @@ function PairOutcome({
       <div className="pair-outcome is-empty">
         <EggIcon />
         <div>
-          <strong>Egg result waits here</strong>
+          <strong>Pair result appears here</strong>
           <span>Select both parents and their genders.</span>
         </div>
       </div>
@@ -277,7 +301,7 @@ function PairOutcome({
         <AlertIcon />
         <div>
           <strong>One female + one male required</strong>
-          <span>Change either {first?.name ?? "parent"} or {second?.name ?? "parent"} before breeding.</span>
+          <span>Change either {first?.name ?? "parent"} or {second?.name ?? "parent"} before checking this pair.</span>
         </div>
       </div>
     );
@@ -293,7 +317,7 @@ function PairOutcome({
     return (
       <div className="pair-outcome is-warning" role="status">
         <AlertIcon />
-        <div><strong>No egg result found</strong><span>This pair is not present in the loaded 1.0 table.</span></div>
+        <div><strong>No result found</strong><span>This pair is not present in the loaded 1.0 table.</span></div>
       </div>
     );
   }
@@ -301,7 +325,7 @@ function PairOutcome({
   return (
     <div className={`pair-result${outcomes.length ? " is-locked" : ""}`} aria-live="polite">
       <div className="pair-result-label">
-        <span>{outcomes.length ? "GENDER-LOCKED OUTCOME" : "EGG OUTCOME"}</span>
+        <span>{outcomes.length ? "DIRECTION-LOCKED RESULT" : "PAIR RESULT"}</span>
         <small>{genderName(firstGender)} {first?.name} + {genderName(secondGender)} {second?.name}</small>
       </div>
       <PalResult pal={child} />
@@ -326,7 +350,7 @@ function PairOutcome({
 function LineageResults({ result }: { result: LineageResult | null }) {
   if (!result) return null;
   if (result.status === "same-pal") {
-    return <StatusCard icon={<CheckCircleIcon />} title="You already have the target" detail="Choose a different target to build a breeding route." />;
+    return <StatusCard icon={<CheckCircleIcon />} title="You already have the target" detail="Choose a different target to map a route." />;
   }
   if (result.status === "no-route" || result.status === "invalid-input") {
     return <StatusCard icon={<AlertIcon />} title="No route available" detail={result.reason} warning />;
@@ -336,7 +360,7 @@ function LineageResults({ result }: { result: LineageResult | null }) {
     <section className="route-results" aria-live="polite">
       <div className="results-head">
         <div>
-          <span className="section-kicker">FEWEST-STEP LINEAGE</span>
+          <span className="section-kicker">SHORTEST ROUTE</span>
           <h2>Your route, step by step.</h2>
         </div>
         <div className="step-count"><strong>{result.steps.length}</strong><span>{result.steps.length === 1 ? "step" : "steps"}</span></div>
@@ -354,18 +378,18 @@ function LineageResults({ result }: { result: LineageResult | null }) {
               </div>
               <article className={`lineage-card${restricted ? " is-locked" : ""}`}>
                 <div className="lineage-card-head">
-                  <span>BREEDING STEP {String(index + 1).padStart(2, "0")}</span>
+                  <span>ROUTE STEP {String(index + 1).padStart(2, "0")}</span>
                   <span className={`rule-chip${restricted ? " is-locked" : ""}`}>
                     {restricted ? <LockIcon /> : <CheckIcon />}
                     {restricted ? "Exact genders" : "Any orientation"}
                   </span>
                 </div>
                 <div className="breeding-equation">
-                  <BreedingPal pal={from} role="Starting parent" gender={step.fromGender} />
+                  <BreedingPal pal={from} role="Current Pal" gender={step.fromGender} />
                   <span className="equation-symbol">+</span>
-                  <BreedingPal pal={partner} role="Breed with" gender={step.partnerGenders?.[0]} />
+                  <BreedingPal pal={partner} role="Pair with" gender={step.partnerGenders?.[0]} />
                   <ArrowIcon />
-                  <BreedingPal pal={outcome} role="Egg hatches into" outcome />
+                  <BreedingPal pal={outcome} role="Result" outcome />
                 </div>
                 <div className="lineage-card-foot">
                   <ShieldIcon />
@@ -413,7 +437,7 @@ function PalResult({ pal }: { pal: Pal }) {
   return (
     <div className="pal-result">
       <div><img src={pal.image} alt="" /></div>
-      <span><small>YOUR EGG HATCHES INTO</small><strong>{pal.name}</strong></span>
+      <span><small>THIS PAIR RESULTS IN</small><strong>{pal.name}</strong></span>
       <CheckCircleIcon />
     </div>
   );
