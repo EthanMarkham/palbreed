@@ -1,57 +1,67 @@
-import rawData from "./data.json";
-import { pairKey, type Pal, type PalId, type ParentPair } from "../domain/pal";
+import generatedData from "./breeding-1.0.json";
+import {
+  pairKey,
+  type GenderedBreedingOutcome,
+  type GenderRequirement,
+  type Pal,
+  type PalGender,
+  type PalId,
+  type ParentPair,
+} from "../domain/pal";
 
-type RawPal = {
-  name: string;
-  image?: string;
-  elementtype1?: string;
-  elementtype2?: string;
+type GenderedRule = {
+  firstParentId: PalId;
+  firstParentGender: PalGender;
+  secondParentId: PalId;
+  secondParentGender: PalGender;
+  childId: PalId;
 };
 
-/**
- * The sole compatibility boundary for generated data. The 1.0 generator will
- * replace this adapter without leaking its JSON shape into UI or algorithms.
- */
-const rawPals = rawData.palDex as Record<string, RawPal>;
-const nameToId = new Map(Object.keys(rawPals).map((name) => [name, slugify(name)]));
-
-const pals = Object.entries(rawPals)
-  .map(([name, raw]): Pal => ({
-    id: slugify(name),
-    name,
-    image: raw.image,
-    elements: [raw.elementtype1, raw.elementtype2]
-      .filter((element): element is string => Boolean(element && !element.endsWith("::None")))
-      .map((element) => element.replace("EPalElementType::", "")),
-    breedable: true,
+const pals = Object.values(generatedData.palsById)
+  .map((pal): Pal => ({
+    id: pal.id,
+    name: pal.name,
+    image: pal.image,
+    elements: pal.elements,
+    breedable: pal.breedable,
   }))
   .sort((a, b) => a.name.localeCompare(b.name));
 
 const palsById = new Map(pals.map((pal) => [pal.id, pal]));
-
-const parentPairsByChild = new Map<PalId, ParentPair[]>();
-for (const [childName, pairs] of Object.entries(rawData.parentMatches as Record<string, string[][]>)) {
-  const childId = nameToId.get(childName);
-  if (!childId) continue;
-  parentPairsByChild.set(
+const parentPairsByChild = new Map<PalId, ParentPair[]>(
+  Object.entries(generatedData.parentPairsByChild).map(([childId, pairs]) => [
     childId,
-    pairs
-      .map(([first, second]) => {
-        const firstId = nameToId.get(first);
-        const secondId = nameToId.get(second);
-        return firstId && secondId ? ([firstId, secondId] as ParentPair) : null;
-      })
-      .filter((pair): pair is ParentPair => pair !== null),
-  );
-}
+    pairs.map(([first, second]): ParentPair => [first, second]),
+  ]),
+);
+const childByParentPair = new Map<string, PalId>(Object.entries(generatedData.childByParentPair));
+const genderedChildrenByParentPair = new Map<string, readonly PalId[]>(
+  Object.entries(generatedData.genderedChildrenByParentPair),
+);
+const genderedRules: readonly GenderedRule[] = generatedData.genderedRules.map((rule) => ({
+  ...rule,
+  firstParentGender: rule.firstParentGender as PalGender,
+  secondParentGender: rule.secondParentGender as PalGender,
+}));
 
-const childByParentPair = new Map<string, PalId>();
-for (const [pair, childName] of Object.entries(rawData.breedingLookup as Record<string, string>)) {
-  const [first, second] = pair.split("|");
-  const firstId = nameToId.get(first);
-  const secondId = nameToId.get(second);
-  const childId = nameToId.get(childName);
-  if (firstId && secondId && childId) childByParentPair.set(pairKey(firstId, secondId), childId);
+function getGenderedOutcomes(first: PalId, second: PalId): readonly GenderedBreedingOutcome[] {
+  return genderedRules.flatMap((rule) => {
+    if (rule.firstParentId === first && rule.secondParentId === second) {
+      return [{
+        firstGender: rule.firstParentGender,
+        secondGender: rule.secondParentGender,
+        childId: rule.childId,
+      }];
+    }
+    if (rule.firstParentId === second && rule.secondParentId === first) {
+      return [{
+        firstGender: rule.secondParentGender,
+        secondGender: rule.firstParentGender,
+        childId: rule.childId,
+      }];
+    }
+    return [];
+  });
 }
 
 export const breedingRepository = {
@@ -59,8 +69,33 @@ export const breedingRepository = {
   getPal: (id: PalId): Pal | undefined => palsById.get(id),
   getParentPairs: (childId: PalId): readonly ParentPair[] => parentPairsByChild.get(childId) ?? [],
   getChild: (first: PalId, second: PalId): PalId | undefined => childByParentPair.get(pairKey(first, second)),
+  getChildren: (first: PalId, second: PalId): readonly PalId[] => {
+    const key = pairKey(first, second);
+    const child = childByParentPair.get(key);
+    return child ? [child] : (genderedChildrenByParentPair.get(key) ?? []);
+  },
+  getChildForGenders: (
+    first: PalId,
+    second: PalId,
+    firstGender: PalGender,
+    secondGender: PalGender,
+  ): PalId | undefined => {
+    if (firstGender === secondGender) return undefined;
+    const child = childByParentPair.get(pairKey(first, second));
+    if (child) return child;
+    return getGenderedOutcomes(first, second).find(
+      (outcome) => outcome.firstGender === firstGender && outcome.secondGender === secondGender,
+    )?.childId;
+  },
+  getGenderedOutcomes,
+  getGenderRequirement: (first: PalId, second: PalId, childId: PalId): GenderRequirement | undefined => {
+    const outcome = getGenderedOutcomes(first, second).find((candidate) => candidate.childId === childId);
+    return outcome && { firstGender: outcome.firstGender, secondGender: outcome.secondGender };
+  },
+  metadata: {
+    gameVersion: generatedData.metadata.gameVersion,
+    palCount: generatedData.metadata.palCount,
+    parentPairCount: generatedData.metadata.parentPairCount,
+    sourceUpdatedAt: generatedData.metadata.sourceUpdatedAt,
+  },
 };
-
-function slugify(value: string): PalId {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}

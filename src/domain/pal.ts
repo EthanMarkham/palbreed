@@ -1,4 +1,5 @@
 export type PalId = string;
+export type PalGender = "F" | "M";
 
 export type Pal = {
   id: PalId;
@@ -10,10 +11,21 @@ export type Pal = {
 
 export type ParentPair = readonly [PalId, PalId];
 
+export type GenderRequirement = {
+  firstGender: PalGender;
+  secondGender: PalGender;
+};
+
+export type GenderedBreedingOutcome = GenderRequirement & {
+  childId: PalId;
+};
+
 export type LineageStep = {
   from: PalId;
   partners: readonly PalId[];
   result: PalId;
+  fromGender?: PalGender;
+  partnerGenders?: readonly PalGender[];
 };
 
 export type LineageResult =
