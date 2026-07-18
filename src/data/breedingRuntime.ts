@@ -8,11 +8,11 @@ type RuntimePalRecord = {
   name: string;
 };
 
-export type RuntimePal = RuntimePalRecord & {
+type RuntimePal = RuntimePalRecord & {
   image: string;
 };
 
-export type RuntimeBreedingOutcome = {
+type RuntimeBreedingOutcome = {
   firstParentId: PalId;
   secondParentId: PalId;
   childId: PalId;
@@ -30,9 +30,9 @@ const genderedRulesByPair = new Map<string, RuntimeBreedingOutcome[]>();
 for (const rule of runtimeData.genderedRules) {
   const outcome: RuntimeBreedingOutcome = {
     firstParentId: rule.firstParentId,
-    firstParentGender: rule.firstParentGender as PalGender,
+    firstParentGender: parseGender(rule.firstParentGender),
     secondParentId: rule.secondParentId,
-    secondParentGender: rule.secondParentGender as PalGender,
+    secondParentGender: parseGender(rule.secondParentGender),
     childId: rule.childId,
   };
   const key = pairKey(outcome.firstParentId, outcome.secondParentId);
@@ -65,6 +65,11 @@ export function forEachBreedingOutcome(visitor: (outcome: RuntimeBreedingOutcome
       visitor({ firstParentId, secondParentId, childId: child.id });
     }
   }
+}
+
+function parseGender(value: string): PalGender {
+  if (value === "F" || value === "M") return value;
+  throw new Error(`Invalid runtime gender ${value}.`);
 }
 
 function decodeBase36Pair(code: string) {

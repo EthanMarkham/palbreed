@@ -1,25 +1,17 @@
 import { useMemo, useState } from "react";
 import "./App.css";
-import AdSlot from "./components/ads/AdSlot";
 import PalPicker from "./components/PalPicker";
 import { breedingRepository } from "./data/breedingRepository";
 import type { LineageResult, Pal, PalGender, PalId } from "./domain/pal";
 import { findLineage } from "./services/lineageFinder";
 
-type CalculatorMode = "lineage" | "pair";
-
 const metadata = breedingRepository.metadata;
+const pals = breedingRepository.allPals();
 
 function App() {
-  const pals = breedingRepository.allPals();
-  const [mode, setMode] = useState<CalculatorMode>("lineage");
   const [startId, setStartId] = useState<PalId>("");
   const [targetId, setTargetId] = useState<PalId>("");
-  const [firstParentId, setFirstParentId] = useState<PalId>("");
-  const [secondParentId, setSecondParentId] = useState<PalId>("");
-  const [firstGender, setFirstGender] = useState<PalGender>("F");
-  const [secondGender, setSecondGender] = useState<PalGender>("M");
-  const lineageResult = useMemo(
+  const result = useMemo(
     () => startId && targetId ? findLineage(startId, targetId) : null,
     [startId, targetId],
   );
@@ -28,26 +20,9 @@ function App() {
     setStartId(targetId);
     setTargetId(startId);
   };
-  const swapParents = () => {
-    setFirstParentId(secondParentId);
-    setSecondParentId(firstParentId);
-    setFirstGender(secondGender);
-    setSecondGender(firstGender);
-  };
-  const handleModeKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const nextMode = event.key === "ArrowRight" || event.key === "End"
-      ? "pair"
-      : event.key === "ArrowLeft" || event.key === "Home"
-        ? "lineage"
-        : undefined;
-    if (!nextMode) return;
-    event.preventDefault();
-    setMode(nextMode);
-    requestAnimationFrame(() => document.getElementById(`${nextMode}-tab`)?.focus());
-  };
 
   return (
-    <div className={`site-frame mode-${mode}`}>
+    <div className="site-frame">
       <div className="ambient ambient-one" aria-hidden="true" />
       <div className="ambient ambient-two" aria-hidden="true" />
 
@@ -56,360 +31,156 @@ function App() {
           <span className="brand-mark">PP</span>
           <span className="brand-name">PALPATH</span>
         </a>
-        <div className="data-signal">
-          <span className="signal-dot" />
-          <span>Indexed 1.0 data</span>
-          <strong>{metadata.palCount} Pals</strong>
-        </div>
+        <span className="version-label">Palworld {metadata.gameVersion}</span>
       </header>
 
-      <main className="app-shell" id="top">
-        <section className="hero-grid">
-          <div className="hero-copy">
-            <span className="section-kicker">PALWORLD 1.0 REFERENCE</span>
-            <h1>Route planner and pair lookup.</h1>
-            <p className="hero-lede">
-              Check any pair result, map the shortest route to a target Pal, and see when gender direction changes the outcome.
-            </p>
-            <div className="hero-notes" aria-label="Tool highlights">
-              <HeroNote
-                title="Lineage mode"
-                detail="Finds the shortest route from a Pal you have to one you want."
-              />
-              <HeroNote
-                title="Pair lookup"
-                detail="Shows the direct result for any two parents and flags direction-locked cases."
-              />
-              <HeroNote
-                title="Current runtime table"
-                detail="Uses the complete loaded 1.0 dataset instead of a hand-picked subset."
-              />
+      <main className="workspace" id="top">
+        <section className="planner-panel" aria-labelledby="planner-title">
+          <div className="planner-head">
+            <div>
+              <span className="section-kicker">SHORTEST PASSIVE PATH</span>
+              <h1 id="planner-title">Passive transfer path</h1>
             </div>
-            <div className="hero-metrics" aria-label="Dataset summary">
-              <Metric value={metadata.palCount.toString()} label="Indexed pals" />
-              <Metric value={metadata.parentPairCount.toLocaleString()} label="Pair outcomes" />
-            </div>
+            <p>Select the Pal carrying the passives, then the Pal you want them on.</p>
           </div>
 
-          <section className="calculator-card" aria-label="Palworld route and pair lookup">
-            <div className="calculator-head">
-              <div>
-                <span className="section-kicker">ROUTE TOOL</span>
-                <h2>{mode === "lineage" ? "Shortest route" : "Pair lookup"}</h2>
-              </div>
-              <span className="version-tag">v{metadata.gameVersion}</span>
-            </div>
-
-            <div className="mode-tabs" role="tablist" aria-label="Lookup mode" onKeyDown={handleModeKeyDown}>
-              <ModeTab
-                id="lineage-tab"
-                controls="lineage-panel"
-                active={mode === "lineage"}
-                onClick={() => setMode("lineage")}
-                icon={<RouteIcon />}
-              >
-                Lineage
-              </ModeTab>
-              <ModeTab
-                id="pair-tab"
-                controls="pair-panel"
-                active={mode === "pair"}
-                onClick={() => setMode("pair")}
-                icon={<EggIcon />}
-              >
-                Pair lookup
-              </ModeTab>
-            </div>
-
-            {mode === "lineage" ? (
-              <div className="tool-body" id="lineage-panel" role="tabpanel" aria-labelledby="lineage-tab">
-                <PalPicker
-                  label="Starting Pal"
-                  eyebrow="YOU HAVE"
-                  value={startId}
-                  onChange={setStartId}
-                  pals={pals}
-                  placeholder="Choose your Pal"
-                />
-                <div className="tool-connector">
-                  <span>ROUTE TO</span>
-                  <button type="button" onClick={swapRoute} disabled={!startId && !targetId}>
-                    <SwapIcon />
-                    Swap
-                  </button>
-                </div>
-                <PalPicker
-                  label="Target Pal"
-                  eyebrow="YOU WANT"
-                  value={targetId}
-                  onChange={setTargetId}
-                  pals={pals}
-                  placeholder="Choose a target"
-                />
-                <div className="tool-hint">
-                  <ShieldIcon />
-                  <span>Shortest route, assuming every listed partner is already available.</span>
-                </div>
-              </div>
-            ) : (
-              <div className="tool-body pair-tool" id="pair-panel" role="tabpanel" aria-labelledby="pair-tab">
-                <div className="pair-parent">
-                  <PalPicker
-                    label="First parent"
-                    eyebrow="PARENT A"
-                    value={firstParentId}
-                    onChange={setFirstParentId}
-                    pals={pals}
-                    placeholder="Choose first parent"
-                  />
-                  <GenderSwitch label="First parent gender" value={firstGender} onChange={setFirstGender} />
-                </div>
-                <button className="parent-swap" type="button" onClick={swapParents} aria-label="Swap parents">
-                  <SwapIcon />
-                </button>
-                <div className="pair-parent">
-                  <PalPicker
-                    label="Second parent"
-                    eyebrow="PARENT B"
-                    value={secondParentId}
-                    onChange={setSecondParentId}
-                    pals={pals}
-                    placeholder="Choose second parent"
-                  />
-                  <GenderSwitch label="Second parent gender" value={secondGender} onChange={setSecondGender} />
-                </div>
-                <PairOutcome
-                  firstId={firstParentId}
-                  secondId={secondParentId}
-                  firstGender={firstGender}
-                  secondGender={secondGender}
-                />
-              </div>
-            )}
-          </section>
+          <div className="route-controls">
+            <PalPicker
+              label="Starting Pal"
+              description="HAS PASSIVES"
+              value={startId}
+              onChange={setStartId}
+              pals={pals}
+              placeholder="Search starting Pal"
+            />
+            <button
+              className="swap-button"
+              type="button"
+              onClick={swapRoute}
+              disabled={!startId && !targetId}
+              aria-label="Swap starting and target Pals"
+            >
+              <SwapIcon />
+            </button>
+            <PalPicker
+              label="Target Pal"
+              description="NEEDS PASSIVES"
+              value={targetId}
+              onChange={setTargetId}
+              pals={pals}
+              placeholder="Search target Pal"
+            />
+          </div>
         </section>
 
-        {mode === "lineage" && <LineageResults result={lineageResult} />}
-
+        <LineageResults result={result} startId={startId} targetId={targetId} />
       </main>
     </div>
   );
 }
 
-function Metric({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="metric">
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function HeroNote({ title, detail }: { title: string; detail: string }) {
-  return (
-    <div className="hero-note">
-      <strong>{title}</strong>
-      <span>{detail}</span>
-    </div>
-  );
-}
-
-function ModeTab({
-  id,
-  controls,
-  active,
-  onClick,
-  icon,
-  children,
+function LineageResults({
+  result,
+  startId,
+  targetId,
 }: {
-  id: string;
-  controls: string;
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  children: React.ReactNode;
+  result: LineageResult | null;
+  startId: PalId;
+  targetId: PalId;
 }) {
-  return (
-    <button
-      id={id}
-      type="button"
-      role="tab"
-      aria-controls={controls}
-      aria-selected={active}
-      tabIndex={active ? 0 : -1}
-      className={active ? "is-active" : ""}
-      onClick={onClick}
-    >
-      {icon}
-      {children}
-    </button>
-  );
-}
-
-function GenderSwitch({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: PalGender;
-  onChange: (value: PalGender) => void;
-}) {
-  return (
-    <div className="gender-field">
-      <span>{label}</span>
-      <div className="gender-switch" role="group" aria-label={label}>
-        <button type="button" aria-pressed={value === "F"} className={value === "F" ? "is-active" : ""} onClick={() => onChange("F")}>
-          <b>F</b> Female
-        </button>
-        <button type="button" aria-pressed={value === "M"} className={value === "M" ? "is-active" : ""} onClick={() => onChange("M")}>
-          <b>M</b> Male
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function PairOutcome({
-  firstId,
-  secondId,
-  firstGender,
-  secondGender,
-}: {
-  firstId: PalId;
-  secondId: PalId;
-  firstGender: PalGender;
-  secondGender: PalGender;
-}) {
-  if (!firstId || !secondId) {
+  if (!result) {
+    const detail = startId
+      ? "Choose the target Pal to calculate the path."
+      : targetId
+        ? "Choose the Pal that already has the passives."
+        : "Choose a starting Pal and target Pal above.";
     return (
-      <div className="pair-outcome is-empty">
-        <EggIcon />
+      <section className="route-stage is-empty" aria-live="polite">
+        <RouteIcon />
         <div>
-          <strong>Pair result appears here</strong>
-          <span>Select both parents and their genders.</span>
+          <h2>Your path appears here</h2>
+          <p>{detail}</p>
         </div>
-      </div>
+      </section>
     );
   }
 
-  const first = breedingRepository.getPal(firstId);
-  const second = breedingRepository.getPal(secondId);
-  if (firstGender === secondGender) {
-    return (
-      <div className="pair-outcome is-warning" role="status">
-        <AlertIcon />
-        <div>
-          <strong>One female + one male required</strong>
-          <span>Change either {first?.name ?? "parent"} or {second?.name ?? "parent"} before checking this pair.</span>
-        </div>
-      </div>
-    );
-  }
-
-  const outcomes = breedingRepository.getGenderedOutcomes(firstId, secondId);
-  const childId = breedingRepository.getChildForGenders(firstId, secondId, firstGender, secondGender);
-  const child = childId ? breedingRepository.getPal(childId) : undefined;
-  const alternate = outcomes.find((outcome) => outcome.childId !== childId);
-  const alternateChild = alternate ? breedingRepository.getPal(alternate.childId) : undefined;
-
-  if (!child) {
-    return (
-      <div className="pair-outcome is-warning" role="status">
-        <AlertIcon />
-        <div><strong>No result found</strong><span>This pair is not present in the loaded 1.0 table.</span></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`pair-result${outcomes.length ? " is-locked" : ""}`} aria-live="polite">
-      <div className="pair-result-label">
-        <span>{outcomes.length ? "DIRECTION-LOCKED RESULT" : "PAIR RESULT"}</span>
-        <small>{genderName(firstGender)} {first?.name} + {genderName(secondGender)} {second?.name}</small>
-      </div>
-      <PalResult pal={child} />
-      <p>
-        {outcomes.length
-          ? `This exact gender direction is required. Reversing the genders changes the species.`
-          : "This species result is fixed for the pair; either parent can be the female."}
-      </p>
-      {alternate && alternateChild && (
-        <div className="alternate-outcome">
-          <span>Reverse genders</span>
-          <strong>{genderName(alternate.firstGender)} + {genderName(alternate.secondGender)}</strong>
-          <ArrowIcon />
-          <img src={alternateChild.image} alt="" />
-          <strong>{alternateChild.name}</strong>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LineageResults({ result }: { result: LineageResult | null }) {
-  if (!result) return null;
   if (result.status === "same-pal") {
-    return <StatusCard icon={<CheckCircleIcon />} title="You already have the target" detail="Choose a different target to map a route." />;
+    return (
+      <RouteStatus
+        icon={<CheckCircleIcon />}
+        title="No transfer needed"
+        detail="The starting and target species are the same."
+      />
+    );
   }
+
   if (result.status === "no-route" || result.status === "invalid-input") {
-    return <StatusCard icon={<AlertIcon />} title="No route available" detail={result.reason} warning />;
+    return (
+      <RouteStatus
+        icon={<AlertIcon />}
+        title="No path found"
+        detail={result.reason}
+        warning
+      />
+    );
   }
 
   return (
-    <section className="route-results" aria-live="polite">
+    <section className="route-stage has-results" aria-live="polite">
       <div className="results-head">
         <div>
-          <span className="section-kicker">SHORTEST ROUTE</span>
-          <h2>Your route, step by step.</h2>
+          <span className="section-kicker">YOUR SHORTEST PATH</span>
+          <h2>
+            {result.steps.length} {result.steps.length === 1 ? "pairing" : "pairings"}
+          </h2>
         </div>
-        <div className="step-count"><strong>{result.steps.length}</strong><span>{result.steps.length === 1 ? "step" : "steps"}</span></div>
+        <p>Each partner is assumed available. Continue with an offspring that inherited the passives you want.</p>
       </div>
-      <ol className="lineage-list">
-        {result.steps.map((step, index) => {
-          const from = breedingRepository.getPal(step.from);
-          const partner = breedingRepository.getPal(step.partners[0]);
-          const outcome = breedingRepository.getPal(step.result);
-          const restricted = Boolean(step.fromGender && step.partnerGenders?.[0]);
-          return (
-            <li className="lineage-step" key={`${step.from}-${step.result}-${index}`}>
-              <div className="timeline-marker">
-                <span>{String(index + 1).padStart(2, "0")}</span>
-              </div>
-              <article className={`lineage-card${restricted ? " is-locked" : ""}`}>
-                <div className="lineage-card-head">
-                  <span>ROUTE STEP {String(index + 1).padStart(2, "0")}</span>
-                  <span className={`rule-chip${restricted ? " is-locked" : ""}`}>
-                    {restricted ? <LockIcon /> : <CheckIcon />}
-                    {restricted ? "Exact genders" : "Any orientation"}
-                  </span>
-                </div>
-                <div className="breeding-equation">
-                  <BreedingPal pal={from} role="Current Pal" gender={step.fromGender} />
-                  <span className="equation-symbol">+</span>
-                  <BreedingPal pal={partner} role="Pair with" gender={step.partnerGenders?.[0]} />
-                  <ArrowIcon />
-                  <BreedingPal pal={outcome} role="Result" outcome />
-                </div>
-                <div className="lineage-card-foot">
-                  <ShieldIcon />
-                  <span>
-                    {restricted
-                      ? `${from?.name} must be ${genderName(step.fromGender)} and ${partner?.name} must be ${genderName(step.partnerGenders?.[0])}.`
-                      : "Use one female and one male; which species carries either gender does not change this result."}
-                  </span>
-                </div>
-              </article>
-            </li>
-          );
-        })}
-      </ol>
-      <AdSlot placement="results-inline" />
+
+      <div className="route-scroll">
+        <ol className="lineage-list">
+          {result.steps.map((step, index) => {
+            const from = breedingRepository.getPal(step.from);
+            const partner = breedingRepository.getPal(step.partner);
+            const outcome = breedingRepository.getPal(step.result);
+            const stepNumber = String(index + 1).padStart(2, "0");
+            const genderLocked = Boolean(step.fromGender && step.partnerGender);
+
+            return (
+              <li className="lineage-step" key={`${step.from}-${step.partner}-${step.result}`}>
+                <span className="step-number">{stepNumber}</span>
+                <article className={`step-card${genderLocked ? " is-locked" : ""}`}>
+                  <div className="step-equation">
+                    <RoutePal pal={from} role={index === 0 ? "Carrier" : "Offspring"} gender={step.fromGender} />
+                    <span className="equation-symbol">+</span>
+                    <RoutePal pal={partner} role="Partner" gender={step.partnerGender} />
+                    <ArrowIcon />
+                    <RoutePal
+                      pal={outcome}
+                      role={index === result.steps.length - 1 ? "Target" : "Offspring"}
+                      outcome
+                    />
+                  </div>
+                  <div className="step-rule">
+                    {genderLocked ? <LockIcon /> : <CheckIcon />}
+                    <span>
+                      {genderLocked
+                        ? `${genderName(step.fromGender)} carrier + ${genderName(step.partnerGender)} partner`
+                        : "Female + male, either orientation"}
+                    </span>
+                  </div>
+                </article>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </section>
   );
 }
 
-function BreedingPal({
+function RoutePal({
   pal,
   role,
   gender,
@@ -421,29 +192,20 @@ function BreedingPal({
   outcome?: boolean;
 }) {
   if (!pal) return null;
+
   return (
-    <div className={`breeding-pal${outcome ? " is-outcome" : ""}`}>
-      <div className="breeding-pal-image"><img src={pal.image} alt="" loading="lazy" /></div>
-      <div>
-        <span>{role}</span>
+    <div className={`route-pal${outcome ? " is-outcome" : ""}`}>
+      <img src={pal.image} alt="" loading="lazy" />
+      <span>
+        <small>{role}</small>
         <strong>{pal.name}</strong>
-        {gender && <small className={`gender-badge gender-${gender.toLocaleLowerCase()}`}>{genderName(gender)} required</small>}
-      </div>
+        {gender && <em>{genderName(gender)}</em>}
+      </span>
     </div>
   );
 }
 
-function PalResult({ pal }: { pal: Pal }) {
-  return (
-    <div className="pal-result">
-      <div><img src={pal.image} alt="" /></div>
-      <span><small>THIS PAIR RESULTS IN</small><strong>{pal.name}</strong></span>
-      <CheckCircleIcon />
-    </div>
-  );
-}
-
-function StatusCard({
+function RouteStatus({
   icon,
   title,
   detail,
@@ -455,23 +217,22 @@ function StatusCard({
   warning?: boolean;
 }) {
   return (
-    <section className={`status-card${warning ? " is-warning" : ""}`}>
+    <section className={`route-stage route-status${warning ? " is-warning" : ""}`} aria-live="polite">
       {icon}
-      <div><h2>{title}</h2><p>{detail}</p></div>
+      <div>
+        <h2>{title}</h2>
+        <p>{detail}</p>
+      </div>
     </section>
   );
 }
 
-function genderName(gender?: PalGender) {
+function genderName(gender: PalGender | undefined) {
   return gender === "F" ? "Female" : "Male";
 }
 
 function RouteIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="17" r="2.5" /><circle cx="18" cy="7" r="2.5" /><path d="M8.5 17h2.2c3.1 0 2.4-10 5-10H16" /></svg>;
-}
-
-function EggIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.5 0 6.5 6.2 6.5 10.5a6.5 6.5 0 0 1-13 0C5.5 9.7 8.5 3.5 12 3.5Z" /></svg>;
 }
 
 function SwapIcon() {
@@ -480,10 +241,6 @@ function SwapIcon() {
 
 function ArrowIcon() {
   return <svg className="arrow-icon" viewBox="0 0 32 24" aria-hidden="true"><path d="M2 12h26M21 5l7 7-7 7" /></svg>;
-}
-
-function ShieldIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5.5 5.5v5.2c0 4.4 2.7 8.1 6.5 9.8 3.8-1.7 6.5-5.4 6.5-9.8V5.5L12 3Z" /><path d="m9 12 2 2 4-5" /></svg>;
 }
 
 function LockIcon() {

@@ -22,4 +22,4 @@ Run `npm run data:generate` to discover and download the current 1.0 data bundle
 
 ## Release gate
 
-No source is promoted without a form-coverage review, duplicate-pair validation, forward/reverse index validation, and golden tests for normal, special, same-parent, and form-specific combinations. The legacy pre-1.0 data is a compatibility input only and is not an approved 1.0 source.
+No source is promoted without a form-coverage review, duplicate-pair validation, forward/reverse index validation, and golden checks for normal, special, same-parent, and form-specific combinations.

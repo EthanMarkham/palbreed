@@ -1,30 +1,20 @@
-# React + TypeScript + Vite
+# Palpath
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A static Palworld 1.0 planner for finding the shortest pairing path needed to transfer passives between Pal species. Gender-specific outcomes are handled within the path when required.
 
-Currently, two official plugins are available:
+## Commands
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+```sh
+npm install
+npm run dev
+npm run lint
+npm run build
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+Run `npm run data:generate` to refresh the versioned data artifacts from the current 1.0 source bundle. Pass a local bundle or direct URL after `--` to regenerate from a specific source.
+
+## Data
+
+The browser imports only `src/data/breeding-runtime-1.0.json`. The larger `breeding-1.0.json` is retained as the auditable release artifact, including source attribution, checksums, and reverse indexes used to validate a generated release.
+
+See `docs/architecture.md` and `docs/data-contract.md` for the runtime and release boundaries.

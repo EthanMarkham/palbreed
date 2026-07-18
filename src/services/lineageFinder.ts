@@ -4,9 +4,9 @@ import { breedingRepository } from "../data/breedingRepository";
 /** Finds the shortest route, assuming each listed partner is available. */
 export function findLineage(startId: PalId, targetId: PalId): LineageResult {
   if (!breedingRepository.getPal(startId) || !breedingRepository.getPal(targetId)) {
-    return { status: "invalid-input", reason: "Choose two valid Pals." };
+    return { status: "invalid-input", reason: "Choose a valid source and target Pal." };
   }
-  if (startId === targetId) return { status: "same-pal", steps: [] };
+  if (startId === targetId) return { status: "same-pal" };
 
   const queue: PalId[] = [targetId];
   const visited = new Set<PalId>(queue);
@@ -21,23 +21,23 @@ export function findLineage(startId: PalId, targetId: PalId): LineageResult {
         visited.add(parent);
         previous.set(parent, {
           child,
-          partners: [partner],
+          partner,
           fromGender: genders?.firstGender,
-          partnerGenders: genders ? [genders.secondGender] : undefined,
+          partnerGender: genders?.secondGender,
         });
         if (parent === startId) return reconstruct(startId, targetId, previous);
         queue.push(parent);
       }
     }
   }
-  return { status: "no-route", reason: "No route was found in the loaded data." };
+  return { status: "no-route", reason: "No passive transfer route was found in the loaded data." };
 }
 
 type PreviousEdge = {
   child: PalId;
-  partners: PalId[];
+  partner: PalId;
   fromGender?: PalGender;
-  partnerGenders?: PalGender[];
+  partnerGender?: PalGender;
 };
 
 function reconstruct(startId: PalId, targetId: PalId, previous: Map<PalId, PreviousEdge>): LineageResult {
@@ -45,13 +45,13 @@ function reconstruct(startId: PalId, targetId: PalId, previous: Map<PalId, Previ
   let current = startId;
   while (current !== targetId) {
     const edge = previous.get(current);
-    if (!edge) return { status: "no-route", reason: "The lineage could not be reconstructed." };
+    if (!edge) return { status: "no-route", reason: "The passive transfer route could not be reconstructed." };
     steps.push({
       from: current,
-      partners: edge.partners,
+      partner: edge.partner,
       result: edge.child,
       fromGender: edge.fromGender,
-      partnerGenders: edge.partnerGenders,
+      partnerGender: edge.partnerGender,
     });
     current = edge.child;
   }
