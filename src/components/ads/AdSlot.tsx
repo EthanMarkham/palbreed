@@ -14,7 +14,7 @@ const slotIds: Record<AdPlacement, string | undefined> = {
 };
 
 function loadAdSense(client: string): Promise<void> {
-  const existing = document.querySelector<HTMLScriptElement>('script[data-ad-provider="adsense"]');
+  const existing = document.querySelector<HTMLScriptElement>("script#adsense-script");
   if (existing) return Promise.resolve();
 
   return new Promise((resolve, reject) => {
@@ -22,7 +22,7 @@ function loadAdSense(client: string): Promise<void> {
     script.async = true;
     script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(client)}`;
     script.crossOrigin = "anonymous";
-    script.dataset.adProvider = "adsense";
+    script.id = "adsense-script";
     script.onload = () => resolve();
     script.onerror = () => reject(new Error("Unable to load advertising provider."));
     document.head.append(script);

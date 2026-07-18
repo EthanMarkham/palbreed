@@ -12,7 +12,11 @@ Each source release must provide a stable form ID, display name, form name when 
 
 ## Generated indexes
 
-The generator emits canonical form-specific `palsById`, `childByParentPair`, `parentPairsByChild`, and `partnerIdsByParentAndChild` indexes. Parent-pair keys are alphabetically ordered IDs. Releases include the game version, source URL, retrieval date, license/attribution, and content checksum.
+The generator emits canonical form-specific `palsById`, `childByParentPair`, `parentPairsByChild`, and `partnerIdsByParentAndChild` indexes. Parent-pair keys are alphabetically ordered IDs. Gender-dependent combinations are emitted in `genderedChildrenByParentPair` and `genderedRules` instead of being flattened into an incorrect deterministic result. Releases include the game version, source URL, retrieval date, license/attribution, and content checksum.
+
+## Regeneration
+
+Run `npm run data:generate` to discover and download the current 1.0 data bundle linked by `https://palbreeder.com/`, validate it, and replace `src/data/breeding-1.0.json`. A downloaded bundle path or direct bundle URL can be passed after `--` for reproducible or offline generation.
 
 ## Release gate
 
