@@ -15,6 +15,7 @@ type PalPickerProps = {
   onInputChange: (value: string) => void;
   onActivate: () => void;
   isActive: boolean;
+  isBrowserOpen: boolean;
   pals: readonly Pal[];
   placeholder: string;
 };
@@ -27,10 +28,16 @@ export default function PalPicker({
   onInputChange,
   onActivate,
   isActive,
+  isBrowserOpen,
   pals,
   placeholder,
 }: PalPickerProps) {
   const selected = pals.find((pal) => pal.id === selectedId);
+  const pickerState = isActive && isBrowserOpen
+    ? "Browsing"
+    : selected
+      ? "Selected"
+      : "Standby";
 
   return (
     <SearchField
@@ -46,9 +53,7 @@ export default function PalPicker({
           <Label>{label}</Label>
           <span>{description}</span>
         </div>
-        <span className="picker-card-state">
-          {isActive ? "Browsing" : "Standby"}
-        </span>
+        <span className="picker-card-state">{pickerState}</span>
       </div>
 
       <div className={`picker-selection${selected ? "" : " is-empty"}`}>

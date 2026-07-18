@@ -37,6 +37,9 @@ export default function PlannerPage({
   onSwap,
 }: PlannerPageProps) {
   const [activeField, setActiveField] = useState<"from" | "to">("from");
+  const [isBrowserOpen, setIsBrowserOpen] = useState(
+    () => Boolean(search.fromQuery || search.toQuery),
+  );
   const startId = search.from ?? "";
   const targetId = search.to ?? "";
   const startInputValue = search.fromQuery ?? "";
@@ -62,10 +65,16 @@ export default function PlannerPage({
   const handleBrowserSelection = (palId: PalId) => {
     if (activeField === "from") {
       onFromSelectionChange(palId);
-      return;
+    } else {
+      onToSelectionChange(palId);
     }
 
-    onToSelectionChange(palId);
+    setIsBrowserOpen(false);
+  };
+
+  const openBrowserForField = (field: "from" | "to") => {
+    setActiveField(field);
+    setIsBrowserOpen(true);
   };
 
   const handleFieldChange = (value: string) => {
@@ -93,11 +102,12 @@ export default function PlannerPage({
               selectedId={search.from}
               inputValue={startInputValue}
               onInputChange={(value) => {
-                setActiveField("from");
+                openBrowserForField("from");
                 onFromInputChange(value);
               }}
-              onActivate={() => setActiveField("from")}
+              onActivate={() => openBrowserForField("from")}
               isActive={activeField === "from"}
+              isBrowserOpen={isBrowserOpen}
               pals={pals}
               placeholder="Search starting Pal"
             />
@@ -115,23 +125,44 @@ export default function PlannerPage({
               selectedId={search.to}
               inputValue={targetInputValue}
               onInputChange={(value) => {
-                setActiveField("to");
+                openBrowserForField("to");
                 onToInputChange(value);
               }}
-              onActivate={() => setActiveField("to")}
+              onActivate={() => openBrowserForField("to")}
               isActive={activeField === "to"}
+              isBrowserOpen={isBrowserOpen}
               pals={pals}
               placeholder="Search target Pal"
             />
           </div>
 
-          <section className="picker-browser" aria-label={`${activeFieldName} browser`}>
-            <div className="picker-browser-head">
-              <div className="picker-browser-title">
+          <section
+            className={`picker-browser-shell${isBrowserOpen ? " is-open" : ""}`}
+            aria-label={`${activeFieldName} browser`}
+          >
+            <div className="picker-browser-dock">
+              <div className="picker-browser-dock-copy">
                 <span className="picker-browser-kicker">
-                  {activeField === "from" ? "CHOOSING THE CARRIER" : "CHOOSING THE TARGET"}
+                  {isBrowserOpen
+                    ? activeField === "from"
+                      ? "CHOOSING THE CARRIER"
+                      : "CHOOSING THE TARGET"
+                    : "PAL BROWSER"}
                 </span>
-                <h2>{activeFieldName}</h2>
+                <strong>{activeFieldName}</strong>
+                <small>
+                  {isBrowserOpen
+                    ? `${visiblePals.length} pals in view. Pick one to update the planner.`
+                    : activeSelected
+                      ? `${activeSelected.name} is selected. Open the browser to change it.`
+                      : "Open the browser to browse the full catalog and choose a Pal."}
+                </small>
+              </div>
+
+              <div className="picker-browser-dock-controls">
+                <span className="picker-browser-count">
+                  {visiblePals.length} {visiblePals.length === 1 ? "pal" : "pals"}
+                </span>
                 <RadioGroup
                   className="field-mode-group"
                   aria-label="Choose which planner field to browse"
@@ -145,86 +176,94 @@ export default function PlannerPage({
                     Target
                   </Radio>
                 </RadioGroup>
-              </div>
-              <div className="picker-browser-summary">
-                <span>
-                  {visiblePals.length} {visiblePals.length === 1 ? "pal" : "pals"} shown
-                </span>
-                <strong>
-                  {activeSelected
-                    ? activeSelected.name
-                    : `Select a ${activeField === "from" ? "starting" : "target"} pal`}
-                </strong>
-                <small>Full catalog stays visible until you search.</small>
+                <Button
+                  className={`picker-browser-toggle${isBrowserOpen ? " is-open" : ""}`}
+                  aria-expanded={isBrowserOpen}
+                  aria-controls="pal-browser-viewport"
+                  onPress={() => setIsBrowserOpen((open) => !open)}
+                >
+                  <span>{isBrowserOpen ? "Collapse" : "Browse"}</span>
+                  <ChevronIcon />
+                </Button>
               </div>
             </div>
 
-            <ListBox<Pal>
-              aria-label={`${activeFieldName} options`}
-              className="picker-browser-grid"
-              items={visiblePals}
-              layout="grid"
-              onSelectionChange={(keys) => {
-                if (keys === "all") return;
-
-                const nextKey = [...keys][0];
-                if (typeof nextKey === "string") {
-                  handleBrowserSelection(nextKey);
-                }
-              }}
-              selectionMode="single"
-              selectedKeys={activeSelectedId ? new Set([activeSelectedId]) : new Set()}
-              renderEmptyState={() => (
-                <div className="picker-empty">
-                  <strong>No matching Pal</strong>
-                  <span>Try a different name, variant, or number.</span>
-                </div>
-              )}
+            <div
+              id="pal-browser-viewport"
+              className="picker-browser-viewport"
+              aria-hidden={!isBrowserOpen}
             >
-              {(pal) => (
-                <ListBoxItem
-                  id={pal.id}
-                  textValue={pal.name}
-                  className="picker-browser-option"
-                >
-                  {({ isSelected }) => (
-                    <>
-                      <div className="picker-browser-option-top">
-                        <span className="picker-option-badge">
-                          {formatPalNumber(pal.number)}
-                        </span>
-                        {isSelected ? (
-                          <span className="picker-browser-chip is-selected">
-                            <CheckIcon />
-                            Selected
-                          </span>
-                        ) : passiveSelectedId === pal.id ? (
-                          <span className="picker-browser-chip">
-                            {activeField === "from" ? "Target chosen" : "Start chosen"}
-                          </span>
-                        ) : null}
-                      </div>
+              <div className="picker-browser-viewport-inner">
+                <div className="picker-browser">
+                  <ListBox<Pal>
+                    aria-label={`${activeFieldName} options`}
+                    className="picker-browser-grid"
+                    items={visiblePals}
+                    layout="grid"
+                    onSelectionChange={(keys) => {
+                      if (keys === "all") return;
 
-                      <div className="picker-browser-option-body">
-                        <div className="picker-option-media">
-                          <img src={pal.image} alt="" loading="lazy" />
-                        </div>
-                        <span className="picker-browser-option-copy">
-                          <strong>{pal.name}</strong>
-                          <small>{formatPalMeta(pal.id)}</small>
-                        </span>
-                        <span
-                          className={`picker-browser-check${isSelected ? " is-visible" : ""}`}
-                          aria-hidden="true"
-                        >
-                          <CheckIcon />
-                        </span>
+                      const nextKey = [...keys][0];
+                      if (typeof nextKey === "string") {
+                        handleBrowserSelection(nextKey);
+                      }
+                    }}
+                    selectionMode="single"
+                    selectedKeys={activeSelectedId ? new Set([activeSelectedId]) : new Set()}
+                    renderEmptyState={() => (
+                      <div className="picker-empty">
+                        <strong>No matching Pal</strong>
+                        <span>Try a different name, variant, or number.</span>
                       </div>
-                    </>
-                  )}
-                </ListBoxItem>
-              )}
-            </ListBox>
+                    )}
+                  >
+                    {(pal) => (
+                      <ListBoxItem
+                        id={pal.id}
+                        textValue={pal.name}
+                        className="picker-browser-option"
+                      >
+                        {({ isSelected }) => (
+                          <>
+                            <div className="picker-browser-option-top">
+                              <span className="picker-option-badge">
+                                {formatPalNumber(pal.number)}
+                              </span>
+                              {isSelected ? (
+                                <span className="picker-browser-chip is-selected">
+                                  <CheckIcon />
+                                  Selected
+                                </span>
+                              ) : passiveSelectedId === pal.id ? (
+                                <span className="picker-browser-chip">
+                                  {activeField === "from" ? "Target chosen" : "Start chosen"}
+                                </span>
+                              ) : null}
+                            </div>
+
+                            <div className="picker-browser-option-body">
+                              <div className="picker-option-media">
+                                <img src={pal.image} alt="" loading="lazy" />
+                              </div>
+                              <span className="picker-browser-option-copy">
+                                <strong>{pal.name}</strong>
+                                <small>{formatPalMeta(pal.id)}</small>
+                              </span>
+                              <span
+                                className={`picker-browser-check${isSelected ? " is-visible" : ""}`}
+                                aria-hidden="true"
+                              >
+                                <CheckIcon />
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </ListBoxItem>
+                    )}
+                  </ListBox>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
       </section>
@@ -416,4 +455,8 @@ function AlertIcon() {
 
 function CheckCircleIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16.5 9" /></svg>;
+}
+
+function ChevronIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>;
 }
