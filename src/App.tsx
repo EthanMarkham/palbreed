@@ -148,7 +148,11 @@ function LineageResults({
             const genderLocked = Boolean(step.fromGender && step.partnerGender);
 
             return (
-              <li className="lineage-step" key={`${step.from}-${step.partner}-${step.result}`}>
+              <li
+                className="lineage-step"
+                key={`${step.from}-${step.partner}-${step.result}`}
+                style={{ animationDelay: `${index * 72}ms` }}
+              >
                 <span className="step-number">{stepNumber}</span>
                 <article className={`step-card${genderLocked ? " is-locked" : ""}`}>
                   <div className="step-equation">
