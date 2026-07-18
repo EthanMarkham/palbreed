@@ -34,9 +34,20 @@ function App() {
     setFirstGender(secondGender);
     setSecondGender(firstGender);
   };
+  const handleModeKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const nextMode = event.key === "ArrowRight" || event.key === "End"
+      ? "pair"
+      : event.key === "ArrowLeft" || event.key === "Home"
+        ? "lineage"
+        : undefined;
+    if (!nextMode) return;
+    event.preventDefault();
+    setMode(nextMode);
+    requestAnimationFrame(() => document.getElementById(`${nextMode}-tab`)?.focus());
+  };
 
   return (
-    <div className="site-frame">
+    <div className={`site-frame mode-${mode}`}>
       <div className="ambient ambient-one" aria-hidden="true" />
       <div className="ambient ambient-two" aria-hidden="true" />
 
@@ -47,7 +58,7 @@ function App() {
         </a>
         <div className="data-signal">
           <span className="signal-dot" />
-          <span>Live 1.0 table</span>
+          <span>Verified 1.0 data</span>
           <strong>{metadata.palCount} Pals</strong>
         </div>
       </header>
@@ -55,42 +66,48 @@ function App() {
       <main className="app-shell" id="top">
         <section className="hero-grid">
           <div className="hero-copy">
-            <div className="release-pill">
-              <span>PALWORLD 1.0</span>
-              <span className="release-divider" />
-              <span>DATA VERIFIED</span>
-            </div>
-            <h1>The shortest path to your <em>next Pal.</em></h1>
+            <h1>Fewest steps. <em>Exact outcomes.</em></h1>
             <p className="hero-lede">
-              Plan breeding chains and check exact egg outcomes against the complete 1.0 table. No legacy recipes, no guesswork.
+              Build a lineage or check any parent pair against the complete Palworld 1.0 breeding table.
             </p>
             <div className="hero-metrics" aria-label="Dataset summary">
               <Metric value={metadata.palCount.toString()} label="Breedable forms" />
               <Metric value={metadata.parentPairCount.toLocaleString()} label="Pair outcomes" />
-              <Metric value="01" label="Gender lock" accent />
             </div>
           </div>
 
           <section className="calculator-card" aria-label="Palworld breeding calculator">
             <div className="calculator-head">
               <div>
-                <span className="section-kicker">BREEDING CONSOLE</span>
-                <h2>{mode === "lineage" ? "Build a route" : "Check a pair"}</h2>
+                <span className="section-kicker">BREEDING PLANNER</span>
+                <h2>{mode === "lineage" ? "Fewest breeding steps" : "Check a pair"}</h2>
               </div>
               <span className="version-tag">v{metadata.gameVersion}</span>
             </div>
 
-            <div className="mode-tabs" role="tablist" aria-label="Calculator mode">
-              <ModeTab active={mode === "lineage"} onClick={() => setMode("lineage")} icon={<RouteIcon />}>
+            <div className="mode-tabs" role="tablist" aria-label="Calculator mode" onKeyDown={handleModeKeyDown}>
+              <ModeTab
+                id="lineage-tab"
+                controls="lineage-panel"
+                active={mode === "lineage"}
+                onClick={() => setMode("lineage")}
+                icon={<RouteIcon />}
+              >
                 Lineage
               </ModeTab>
-              <ModeTab active={mode === "pair"} onClick={() => setMode("pair")} icon={<EggIcon />}>
+              <ModeTab
+                id="pair-tab"
+                controls="pair-panel"
+                active={mode === "pair"}
+                onClick={() => setMode("pair")}
+                icon={<EggIcon />}
+              >
                 Check pair
               </ModeTab>
             </div>
 
             {mode === "lineage" ? (
-              <div className="tool-body" role="tabpanel">
+              <div className="tool-body" id="lineage-panel" role="tabpanel" aria-labelledby="lineage-tab">
                 <PalPicker
                   label="Starting Pal"
                   eyebrow="YOU HAVE"
@@ -116,11 +133,11 @@ function App() {
                 />
                 <div className="tool-hint">
                   <ShieldIcon />
-                  <span>Shortest route, including exact gender locks when required.</span>
+                  <span>Fewest breed hops, assuming every listed partner is already available.</span>
                 </div>
               </div>
             ) : (
-              <div className="tool-body pair-tool" role="tabpanel">
+              <div className="tool-body pair-tool" id="pair-panel" role="tabpanel" aria-labelledby="pair-tab">
                 <div className="pair-parent">
                   <PalPicker
                     label="First parent"
@@ -159,23 +176,14 @@ function App() {
 
         {mode === "lineage" && <LineageResults result={lineageResult} />}
 
-        <RuleSpotlight />
-
-        <footer className="site-footer">
-          <div>
-            <span className="brand-name">BREEDPATH</span>
-            <p>Built around the Palworld 1.0 breeding table.</p>
-          </div>
-          <p>Source updated {formatDate(metadata.sourceUpdatedAt)}</p>
-        </footer>
       </main>
     </div>
   );
 }
 
-function Metric({ value, label, accent = false }: { value: string; label: string; accent?: boolean }) {
+function Metric({ value, label }: { value: string; label: string }) {
   return (
-    <div className={`metric${accent ? " is-accent" : ""}`}>
+    <div className="metric">
       <strong>{value}</strong>
       <span>{label}</span>
     </div>
@@ -183,18 +191,31 @@ function Metric({ value, label, accent = false }: { value: string; label: string
 }
 
 function ModeTab({
+  id,
+  controls,
   active,
   onClick,
   icon,
   children,
 }: {
+  id: string;
+  controls: string;
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <button type="button" role="tab" aria-selected={active} className={active ? "is-active" : ""} onClick={onClick}>
+    <button
+      id={id}
+      type="button"
+      role="tab"
+      aria-controls={controls}
+      aria-selected={active}
+      tabIndex={active ? 0 : -1}
+      className={active ? "is-active" : ""}
+      onClick={onClick}
+    >
       {icon}
       {children}
     </button>
@@ -315,7 +336,7 @@ function LineageResults({ result }: { result: LineageResult | null }) {
     <section className="route-results" aria-live="polite">
       <div className="results-head">
         <div>
-          <span className="section-kicker">SHORTEST LINEAGE</span>
+          <span className="section-kicker">FEWEST-STEP LINEAGE</span>
           <h2>Your route, step by step.</h2>
         </div>
         <div className="step-count"><strong>{result.steps.length}</strong><span>{result.steps.length === 1 ? "step" : "steps"}</span></div>
@@ -415,69 +436,6 @@ function StatusCard({
       <div><h2>{title}</h2><p>{detail}</p></div>
     </section>
   );
-}
-
-function RuleSpotlight() {
-  const katress = breedingRepository.getPal("katress");
-  const wixen = breedingRepository.getPal("wixen");
-  const katressIgnis = breedingRepository.getPal("katress-ignis");
-  const wixenNoct = breedingRepository.getPal("wixen-noct");
-
-  return (
-    <section className="rule-spotlight">
-      <div className="rule-copy">
-        <span className="section-kicker">THE 1.0 EXCEPTION</span>
-        <h2>One pair. Two outcomes. Gender decides.</h2>
-        <p>
-          Katress and Wixen are the only parent pair where species outcome changes with gender direction. Breedpath flags it everywhere it appears.
-        </p>
-        <div className="rule-proof"><ShieldIcon /><span>All other pairs only require one female and one male.</span></div>
-      </div>
-      <div className="rule-map" aria-label="Katress and Wixen gender outcomes">
-        <RuleRow first={katress} firstGender="F" second={wixen} secondGender="M" child={katressIgnis} />
-        <RuleRow first={katress} firstGender="M" second={wixen} secondGender="F" child={wixenNoct} />
-      </div>
-    </section>
-  );
-}
-
-function RuleRow({
-  first,
-  firstGender,
-  second,
-  secondGender,
-  child,
-}: {
-  first: Pal | undefined;
-  firstGender: PalGender;
-  second: Pal | undefined;
-  secondGender: PalGender;
-  child: Pal | undefined;
-}) {
-  if (!first || !second || !child) return null;
-  return (
-    <div className="rule-row">
-      <RulePal pal={first} gender={firstGender} />
-      <span className="equation-symbol">+</span>
-      <RulePal pal={second} gender={secondGender} />
-      <ArrowIcon />
-      <RulePal pal={child} outcome />
-    </div>
-  );
-}
-
-function RulePal({ pal, gender, outcome = false }: { pal: Pal; gender?: PalGender; outcome?: boolean }) {
-  return (
-    <div className={`rule-pal${outcome ? " is-outcome" : ""}`}>
-      <img src={pal.image} alt="" loading="lazy" />
-      <span><strong>{pal.name}</strong>{gender && <small>{genderName(gender)}</small>}</span>
-    </div>
-  );
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
-    .format(new Date(`${value}T00:00:00Z`));
 }
 
 function genderName(gender?: PalGender) {
