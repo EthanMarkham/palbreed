@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   ListBox,
@@ -40,6 +40,10 @@ export default function PlannerPage({
   const [isBrowserOpen, setIsBrowserOpen] = useState(
     () => Boolean(search.fromQuery || search.toQuery),
   );
+  const previousQueries = useRef({
+    from: search.fromQuery,
+    to: search.toQuery,
+  });
   const startId = search.from ?? "";
   const targetId = search.to ?? "";
   const startInputValue = search.fromQuery ?? "";
@@ -61,6 +65,16 @@ export default function PlannerPage({
   const hasPlannerState = Boolean(
     search.from || search.to || search.fromQuery || search.toQuery,
   );
+
+  useEffect(() => {
+    const fromRestored = search.fromQuery && search.fromQuery !== previousQueries.current.from;
+    const toRestored = search.toQuery && search.toQuery !== previousQueries.current.to;
+    if (fromRestored || toRestored) {
+      setActiveField(fromRestored ? "from" : "to");
+      setIsBrowserOpen(true);
+    }
+    previousQueries.current = { from: search.fromQuery, to: search.toQuery };
+  }, [search.fromQuery, search.toQuery]);
 
   const handleBrowserSelection = (palId: PalId) => {
     if (activeField === "from") {
@@ -84,14 +98,20 @@ export default function PlannerPage({
   };
 
   return (
-    <main className="workspace">
-      <section className="planner-panel" aria-labelledby="planner-title">
-        <div className="planner-head">
-          <div>
-            <span className="section-kicker">SHORTEST PASSIVE PATH</span>
-            <h1 id="planner-title">Passive transfer path</h1>
-          </div>
-          <p>Select the Pal carrying the passives, then the Pal you want them on.</p>
+    <main className="workspace feature-workspace planner-workspace">
+      <section className="feature-hero planner-hero">
+        <div>
+          <span className="section-kicker">PASSIVE PATH PLANNER</span>
+          <h1>Find the shortest passive path.</h1>
+          <p>Choose the Pal that has your passives and the Pal you want them on. Palpath calculates the shortest breeding chain between them.</p>
+        </div>
+        <span className="hero-index">01</span>
+      </section>
+
+      <section className="feature-card planner-tool-card" aria-labelledby="planner-title">
+        <div className="card-heading planner-tool-heading">
+          <span id="planner-title">Plan a passive transfer</span>
+          <small>Starting Pal → Target Pal</small>
         </div>
 
         <div className="route-controls-shell">

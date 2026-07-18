@@ -1,10 +1,6 @@
-import { breedingRepository } from "../../data/breedingRepository";
 import type { PalId } from "../../domain/pal";
-import {
-  matchesSelectedLabel,
-  normalizePlannerSearch,
-  type PlannerSearchState,
-} from "./plannerSearch";
+import { normalizePalSearch } from "../../routing/searchParams";
+import { normalizePlannerSearch, type PlannerSearchState } from "./plannerSearch";
 
 type PlannerField = "from" | "to";
 type PlannerQueryField = "fromQuery" | "toQuery";
@@ -15,17 +11,12 @@ export function setPlannerInput(
   inputValue: string,
 ): PlannerSearchState {
   const queryField = getQueryField(field);
-  const selectedId = search[field];
-  const selectedName = selectedId ? breedingRepository.getPal(selectedId)?.name : undefined;
-  const nextQuery = inputValue.trim() || undefined;
+  const next = normalizePalSearch(search[field], inputValue);
 
   return normalizePlannerSearch({
     ...search,
-    [field]:
-      nextQuery && selectedName && matchesSelectedLabel(nextQuery, selectedName)
-        ? selectedId
-        : undefined,
-    [queryField]: nextQuery,
+    [field]: next.selectedId,
+    [queryField]: next.query,
   });
 }
 

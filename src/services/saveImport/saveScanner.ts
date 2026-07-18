@@ -160,9 +160,13 @@ function buildSlotCandidates(files: readonly LogicalSaveFile[]): SaveSlotCandida
     return [];
   });
 
-  const uniqueRoots = [...new Map(roots.map((root) => [root.toLowerCase(), root])).values()].sort();
-  return uniqueRoots.map((root, index) => {
-    const relativeFiles = files.filter(({ path }) => isInsideRoot(path, root));
+  const uniqueRoots = [...new Map(roots.map((root) => [root.toLowerCase(), root])).values()]
+    .filter((root) => !isBackupRoot(root))
+    .sort();
+  const candidates = uniqueRoots.map((root, index) => {
+    const relativeFiles = files.filter(({ path }) =>
+      isInsideRoot(path, root) && !isBackupRoot(relativePath(path, root)),
+    );
     const mapped = new Map(
       relativeFiles.map((entry) => [relativePath(entry.path, root).toLowerCase(), entry]),
     );
@@ -170,8 +174,6 @@ function buildSlotCandidates(files: readonly LogicalSaveFile[]): SaveSlotCandida
     const hasModernLevel = mapped.has("level/01.sav");
     const hasLegacyLevel = mapped.has("level.sav");
     const worldId = root.split("/").find((part) => /^[a-f\d]{32}$/i.test(part)) ?? (root || `world-${index + 1}`);
-    const slotPart = root.split("/").find((part) => /^slot\d+$/i.test(part));
-    const label = slotPart ? `${formatSlotName(slotPart)} / ${shortWorldId(worldId)}` : `Current world / ${shortWorldId(worldId)}`;
     const format: SaveSlotCandidate["format"] = hasLevelMeta && hasModernLevel
       ? "palworld-1.0"
       : hasLegacyLevel
@@ -183,14 +185,18 @@ function buildSlotCandidates(files: readonly LogicalSaveFile[]): SaveSlotCandida
     );
 
     return {
-      id: `${worldId}:${slotPart ?? "current"}`,
+      id: `${worldId}:current`,
       worldId,
-      label,
+      label: "",
       format,
       updatedAt: updatedAt || undefined,
       files: mapped,
     };
-  }).sort((first, second) => (second.updatedAt ?? 0) - (first.updatedAt ?? 0));
+  });
+
+  return candidates
+    .sort((first, second) => (second.updatedAt ?? 0) - (first.updatedAt ?? 0))
+    .map((candidate, index) => ({ ...candidate, label: `World ${index + 1}` }));
 }
 
 export function parseContainerIndex(buffer: ArrayBuffer): readonly ContainerIndexEntry[] {
@@ -327,10 +333,8 @@ function relativePath(path: string, root: string) {
   return root ? normalized.slice(root.length + 1) : normalized;
 }
 
-function formatSlotName(value: string) {
-  return value.replace(/slot(\d+)/i, "Backup slot $1");
-}
-
-function shortWorldId(worldId: string) {
-  return worldId.length > 12 ? `${worldId.slice(0, 8)}…${worldId.slice(-4)}` : worldId;
+function isBackupRoot(root: string) {
+  return normalizePath(root).split("/").some((part) =>
+    /^(?:backup|backups|slot\d+)$/i.test(part),
+  );
 }

@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useMemo } from "react";
 import PalSelect from "../../components/PalSelect";
 import PassiveSelector from "../../components/PassiveSelector";
 import { breedingRepository } from "../../data/breedingRepository";
@@ -9,27 +9,62 @@ import type { PassiveId } from "../../domain/passive";
 import { buildPal, type BuilderObjective, type BuilderResult } from "../../services/builder/palBuilder";
 import { createId, inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
+import {
+  getBuilderExtras,
+  getBuilderGender,
+  getBuilderObjective,
+  getBuilderPassiveIds,
+  type BuilderSearchState,
+} from "./builderSearch";
 
-export default function BuilderPage() {
+type BuilderPageProps = {
+  search: BuilderSearchState;
+  onTargetInputChange: (value: string) => void;
+  onTargetChange: (value: PalId | undefined) => void;
+  onPassivesChange: (value: readonly PassiveId[]) => void;
+  onPassiveQueryChange: (value: string) => void;
+  onObjectiveChange: (value: BuilderObjective) => void;
+  onExtrasChange: (value: 0 | 1 | 2) => void;
+  onGenderChange: (value: PalGender) => void;
+  onRun: () => void;
+};
+
+export default function BuilderPage({
+  search,
+  onTargetInputChange,
+  onTargetChange,
+  onPassivesChange,
+  onPassiveQueryChange,
+  onObjectiveChange,
+  onExtrasChange,
+  onGenderChange,
+  onRun,
+}: BuilderPageProps) {
   const inventorySnapshot = useInventory();
   const profile = inventoryService.getActiveProfile();
-  const [targetId, setTargetId] = useState<PalId>();
-  const [requiredPassiveIds, setRequiredPassiveIds] = useState<readonly PassiveId[]>([]);
-  const [allowedExtras, setAllowedExtras] = useState<0 | 1 | 2>(0);
-  const [objective, setObjective] = useState<BuilderObjective>("recommended");
-  const [result, setResult] = useState<BuilderResult>();
-  const [hatchGender, setHatchGender] = useState<PalGender>("F");
-
-  const runBuilder = () => {
-    if (!targetId || inventorySnapshot.status === "loading") return;
-    setResult(buildPal({
+  const targetId = search.target;
+  const requiredPassiveIds = useMemo(() => getBuilderPassiveIds(search), [search]);
+  const allowedExtras = getBuilderExtras(search);
+  const objective = getBuilderObjective(search);
+  const hatchGender = getBuilderGender(search);
+  const result = useMemo<BuilderResult | undefined>(() => {
+    if (!search.run || !targetId || inventorySnapshot.status === "loading") return undefined;
+    return buildPal({
       inventory: profile.pals,
       targetId,
       requiredPassiveIds,
       allowedExtras,
       objective,
-    }));
-  };
+    });
+  }, [
+    allowedExtras,
+    inventorySnapshot.status,
+    objective,
+    profile.pals,
+    requiredPassiveIds,
+    search.run,
+    targetId,
+  ]);
 
   const logHatch = () => {
     if (!targetId || inventorySnapshot.status === "loading") return;
@@ -42,13 +77,6 @@ export default function BuilderPage() {
       source: "session",
       included: true,
     });
-    setResult(buildPal({
-      inventory: inventoryService.getActiveProfile().pals,
-      targetId,
-      requiredPassiveIds,
-      allowedExtras,
-      objective,
-    }));
   };
 
   return (
@@ -59,19 +87,30 @@ export default function BuilderPage() {
           <h1>Design the Pal. Solve the bridge.</h1>
           <p>Set the final species and passives. Palpath searches every continuous carrier state reachable from your included inventory and explains any missing acquisition.</p>
         </div>
-        <span className="hero-index">03</span>
+        <span className="hero-index">04</span>
       </section>
 
       <section className="builder-layout">
         <div className="feature-card builder-form-card">
           <div className="card-heading"><span>Build specification</span><small>Up to four passives</small></div>
-          <PalSelect label="Final Pal" value={targetId} onChange={(value) => { setTargetId(value); setResult(undefined); }} />
-          <PassiveSelector label="Required passives" selected={requiredPassiveIds} onChange={(value) => { setRequiredPassiveIds(value); setResult(undefined); }} />
+          <PalSelect
+            label="Final Pal"
+            value={targetId}
+            onChange={onTargetChange}
+            query={{ value: search.targetQuery ?? "", onChange: onTargetInputChange }}
+          />
+          <PassiveSelector
+            label="Required passives"
+            selected={requiredPassiveIds}
+            onChange={onPassivesChange}
+            query={search.passiveQuery ?? ""}
+            onQueryChange={onPassiveQueryChange}
+          />
 
           <div className="builder-settings">
             <label className="form-field">
               <span>Optimize for</span>
-              <select value={objective} onChange={(event) => setObjective(event.target.value as BuilderObjective)}>
+              <select value={objective} onChange={(event) => onObjectiveChange(event.target.value as BuilderObjective)}>
                 <option value="recommended">Recommended balance</option>
                 <option value="fewest">Fewest breedings</option>
                 <option value="cleanest">Best estimated hatch odds</option>
@@ -79,14 +118,14 @@ export default function BuilderPage() {
             </label>
             <label className="form-field">
               <span>Allowed extra passives</span>
-              <select value={allowedExtras} onChange={(event) => setAllowedExtras(Number(event.target.value) as 0 | 1 | 2)}>
+              <select value={allowedExtras} onChange={(event) => onExtrasChange(Number(event.target.value) as 0 | 1 | 2)}>
                 <option value={0}>None / exact build</option>
                 <option value={1}>Up to one</option>
                 <option value={2}>Up to two</option>
               </select>
             </label>
           </div>
-          <button className="primary-button builder-run" type="button" disabled={inventorySnapshot.status === "loading" || !targetId || !requiredPassiveIds.length} onClick={runBuilder}>
+          <button className="primary-button builder-run" type="button" disabled={inventorySnapshot.status === "loading" || !targetId || !requiredPassiveIds.length} onClick={onRun}>
             <SparkIcon />Build the optimal route
           </button>
           <p className="model-note">The species/passive search is exhaustive for a continuous carrier bred with owned partners. Extra-passive tolerance applies to the final hatch; intermediate carriers stay clean. Hatch odds are estimates from reverse-engineered inheritance distributions and exclude gender selection and lucky random additions.</p>
@@ -99,7 +138,7 @@ export default function BuilderPage() {
             targetId={targetId}
             requiredPassiveIds={requiredPassiveIds}
             hatchGender={hatchGender}
-            setHatchGender={setHatchGender}
+            onHatchGenderChange={onGenderChange}
             onLogHatch={logHatch}
           />
         </div>
@@ -113,14 +152,14 @@ function BuilderResultView({
   targetId,
   requiredPassiveIds,
   hatchGender,
-  setHatchGender,
+  onHatchGenderChange,
   onLogHatch,
 }: {
   result?: BuilderResult;
   targetId?: PalId;
   requiredPassiveIds: readonly PassiveId[];
   hatchGender: PalGender;
-  setHatchGender: (gender: PalGender) => void;
+  onHatchGenderChange: (gender: PalGender) => void;
   onLogHatch: () => void;
 }) {
   if (!result) {
@@ -175,7 +214,7 @@ function BuilderResultView({
 
       <div className="hatch-adapter">
         <div><strong>I hatched the final Pal</strong><span>Add the result to this session and immediately make it available to every planner.</span></div>
-        <select value={hatchGender} onChange={(event) => setHatchGender(event.target.value as PalGender)} aria-label="Hatched Pal gender"><option value="F">Female</option><option value="M">Male</option></select>
+        <select value={hatchGender} onChange={(event) => onHatchGenderChange(event.target.value as PalGender)} aria-label="Hatched Pal gender"><option value="F">Female</option><option value="M">Male</option></select>
         <button type="button" className="secondary-button compact-button" onClick={onLogHatch}>Log hatch</button>
       </div>
     </div>

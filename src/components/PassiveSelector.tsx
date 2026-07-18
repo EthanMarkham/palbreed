@@ -7,19 +7,35 @@ type PassiveSelectorProps = {
   selected: readonly PassiveId[];
   onChange: (selected: readonly PassiveId[]) => void;
   max?: number;
+  query?: string;
+  onQueryChange?: (query: string) => void;
 };
 
 const allPassives = passiveRepository.all();
 
-export default function PassiveSelector({ label, selected, onChange, max = 4 }: PassiveSelectorProps) {
-  const [query, setQuery] = useState("");
+export default function PassiveSelector({
+  label,
+  selected,
+  onChange,
+  max = 4,
+  query: controlledQuery,
+  onQueryChange,
+}: PassiveSelectorProps) {
+  const [localQuery, setLocalQuery] = useState("");
+  const query = controlledQuery ?? localQuery;
   const visible = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase();
-    if (!normalized) return allPassives;
-    return allPassives.filter((passive) =>
-      `${passive.name} ${passive.description}`.toLocaleLowerCase().includes(normalized),
-    );
+    const tokens = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return allPassives;
+    return allPassives.filter((passive) => {
+      const searchable = `${passive.name} ${passive.description} ${passive.id}`.toLocaleLowerCase();
+      return tokens.every((token) => searchable.includes(token));
+    });
   }, [query]);
+
+  const updateQuery = (value: string) => {
+    if (onQueryChange) onQueryChange(value);
+    else setLocalQuery(value);
+  };
 
   const toggle = (id: PassiveId) => {
     if (selected.includes(id)) {
@@ -45,12 +61,12 @@ export default function PassiveSelector({ label, selected, onChange, max = 4 }: 
       <input
         className="passive-search"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => updateQuery(event.target.value)}
         placeholder="Search passives"
         aria-label={`Search ${label.toLocaleLowerCase()}`}
       />
       <div className="passive-options" role="list" aria-label={`${label} options`}>
-        {visible.map((passive) => {
+        {visible.length ? visible.map((passive) => {
           const checked = selected.includes(passive.id);
           const disabled = !checked && selected.length >= max;
           return (
@@ -68,7 +84,7 @@ export default function PassiveSelector({ label, selected, onChange, max = 4 }: 
               <em>{passive.rank > 0 ? `+${passive.rank}` : passive.rank}</em>
             </label>
           );
-        })}
+        }) : <div className="passive-no-results"><strong>No matching passives</strong><span>Try a name, effect, or identifier.</span></div>}
       </div>
     </fieldset>
   );

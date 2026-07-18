@@ -1,11 +1,28 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import PalSelect from "../../components/PalSelect";
 import { breedingRepository } from "../../data/breedingRepository";
 import type { PalId } from "../../domain/pal";
+import type { PairSearchState } from "./pairSearch";
 
-export default function PairPage() {
-  const [first, setFirst] = useState<PalId>();
-  const [second, setSecond] = useState<PalId>();
+type PairPageProps = {
+  search: PairSearchState;
+  onFirstInputChange: (value: string) => void;
+  onSecondInputChange: (value: string) => void;
+  onFirstSelectionChange: (value: PalId | undefined) => void;
+  onSecondSelectionChange: (value: PalId | undefined) => void;
+  onSwap: () => void;
+};
+
+export default function PairPage({
+  search,
+  onFirstInputChange,
+  onSecondInputChange,
+  onFirstSelectionChange,
+  onSecondSelectionChange,
+  onSwap,
+}: PairPageProps) {
+  const first = search.first;
+  const second = search.second;
   const outcomes = useMemo(
     () => first && second ? breedingRepository.getOutcomes(first, second) : [],
     [first, second],
@@ -19,19 +36,29 @@ export default function PairPage() {
           <h1>Choose the parents. Meet the baby.</h1>
           <p>Every result uses the loaded Palworld 1.0 breeding table, including gender-specific exceptions.</p>
         </div>
-        <span className="hero-index">01</span>
+        <span className="hero-index">02</span>
       </section>
 
       <section className="feature-grid pair-layout">
         <div className="feature-card pair-input-card">
           <div className="card-heading"><span>Parents</span><small>Order does not matter</small></div>
           <div className="pair-selects">
-            <PalSelect label="Parent A" value={first} onChange={setFirst} />
+            <PalSelect
+              label="Parent A"
+              value={first}
+              onChange={onFirstSelectionChange}
+              query={{ value: search.firstQuery ?? "", onChange: onFirstInputChange }}
+            />
             <span className="pair-plus" aria-hidden="true">+</span>
-            <PalSelect label="Parent B" value={second} onChange={setSecond} />
+            <PalSelect
+              label="Parent B"
+              value={second}
+              onChange={onSecondSelectionChange}
+              query={{ value: search.secondQuery ?? "", onChange: onSecondInputChange }}
+            />
           </div>
           {first && second ? (
-            <button className="secondary-button compact-button" type="button" onClick={() => { setFirst(second); setSecond(first); }}>
+            <button className="secondary-button compact-button" type="button" onClick={onSwap}>
               Swap parents
             </button>
           ) : null}
@@ -39,26 +66,53 @@ export default function PairPage() {
 
         <div className="feature-card outcome-card" aria-live="polite">
           <div className="card-heading"><span>Offspring</span><small>Palworld 1.0</small></div>
-          {!first || !second ? <EmptyOutcome /> : outcomes.length ? outcomes.map((outcome) => {
-            const child = breedingRepository.getPal(outcome.childId);
-            const genders = breedingRepository.getGenderRequirement(first, second, outcome.childId);
-            return child ? (
-              <article className="baby-result" key={`${outcome.childId}-${genders?.firstGender ?? "any"}-${genders?.secondGender ?? "any"}`}>
-                <div className="baby-orbit"><img src={child.image} alt="" /></div>
-                <div>
-                  <span className="result-eyebrow">BREEDING RESULT</span>
-                  <h2>{child.name}</h2>
-                  <p>{genders
-                    ? `Requires Parent A ${formatGender(genders.firstGender)} and Parent B ${formatGender(genders.secondGender)}.`
-                    : "No parent gender restriction."}</p>
-                </div>
-              </article>
-            ) : null;
-          }) : <div className="empty-state"><strong>No offspring found</strong><span>This pair is unavailable in the loaded 1.0 data.</span></div>}
+          <PairOutcomes first={first} second={second} outcomes={outcomes} />
         </div>
       </section>
     </main>
   );
+}
+
+function PairOutcomes({
+  first,
+  second,
+  outcomes,
+}: {
+  first?: PalId;
+  second?: PalId;
+  outcomes: ReturnType<typeof breedingRepository.getOutcomes>;
+}) {
+  if (!first || !second) return <EmptyOutcome />;
+  if (!outcomes.length) {
+    return (
+      <div className="empty-state">
+        <strong>No offspring found</strong>
+        <span>This pair is unavailable in the loaded 1.0 data.</span>
+      </div>
+    );
+  }
+
+  return outcomes.map((outcome) => {
+    const child = breedingRepository.getPal(outcome.childId);
+    if (!child) return null;
+
+    const genders = breedingRepository.getGenderRequirement(first, second, outcome.childId);
+    const key = `${outcome.childId}-${genders?.firstGender ?? "any"}-${genders?.secondGender ?? "any"}`;
+    return (
+      <article className="baby-result" key={key}>
+        <div className="baby-orbit"><img src={child.image} alt="" /></div>
+        <div>
+          <span className="result-eyebrow">BREEDING RESULT</span>
+          <h2>{child.name}</h2>
+          <p>
+            {genders
+              ? `Requires Parent A ${formatGender(genders.firstGender)} and Parent B ${formatGender(genders.secondGender)}.`
+              : "No parent gender restriction."}
+          </p>
+        </div>
+      </article>
+    );
+  });
 }
 
 function EmptyOutcome() {

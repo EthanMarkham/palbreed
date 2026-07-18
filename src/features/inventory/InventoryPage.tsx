@@ -1,35 +1,56 @@
 import { useRef, useState, type ChangeEvent } from "react";
+import { GenderBadge } from "../../components/OwnedPalSelect";
+import OwnedPalSelect from "../../components/OwnedPalSelect";
 import PalSelect from "../../components/PalSelect";
-import PassiveSelector from "../../components/PassiveSelector";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { OwnedPal } from "../../domain/inventory";
-import type { PalGender, PalId } from "../../domain/pal";
+import type { PalId } from "../../domain/pal";
 import { SaveImportError, type SaveManifest, type SavePlatform } from "../../domain/saveImport";
 import { findInventoryLineage } from "../../services/inventory/inventoryLineageFinder";
-import { createId, inventoryService } from "../../services/inventory/inventoryService";
+import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
 import { extractPalsFromSlot } from "../../services/saveImport/palSaveParser";
 import { scanSaveSelection } from "../../services/saveImport/saveScanner";
+import ManualPalDialog from "./ManualPalDialog";
+import { getInventoryPlatform, type InventorySearchState } from "./inventorySearch";
 
 const SAVE_PATHS = {
   xbox: "%LOCALAPPDATA%\\Packages\\PocketpairInc.Palworld_ad4psfrxyesvt\\SystemAppData\\wgs",
   steam: "%LOCALAPPDATA%\\Pal\\Saved\\SaveGames",
 } as const;
 
-export default function InventoryPage() {
+type InventoryPageProps = {
+  search: InventorySearchState;
+  onPlatformChange: (platform: SavePlatform) => void;
+  onStartInputChange: (value: string) => void;
+  onStartSelectionChange: (value: string) => void;
+  onTargetInputChange: (value: string) => void;
+  onTargetSelectionChange: (value: PalId | undefined) => void;
+  isAddPalOpen: boolean;
+  onAddPalOpenChange: (isOpen: boolean) => void;
+};
+
+export default function InventoryPage({
+  search,
+  onPlatformChange,
+  onStartInputChange,
+  onStartSelectionChange,
+  onTargetInputChange,
+  onTargetSelectionChange,
+  isAddPalOpen,
+  onAddPalOpenChange,
+}: InventoryPageProps) {
   const snapshot = useInventory();
   const profile = inventoryService.getActiveProfile();
   const includedPals = profile.pals.filter(({ included }) => included);
-  const [speciesId, setSpeciesId] = useState<PalId>();
-  const [gender, setGender] = useState<PalGender>("F");
-  const [passiveIds, setPassiveIds] = useState<readonly string[]>([]);
-  const [platform, setPlatform] = useState<SavePlatform>("xbox");
+  const platform = getInventoryPlatform(search);
   const [manifest, setManifest] = useState<SaveManifest>();
   const [importStatus, setImportStatus] = useState<{ kind: "idle" | "working" | "success" | "error"; message?: string }>({ kind: "idle" });
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
-  const [startOwnedPalId, setStartOwnedPalId] = useState<string>("");
-  const [targetId, setTargetId] = useState<PalId>();
+  const startOwnedPalId = includedPals.some(({ id }) => id === search.start) ? search.start ?? "" : "";
+  const targetId = search.target;
+  const activeManifest = manifest?.platform === platform ? manifest : undefined;
   const fileInput = useRef<HTMLInputElement>(null);
   const directoryProps = { webkitdirectory: "", directory: "" };
 
@@ -55,19 +76,19 @@ export default function InventoryPage() {
   };
 
   const importSlot = async (slotId: string) => {
-    const slot = manifest?.slots.find(({ id }) => id === slotId);
-    if (!slot || !manifest) return;
+    const slot = activeManifest?.slots.find(({ id }) => id === slotId);
+    if (!slot || !activeManifest) return;
     setImportStatus({ kind: "working", message: `Decoding ${slot.label} locally…` });
     try {
       const preview = await extractPalsFromSlot(slot);
       inventoryService.replaceImportedProfile({
         name: slot.label,
-        platform: manifest.platform,
+        platform: activeManifest.platform,
         worldId: slot.worldId,
         slotId: slot.id,
         pals: preview.pals,
       });
-      setStartOwnedPalId("");
+      onStartSelectionChange("");
       const skipped = preview.unknownPalIds.length + preview.unknownPassiveIds.length;
       setImportStatus({
         kind: "success",
@@ -76,21 +97,6 @@ export default function InventoryPage() {
     } catch (error) {
       setImportStatus({ kind: "error", message: importMessage(error) });
     }
-  };
-
-  const addManualPal = () => {
-    if (!speciesId) return;
-    inventoryService.upsertPal({
-      id: createId(),
-      speciesId,
-      gender,
-      passiveIds,
-      location: "manual",
-      source: "manual",
-      included: true,
-    });
-    setSpeciesId(undefined);
-    setPassiveIds([]);
   };
 
   const copyCurrentPath = async () => {
@@ -121,8 +127,8 @@ export default function InventoryPage() {
           <section className="feature-card import-card">
             <div className="card-heading"><span>Import a 1.0 world</span><small>Local-only decoding</small></div>
             <div className="platform-tabs" role="group" aria-label="Save platform">
-              <button type="button" className={platform === "xbox" ? "is-active" : ""} onClick={() => { setPlatform("xbox"); setManifest(undefined); setCopyStatus("idle"); }}>Xbox / Game Pass</button>
-              <button type="button" className={platform === "steam" ? "is-active" : ""} onClick={() => { setPlatform("steam"); setManifest(undefined); setCopyStatus("idle"); }}>Steam</button>
+              <button type="button" className={platform === "xbox" ? "is-active" : ""} onClick={() => { onPlatformChange("xbox"); setManifest(undefined); setCopyStatus("idle"); }}>Xbox / Game Pass</button>
+              <button type="button" className={platform === "steam" ? "is-active" : ""} onClick={() => { onPlatformChange("steam"); setManifest(undefined); setCopyStatus("idle"); }}>Steam</button>
             </div>
 
             <div className="path-card">
@@ -154,10 +160,10 @@ export default function InventoryPage() {
             <p className="privacy-note"><LockIcon />Save bytes never leave this browser. Palpath reads only; it never modifies the game files.</p>
 
             {importStatus.kind !== "idle" && importStatus.message ? <StatusBanner kind={importStatus.kind} message={importStatus.message} /> : null}
-            {manifest ? (
+            {activeManifest ? (
               <div className="world-list">
-                <div className="subheading"><strong>Choose a world</strong><span>{manifest.slots.length} found</span></div>
-                {manifest.slots.map((slot) => (
+                <div className="subheading"><strong>Choose a world</strong><span>{activeManifest.slots.length} found</span></div>
+                {activeManifest.slots.map((slot) => (
                   <article className="world-row" key={slot.id}>
                     <div>
                       <strong>{slot.label}</strong>
@@ -181,15 +187,6 @@ export default function InventoryPage() {
             ) : null}
           </section>
 
-          <section className="feature-card manual-card">
-            <div className="card-heading"><span>Add a Pal manually</span><small>Exact passives improve builder plans</small></div>
-            <div className="manual-fields">
-              <PalSelect label="Pal" value={speciesId} onChange={setSpeciesId} />
-              <label className="form-field"><span>Gender</span><select value={gender} onChange={(event) => setGender(event.target.value as PalGender)}><option value="F">Female</option><option value="M">Male</option></select></label>
-            </div>
-            <PassiveSelector label="Passives" selected={passiveIds} onChange={setPassiveIds} />
-            <button className="primary-button" type="button" disabled={!speciesId} onClick={addManualPal}>Add to inventory</button>
-          </section>
         </div>
 
         <aside className="inventory-side">
@@ -200,7 +197,7 @@ export default function InventoryPage() {
                 <span>Active inventory</span>
                 <select value={profile.id} onChange={(event) => {
                   inventoryService.selectProfile(event.target.value);
-                  setStartOwnedPalId("");
+                  onStartSelectionChange("");
                 }}>
                   {snapshot.document.profiles.map((candidate) => (
                     <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
@@ -212,12 +209,16 @@ export default function InventoryPage() {
                 className="secondary-button compact-button"
                 onClick={() => {
                   inventoryService.createProfile(`Inventory ${snapshot.document.profiles.length + 1}`);
-                  setStartOwnedPalId("");
+                  onStartSelectionChange("");
                 }}
               >
                 New list
               </button>
             </div>
+            <button className="primary-button add-pal-cta" type="button" onClick={() => onAddPalOpenChange(true)}>
+              <AddIcon />
+              Add Pal manually
+            </button>
             <div className="collection-list">
               {profile.pals.length ? profile.pals.map((pal) => <InventoryPalRow key={pal.id} pal={pal} />) : (
                 <div className="empty-state compact-empty"><strong>No Pals yet</strong><span>Import a world or add your first Pal.</span></div>
@@ -230,21 +231,14 @@ export default function InventoryPage() {
       <section className="feature-card route-lab">
         <div className="card-heading"><span>Shortest inventory route</span><small>Exact breadth-first search</small></div>
         <div className="route-lab-controls">
-          <label className="form-field">
-            <span>Starting Pal</span>
-            <select value={startOwnedPalId} onChange={(event) => setStartOwnedPalId(event.target.value)}>
-              <option value="">Any included Pal (target only)</option>
-              {includedPals.map((pal) => {
-                const species = breedingRepository.getPal(pal.speciesId);
-                return <option key={pal.id} value={pal.id}>{pal.nickname || species?.name} / {pal.gender}</option>;
-              })}
-            </select>
-          </label>
+          <OwnedPalSelect key={profile.id} label="Starting Pal" pals={includedPals} value={startOwnedPalId} onChange={onStartSelectionChange} query={{ value: search.startQuery ?? "", onChange: onStartInputChange }} />
           <span className="route-arrow" aria-hidden="true">→</span>
-          <PalSelect label="Target Pal" value={targetId} onChange={setTargetId} />
+          <PalSelect label="Target Pal" value={targetId} onChange={onTargetSelectionChange} query={{ value: search.targetQuery ?? "", onChange: onTargetInputChange }} />
         </div>
         <InventoryRouteResult result={routeResult} inventory={profile.pals} />
       </section>
+
+      {isAddPalOpen ? <ManualPalDialog isOpen onOpenChange={onAddPalOpenChange} /> : null}
     </main>
   );
 }
@@ -257,7 +251,7 @@ function InventoryHero() {
         <h1>Your collection becomes the route.</h1>
         <p>Import a Palworld 1.0 world or add Pals manually, then calculate the fewest breedings using only partners you actually own.</p>
       </div>
-      <span className="hero-index">02</span>
+      <span className="hero-index">03</span>
     </section>
   );
 }
@@ -272,7 +266,11 @@ function InventoryPalRow({ pal }: { pal: OwnedPal }) {
       {species ? <img src={species.image} alt="" /> : null}
       <div>
         <strong>{pal.nickname || species?.name || pal.speciesId}</strong>
-        <span>{pal.gender === "F" ? "Female" : "Male"} · {pal.location.replace("-", " ")}</span>
+        <span className="inventory-pal-meta">
+          <GenderBadge gender={pal.gender} />
+          {pal.level ? <span>Level {pal.level}</span> : null}
+          <span>{pal.location.replace("-", " ")}</span>
+        </span>
         <small>{pal.passiveIds.length ? pal.passiveIds.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ") : "No passives recorded"}</small>
       </div>
       <button type="button" className="icon-button" onClick={() => inventoryService.removePal(pal.id)} aria-label={`Remove ${species?.name ?? "Pal"}`}>×</button>
@@ -351,4 +349,8 @@ function FolderIcon() {
 
 function LockIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>;
+}
+
+function AddIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>;
 }
