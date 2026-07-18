@@ -1,81 +1,84 @@
-import { useMemo, useState } from "react";
-import "./App.css";
-import PalPicker from "./components/PalPicker";
-import { breedingRepository } from "./data/breedingRepository";
-import type { LineageResult, Pal, PalGender, PalId } from "./domain/pal";
-import { findLineage } from "./services/lineageFinder";
+import { useMemo } from "react";
+import PalPicker from "../../components/PalPicker";
+import { breedingRepository } from "../../data/breedingRepository";
+import type { LineageResult, Pal, PalGender, PalId } from "../../domain/pal";
+import { findLineage } from "../../services/lineageFinder";
+import { getPlannerInputValue, type PlannerSearchState } from "./plannerSearch";
 
-const metadata = breedingRepository.metadata;
 const pals = breedingRepository.allPals();
 
-function App() {
-  const [startId, setStartId] = useState<PalId>("");
-  const [targetId, setTargetId] = useState<PalId>("");
+type PlannerPageProps = {
+  search: PlannerSearchState;
+  onFromInputChange: (value: string) => void;
+  onToInputChange: (value: string) => void;
+  onFromSelectionChange: (value: PalId | undefined) => void;
+  onToSelectionChange: (value: PalId | undefined) => void;
+  onSwap: () => void;
+};
+
+export default function PlannerPage({
+  search,
+  onFromInputChange,
+  onToInputChange,
+  onFromSelectionChange,
+  onToSelectionChange,
+  onSwap,
+}: PlannerPageProps) {
+  const startId = search.from ?? "";
+  const targetId = search.to ?? "";
+  const startInputValue = getPlannerInputValue(search, "from");
+  const targetInputValue = getPlannerInputValue(search, "to");
   const result = useMemo(
-    () => startId && targetId ? findLineage(startId, targetId) : null,
+    () => (startId && targetId ? findLineage(startId, targetId) : null),
     [startId, targetId],
   );
 
-  const swapRoute = () => {
-    setStartId(targetId);
-    setTargetId(startId);
-  };
-
   return (
-    <div className="site-frame">
-      <div className="ambient ambient-one" aria-hidden="true" />
-      <div className="ambient ambient-two" aria-hidden="true" />
-
-      <header className="site-header">
-        <a className="brand" href="#top" aria-label="Palpath home">
-          <span className="brand-mark">PP</span>
-          <span className="brand-name">PALPATH</span>
-        </a>
-        <span className="version-label">Palworld {metadata.gameVersion}</span>
-      </header>
-
-      <main className="workspace" id="top">
-        <section className="planner-panel" aria-labelledby="planner-title">
-          <div className="planner-head">
-            <div>
-              <span className="section-kicker">SHORTEST PASSIVE PATH</span>
-              <h1 id="planner-title">Passive transfer path</h1>
-            </div>
-            <p>Select the Pal carrying the passives, then the Pal you want them on.</p>
+    <main className="workspace">
+      <section className="planner-panel" aria-labelledby="planner-title">
+        <div className="planner-head">
+          <div>
+            <span className="section-kicker">SHORTEST PASSIVE PATH</span>
+            <h1 id="planner-title">Passive transfer path</h1>
           </div>
+          <p>Select the Pal carrying the passives, then the Pal you want them on.</p>
+        </div>
 
-          <div className="route-controls">
-            <PalPicker
-              label="Starting Pal"
-              description="HAS PASSIVES"
-              value={startId}
-              onChange={setStartId}
-              pals={pals}
-              placeholder="Search starting Pal"
-            />
-            <button
-              className="swap-button"
-              type="button"
-              onClick={swapRoute}
-              disabled={!startId && !targetId}
-              aria-label="Swap starting and target Pals"
-            >
-              <SwapIcon />
-            </button>
-            <PalPicker
-              label="Target Pal"
-              description="NEEDS PASSIVES"
-              value={targetId}
-              onChange={setTargetId}
-              pals={pals}
-              placeholder="Search target Pal"
-            />
-          </div>
-        </section>
+        <div className="route-controls">
+          <PalPicker
+            label="Starting Pal"
+            description="HAS PASSIVES"
+            selectedId={search.from}
+            inputValue={startInputValue}
+            onInputChange={onFromInputChange}
+            onSelectionChange={onFromSelectionChange}
+            pals={pals}
+            placeholder="Search starting Pal"
+          />
+          <button
+            className="swap-button"
+            type="button"
+            onClick={onSwap}
+            disabled={!startInputValue && !targetInputValue}
+            aria-label="Swap starting and target Pals"
+          >
+            <SwapIcon />
+          </button>
+          <PalPicker
+            label="Target Pal"
+            description="NEEDS PASSIVES"
+            selectedId={search.to}
+            inputValue={targetInputValue}
+            onInputChange={onToInputChange}
+            onSelectionChange={onToSelectionChange}
+            pals={pals}
+            placeholder="Search target Pal"
+          />
+        </div>
+      </section>
 
-        <LineageResults result={result} startId={startId} targetId={targetId} />
-      </main>
-    </div>
+      <LineageResults result={result} startId={startId} targetId={targetId} />
+    </main>
   );
 }
 
@@ -262,5 +265,3 @@ function AlertIcon() {
 function CheckCircleIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16.5 9" /></svg>;
 }
-
-export default App;

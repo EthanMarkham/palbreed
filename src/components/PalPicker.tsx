@@ -13,8 +13,10 @@ import type { Pal, PalId } from "../domain/pal";
 type PalPickerProps = {
   label: string;
   description: string;
-  value: PalId;
-  onChange: (value: PalId) => void;
+  selectedId?: PalId;
+  inputValue: string;
+  onInputChange: (value: string) => void;
+  onSelectionChange: (value: PalId | undefined) => void;
   pals: readonly Pal[];
   placeholder: string;
 };
@@ -22,27 +24,31 @@ type PalPickerProps = {
 export default function PalPicker({
   label,
   description,
-  value,
-  onChange,
+  selectedId,
+  inputValue,
+  onInputChange,
+  onSelectionChange,
   pals,
   placeholder,
 }: PalPickerProps) {
-  const selected = pals.find((pal) => pal.id === value);
+  const selected = pals.find((pal) => pal.id === selectedId);
 
-  const handleChange = (key: Key | null) => {
-    const nextId = typeof key === "string" ? key : "";
-    onChange(nextId);
+  const handleSelectionChange = (key: Key | null) => {
+    onSelectionChange(typeof key === "string" ? key : undefined);
   };
 
   return (
     <ComboBox<Pal>
       className="pal-picker"
       defaultItems={pals}
-      value={value || null}
-      onChange={handleChange}
+      selectedKey={selectedId ?? null}
+      onSelectionChange={handleSelectionChange}
+      inputValue={inputValue}
+      onInputChange={onInputChange}
       defaultFilter={matchesPal}
       menuTrigger="focus"
       allowsEmptyCollection
+      allowsCustomValue
     >
       <div className="picker-label-row">
         <Label>{label}</Label>

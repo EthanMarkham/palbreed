@@ -7,7 +7,7 @@ import tseslint from "typescript-eslint";
 const tsFiles = ["**/*.{ts,tsx}"];
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist", "src/routeTree.gen.ts"] },
   eslint.configs.recommended,
   {
     files: ["dataFormatter/**/*.mjs"],
@@ -19,6 +19,12 @@ export default tseslint.config(
   })),
   { ...reactHooks.configs.flat.recommended, files: tsFiles },
   { ...reactRefresh.configs.vite, files: tsFiles },
+  {
+    files: ["src/routes/**/*.tsx"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
   {
     files: tsFiles,
     languageOptions: {
