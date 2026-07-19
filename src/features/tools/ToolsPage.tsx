@@ -183,7 +183,10 @@ function FinderStatus({ kind, title, copy }: { kind: "success" | "error"; title:
 function SwapButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled: boolean }) {
   return (
     <button className="finder-swap" type="button" onClick={onClick} disabled={disabled} aria-label={label}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7-3 3 3 3" /><path d="M4 10h13a3 3 0 0 1 3 3v1" /><path d="m17 17 3-3-3-3" /></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 7h12m0 0-3-3m3 3-3 3" />
+        <path d="M18 17H6m0 0 3 3m-3-3 3-3" />
+      </svg>
     </button>
   );
 }
