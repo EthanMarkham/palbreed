@@ -10,10 +10,11 @@ const ROUTE_NODES = [
   { x: 486, y: 56 },
 ] as const;
 const FINAL_ROUTE_NODE = ROUTE_NODES[ROUTE_NODES.length - 1];
+const ROUTE_DURATION = 1.65;
+const ROUTE_LOOP_DELAY = 0.35;
 
 export default function BuilderSolveAnimation() {
   const reduceMotion = useReducedMotion();
-  const pathDuration = reduceMotion ? 0.01 : 1.45;
 
   return (
     <motion.div
@@ -64,9 +65,19 @@ export default function BuilderSolveAnimation() {
           className="builder-solve-path"
           d={ROUTE_PATH}
           pathLength={1}
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ pathLength: { duration: pathDuration, ease: [0.32, 0, 0.18, 1] }, opacity: { duration: 0.16 } }}
+          initial={reduceMotion ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
+          animate={reduceMotion
+            ? { pathLength: 1, opacity: 1 }
+            : { pathLength: [0, 1, 1], opacity: [0, 1, 0] }}
+          transition={reduceMotion
+            ? { duration: 0.01 }
+            : {
+                duration: ROUTE_DURATION,
+                times: [0, 0.82, 1],
+                repeat: Infinity,
+                repeatDelay: ROUTE_LOOP_DELAY,
+                ease: [0.32, 0, 0.18, 1],
+              }}
         />
 
         {ROUTE_NODES.map((node, index) => (
@@ -82,9 +93,9 @@ export default function BuilderSolveAnimation() {
                 : { opacity: [0, 0.58, 0], scale: [0.4, 1, 1.7] }}
               transition={{
                 delay: reduceMotion ? 0 : index * 0.2,
-                duration: reduceMotion ? 0.01 : 1.45,
+                duration: reduceMotion ? 0.01 : ROUTE_DURATION,
                 repeat: reduceMotion ? 0 : Infinity,
-                repeatDelay: 0.35,
+                repeatDelay: ROUTE_LOOP_DELAY,
                 ease: "easeOut",
               }}
               style={{ transformOrigin: `${node.x}px ${node.y}px` }}
@@ -118,17 +129,35 @@ export default function BuilderSolveAnimation() {
             : {
                 cx: ROUTE_NODES.map(({ x }) => x),
                 cy: ROUTE_NODES.map(({ y }) => y),
-                opacity: [0, 1, 1, 1, 1, 0.9],
+                opacity: [0, 1, 1, 1, 1, 0],
               }}
-          transition={{ duration: pathDuration, times: [0, 0.2, 0.4, 0.6, 0.8, 1], ease: "easeInOut" }}
+          transition={reduceMotion
+            ? { duration: 0.01 }
+            : {
+                duration: ROUTE_DURATION,
+                times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+                repeat: Infinity,
+                repeatDelay: ROUTE_LOOP_DELAY,
+                ease: "easeInOut",
+              }}
         />
       </svg>
 
       <div className="builder-solving-progress" aria-hidden="true">
         <motion.span
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: reduceMotion ? 0.01 : 1.65, ease: [0.32, 0, 0.18, 1] }}
+          initial={reduceMotion ? { scaleX: 1, opacity: 1 } : { scaleX: 0, opacity: 1 }}
+          animate={reduceMotion
+            ? { scaleX: 1, opacity: 1 }
+            : { scaleX: [0, 1, 1], opacity: [1, 1, 0] }}
+          transition={reduceMotion
+            ? { duration: 0.01 }
+            : {
+                duration: ROUTE_DURATION,
+                times: [0, 0.82, 1],
+                repeat: Infinity,
+                repeatDelay: ROUTE_LOOP_DELAY,
+                ease: [0.32, 0, 0.18, 1],
+              }}
         />
       </div>
     </motion.div>
