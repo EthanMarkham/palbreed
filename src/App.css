@@ -91,6 +91,46 @@
   font-weight: 700;
 }
 
+.header-actions { justify-self: end; display: flex; align-items: center; gap: 9px; }
+.sync-sign-in-trigger {
+  min-height: 32px;
+  padding: 0.45rem 0.72rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.72);
+  font: 700 0.58rem/1 "Space Grotesk", sans-serif;
+  cursor: pointer;
+}
+.sync-sign-in-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  padding: 20px;
+  display: grid;
+  place-items: center;
+  background: rgba(21, 38, 34, 0.42);
+  backdrop-filter: blur(8px);
+}
+.sync-sign-in-modal { width: min(100%, 420px); }
+.sync-sign-in-dialog {
+  position: relative;
+  padding: 28px;
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 20px;
+  background: var(--paper);
+  box-shadow: 0 24px 70px rgba(21, 38, 34, 0.24);
+  outline: none;
+}
+.sync-sign-in-dialog h2 { margin: 0; color: var(--ink); font: 700 1.45rem/1.12 "Space Grotesk", sans-serif; letter-spacing: -0.035em; }
+.sync-sign-in-dialog p { margin: 0; color: var(--text-muted); font-size: 0.72rem; }
+.sync-sign-in-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border: 0; border-radius: 50%; color: var(--text-muted); background: var(--paper-muted); font-size: 1.2rem; cursor: pointer; }
+.sync-sign-in-field { display: grid; gap: 6px; color: var(--text-muted); font: 700 0.58rem/1 "Space Grotesk", sans-serif; }
+.sync-sign-in-field input { min-height: 42px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--ink); background: white; font: 600 0.78rem/1 "Space Grotesk", sans-serif; outline: none; }
+.sync-sign-in-field input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(35, 133, 109, 0.12); }
+
 .site-footer {
   width: min(calc(100% - 3rem), 1180px);
   min-height: 28px;

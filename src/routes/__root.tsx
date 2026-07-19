@@ -2,6 +2,7 @@ import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import "../App.css";
 import { breedingRepository } from "../data/breedingRepository";
+import SyncSignIn from "../features/account/SyncSignIn";
 
 const metadata = breedingRepository.metadata;
 
@@ -30,7 +31,10 @@ function RootLayout() {
           <Link to="/builder" activeProps={{ className: "is-active" }}>Builder</Link>
           <Link to="/tools" activeProps={{ className: "is-active" }}>Tools</Link>
         </nav>
-        <span className="version-label">v{metadata.gameVersion}</span>
+        <div className="header-actions">
+          <SyncSignIn />
+          <span className="version-label">v{metadata.gameVersion}</span>
+        </div>
       </header>
 
       <Outlet />
