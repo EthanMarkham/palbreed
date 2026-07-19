@@ -137,8 +137,8 @@ function InventoryHero() {
     <section className="feature-hero">
       <div>
         <span className="section-kicker">INVENTORY</span>
-        <h1>Every Pal. One clean view.</h1>
-        <p>Search your imported collection, switch worlds, and keep Builder working from the right roster.</p>
+        <h1>Your imported Pals</h1>
+        <p>Search your collection or switch between worlds. The Builder will use whichever roster is selected here.</p>
       </div>
       <span className="hero-index">01</span>
     </section>
