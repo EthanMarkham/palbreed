@@ -2,7 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  base: mode === "github-pages" ? "/palbreed/" : "/",
   plugins: [
     tanstackRouter({
       target: "react",
@@ -42,4 +43,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
