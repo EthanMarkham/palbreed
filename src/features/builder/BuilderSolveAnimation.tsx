@@ -47,9 +47,9 @@ export default function BuilderSolveAnimation() {
       <svg className="builder-solve-map" viewBox="0 0 520 220" aria-hidden="true">
         <defs>
           <linearGradient id="solve-path-gradient" x1="24" y1="180" x2="500" y2="44" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#63bca5" />
-            <stop offset="0.5" stopColor="#d8f29a" />
-            <stop offset="1" stopColor="#f0ad79" />
+            <stop stopColor="#25856d" />
+            <stop offset="0.5" stopColor="#82aa3e" />
+            <stop offset="1" stopColor="#db7a53" />
           </linearGradient>
           <filter id="solve-path-glow" x="-30%" y="-50%" width="160%" height="200%">
             <feGaussianBlur stdDeviation="5" result="blur" />

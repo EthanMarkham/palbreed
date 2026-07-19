@@ -2282,16 +2282,16 @@
   padding: 36px clamp(18px, 4vw, 34px) 24px;
   display: grid;
   align-content: center;
-  border: 1px solid rgba(216, 242, 154, 0.12);
+  border: 1px solid rgba(35, 133, 109, 0.16);
   border-radius: 16px;
-  color: #f6faf6;
+  color: var(--ink);
   background:
-    radial-gradient(circle at 78% 22%, rgba(216, 242, 154, 0.11), transparent 30%),
-    radial-gradient(circle at 20% 76%, rgba(74, 164, 141, 0.13), transparent 34%),
-    linear-gradient(145deg, #101a15, #192b22 58%, #1d3127);
+    radial-gradient(circle at 78% 22%, rgba(216, 242, 154, 0.3), transparent 32%),
+    radial-gradient(circle at 20% 76%, rgba(74, 164, 141, 0.1), transparent 36%),
+    linear-gradient(145deg, rgba(251, 249, 241, 0.98), rgba(235, 243, 235, 0.96));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 20px 48px rgba(16, 28, 22, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 16px 38px rgba(16, 28, 22, 0.08);
 }
 
 .builder-solving::before,
@@ -2308,8 +2308,8 @@
   height: 250px;
   top: -185px;
   right: -42px;
-  border: 1px solid rgba(216, 242, 154, 0.08);
-  box-shadow: 0 0 0 36px rgba(216, 242, 154, 0.018), 0 0 0 72px rgba(216, 242, 154, 0.012);
+  border: 1px solid rgba(35, 133, 109, 0.08);
+  box-shadow: 0 0 0 36px rgba(35, 133, 109, 0.018), 0 0 0 72px rgba(35, 133, 109, 0.012);
 }
 
 .builder-solving::after {
@@ -2317,7 +2317,7 @@
   height: 170px;
   left: -112px;
   bottom: -108px;
-  border: 1px solid rgba(93, 184, 160, 0.08);
+  border: 1px solid rgba(35, 133, 109, 0.08);
   box-shadow: 0 0 0 30px rgba(93, 184, 160, 0.018);
 }
 
@@ -2330,21 +2330,21 @@
 }
 
 .builder-solving-copy > span {
-  color: #bcd4c9;
+  color: var(--teal-dark);
   font: 800 0.49rem/1 "Space Grotesk", sans-serif;
   letter-spacing: 0.15em;
 }
 
 .builder-solving-copy h2 {
   margin: 0.5rem 0 0;
-  color: #f7faf7;
+  color: var(--ink);
   font: 700 clamp(1.12rem, 3vw, 1.48rem)/1.1 "Space Grotesk", sans-serif;
   letter-spacing: -0.035em;
 }
 
 .builder-solving-copy p {
   margin: 0.5rem 0 0;
-  color: #9fb9ad;
+  color: var(--text-muted);
   font-size: 0.62rem;
 }
 
@@ -2363,7 +2363,7 @@
 }
 
 .builder-solve-path-ghost {
-  stroke: rgba(191, 218, 205, 0.11);
+  stroke: rgba(35, 133, 109, 0.14);
   stroke-width: 2;
   stroke-dasharray: 3 9;
 }
@@ -2371,24 +2371,24 @@
 .builder-solve-path {
   stroke: url(#solve-path-gradient);
   stroke-width: 2.4;
-  filter: drop-shadow(0 0 7px rgba(216, 242, 154, 0.28));
+  filter: drop-shadow(0 0 6px rgba(35, 133, 109, 0.18));
 }
 
 .builder-solve-node-ring {
   fill: none;
-  stroke: #d8f29a;
+  stroke: rgba(35, 133, 109, 0.5);
   stroke-width: 1.2;
 }
 
 .builder-solve-node {
-  fill: #f7faf7;
-  stroke: #6abca7;
+  fill: var(--paper-strong);
+  stroke: var(--teal);
   stroke-width: 2.5;
-  filter: drop-shadow(0 0 6px rgba(107, 191, 168, 0.5));
+  filter: drop-shadow(0 2px 5px rgba(35, 133, 109, 0.2));
 }
 
 .builder-solve-tracer {
-  fill: #f5ffc9;
+  fill: var(--teal-dark);
 }
 
 .builder-solving-progress {
@@ -2397,7 +2397,7 @@
   margin: 0 auto;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(216, 242, 154, 0.09);
+  background: rgba(35, 133, 109, 0.1);
 }
 
 .builder-solving-progress span {
@@ -2405,8 +2405,8 @@
   height: 100%;
   display: block;
   border-radius: inherit;
-  background: linear-gradient(90deg, #55a993, #d8f29a 72%, #efaa76);
-  box-shadow: 0 0 10px rgba(216, 242, 154, 0.25);
+  background: linear-gradient(90deg, var(--teal), var(--lime-strong) 72%, #db7a53);
+  box-shadow: 0 0 8px rgba(35, 133, 109, 0.14);
   transform-origin: left;
 }
 
