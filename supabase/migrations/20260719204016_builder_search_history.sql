@@ -1,5 +1,8 @@
 begin;
 
+create schema if not exists private;
+revoke all on schema private from public;
+
 create or replace function private.canonicalize_builder_search_passives(input_values text[])
 returns text[]
 language sql

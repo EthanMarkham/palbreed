@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AccountRouteImport } from './routes/account'
 import { Route as BuilderRouteImport } from './routes/builder'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -19,11 +18,6 @@ import { Route as ToolsRouteImport } from './routes/tools'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountRoute = AccountRouteImport.update({
-  id: '/account',
-  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BuilderRoute = BuilderRouteImport.update({
@@ -49,7 +43,6 @@ const ToolsRoute = ToolsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
   '/builder': typeof BuilderRoute
   '/legal': typeof LegalRoute
   '/privacy': typeof PrivacyRoute
@@ -57,7 +50,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
   '/builder': typeof BuilderRoute
   '/legal': typeof LegalRoute
   '/privacy': typeof PrivacyRoute
@@ -66,7 +58,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
   '/builder': typeof BuilderRoute
   '/legal': typeof LegalRoute
   '/privacy': typeof PrivacyRoute
@@ -74,22 +65,14 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/account' | '/builder' | '/legal' | '/privacy' | '/tools'
+  fullPaths: '/' | '/builder' | '/legal' | '/privacy' | '/tools'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/account' | '/builder' | '/legal' | '/privacy' | '/tools'
-  id:
-    | '__root__'
-    | '/'
-    | '/account'
-    | '/builder'
-    | '/legal'
-    | '/privacy'
-    | '/tools'
+  to: '/' | '/builder' | '/legal' | '/privacy' | '/tools'
+  id: '__root__' | '/' | '/builder' | '/legal' | '/privacy' | '/tools'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AccountRoute: typeof AccountRoute
   BuilderRoute: typeof BuilderRoute
   LegalRoute: typeof LegalRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -103,13 +86,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account': {
-      id: '/account'
-      path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/builder': {
@@ -145,7 +121,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AccountRoute: AccountRoute,
   BuilderRoute: BuilderRoute,
   LegalRoute: LegalRoute,
   PrivacyRoute: PrivacyRoute,

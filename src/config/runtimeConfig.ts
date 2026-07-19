@@ -47,7 +47,7 @@ export function createRuntimeConfig(environment: Environment): RuntimeConfig {
   }
 
   if (supabase && !legalContactEmail) {
-    errors.push("VITE_LEGAL_CONTACT_EMAIL is required when cloud sync is enabled.");
+    errors.push("VITE_LEGAL_CONTACT_EMAIL is required when Supabase history is enabled.");
   }
 
   return {

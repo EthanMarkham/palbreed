@@ -29,7 +29,6 @@ function RootLayout() {
           <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "is-active" }}>Inventory</Link>
           <Link to="/builder" activeProps={{ className: "is-active" }}>Builder</Link>
           <Link to="/tools" activeProps={{ className: "is-active" }}>Tools</Link>
-          <Link to="/account" activeProps={{ className: "is-active" }}>Account</Link>
         </nav>
         <span className="version-label">v{metadata.gameVersion}</span>
       </header>

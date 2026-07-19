@@ -7,42 +7,11 @@ Only an `InventoryGateway` knows how records are persisted. The current gateway
 stores one document per anonymous owner in IndexedDB; no component or solver
 imports IndexedDB directly.
 
-This is intentional preparation for accounts. Replacing the gateway with a
-Supabase adapter must not change Parent Finder, Pal Builder, or the save parser.
-
-## Planned Supabase model
-
-| Table | Important columns |
-| --- | --- |
-| `user_profiles` | `user_id`, display name/avatar, timestamps |
-| `workspaces` | `id`, personal/team kind, name, creator, timestamps |
-| `workspace_members` | `workspace_id`, `user_id`, owner/editor/viewer role, timestamps |
-| `world_snapshots` | `id`, `workspace_id`, stable identity key, world/player metadata, schema/game version, `revision`, JSONB payload, audit timestamps |
-
-The current product replaces an imported world as one snapshot and does not
-independently edit Pals. Store the validated world payload as one JSONB value
-until individual Pal edits, cross-world SQL search, or incremental Pal sync is
-an actual product requirement. Use a stable world identity to make re-import
-idempotent. Use `revision` for optimistic concurrency and return a conflict
-rather than silently overwriting a newer device.
-
-RLS should require authenticated workspace membership for every read/write and
-enforce owner/editor/viewer permissions. The browser must use only the public
-publishable key; service-role credentials never belong in this app.
-
-## Anonymous-to-account claim
-
-1. Keep the device owner ID and local profile IDs after sign-in.
-2. Create the account's personal workspace.
-3. Upload each imported world independently and idempotently by stable identity.
-4. Return the authoritative snapshot and revision.
-5. Replace the local cache only after that world's upload succeeds.
+Imported worlds deliberately remain local. The browser must not upload save
+bytes, extracted world metadata, or Pal inventory to Supabase.
 
 The `schemaVersion` on the document is independent from the Palworld game
 version and enables deterministic local migrations before sync.
-
-See `scale-accounts-plan.md` for account boundaries, cost controls, licensing,
-and the measurement gates for additional infrastructure.
 
 ## Save parser contract
 

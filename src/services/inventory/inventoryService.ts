@@ -1,5 +1,4 @@
 import type {
-  InventoryCloudBinding,
   InventoryDocument,
   InventoryPlatform,
   InventoryProfile,
@@ -129,62 +128,6 @@ export class InventoryService {
     return existing ? "updated" as const : "created" as const;
   }
 
-  bindProfileToCloud(profileId: string, cloud: InventoryCloudBinding) {
-    const profiles = this.snapshot.document.profiles.map((profile) => (
-      profile.id === profileId
-        ? {
-            ...profile,
-            cloudBindings: [
-              ...(profile.cloudBindings ?? []).filter(
-                ({ workspaceId }) => workspaceId !== cloud.workspaceId,
-              ),
-              cloud,
-            ],
-          }
-        : profile
-    ));
-    if (!profiles.some((profile) => profile.id === profileId)) return;
-    this.commit({ ...this.snapshot.document, profiles });
-  }
-
-  unbindProfileFromCloud(profileId: string, workspaceId: string) {
-    const profile = this.snapshot.document.profiles.find(({ id }) => id === profileId);
-    if (!profile) return 0;
-    const cloudBindings = (profile.cloudBindings ?? []).filter(
-      (binding) => binding.workspaceId !== workspaceId,
-    );
-    this.commit({
-      ...this.snapshot.document,
-      profiles: this.snapshot.document.profiles.map((candidate) => (
-        candidate.id === profileId ? { ...candidate, cloudBindings } : candidate
-      )),
-    });
-    return cloudBindings.length;
-  }
-
-  replaceProfileFromCloud(localProfileId: string | undefined, profile: InventoryProfile) {
-    const replacedIds = new Set([
-      profile.id,
-      ...(localProfileId ? [localProfileId] : []),
-      ...this.snapshot.document.profiles
-        .filter(({ cloudBindings }) => cloudBindings?.some(
-          ({ snapshotId }) => profile.cloudBindings?.some((binding) => binding.snapshotId === snapshotId),
-        ))
-        .map(({ id }) => id),
-    ]);
-    const activeProfileId = localProfileId && this.snapshot.document.activeProfileId === localProfileId
-      ? profile.id
-      : this.snapshot.document.activeProfileId ?? profile.id;
-    this.commit({
-      ...this.snapshot.document,
-      activeProfileId,
-      profiles: [
-        ...this.snapshot.document.profiles.filter(({ id }) => !replacedIds.has(id)),
-        profile,
-      ],
-    });
-  }
-
   private async load() {
     try {
       const stored = await this.gateway.load(this.ownerId);
@@ -239,9 +182,6 @@ function sanitizeDocument(document: InventoryDocument): InventoryDocument {
     .filter(({ platform }) => platform === "xbox" || platform === "steam")
     .map((profile) => ({
       ...profile,
-      cloudBindings: profile.cloudBindings
-        ?.map(sanitizeCloudBinding)
-        .filter((binding): binding is InventoryCloudBinding => Boolean(binding)),
       pals: profile.pals.flatMap((pal) => {
         const imported = sanitizeImportedPal(pal);
         return imported ? [imported] : [];
@@ -251,13 +191,6 @@ function sanitizeDocument(document: InventoryDocument): InventoryDocument {
     ? document.activeProfileId
     : profiles[0]?.id;
   return { ...document, activeProfileId, profiles };
-}
-
-function sanitizeCloudBinding(value: InventoryCloudBinding | undefined) {
-  if (!value || !value.workspaceId || !value.snapshotId) return undefined;
-  if (!Number.isInteger(value.remoteRevision) || value.remoteRevision < 1) return undefined;
-  if (!Number.isInteger(value.localRevisionAtSync) || value.localRevisionAtSync < 0) return undefined;
-  return value;
 }
 
 function sanitizeImportedPal(pal: OwnedPal): OwnedPal | undefined {

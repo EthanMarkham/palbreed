@@ -8,7 +8,6 @@ import {
 import StatusBanner from "../../components/StatusBanner";
 import type { InventoryProfile } from "../../domain/inventory";
 import type { SearchUpdateMode } from "../../routing/searchParams";
-import { accountService } from "../../services/account/accountService";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
 import InventoryCollection from "./InventoryCollection";
@@ -53,9 +52,9 @@ export default function InventoryPage({
     onWorldChange(profileId);
   };
 
-  const removeWorld = async (removed: InventoryProfile) => {
+  const removeWorld = (removed: InventoryProfile) => {
     try {
-      await accountService.removeInventoryProfile(removed);
+      inventoryService.removeProfile(removed.id);
       const nextProfile = inventoryService.getActiveProfile();
       setNotice({ message: `Removed ${removed.name} from Palpath.`, kind: "success" });
       onWorldChange(nextProfile?.id);
