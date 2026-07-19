@@ -25,8 +25,11 @@ export const Route = createFileRoute("/builder")({
 function BuilderRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const navigateToSearch = (nextSearch: typeof search, mode: SearchUpdateMode = "replace") => (
+    navigate({ to: ".", search: nextSearch, replace: shouldReplaceSearch(mode) })
+  );
   const updateSearch = (nextSearch: typeof search, mode: SearchUpdateMode = "replace") => {
-    void navigate({ to: ".", search: nextSearch, replace: shouldReplaceSearch(mode) });
+    void navigateToSearch(nextSearch, mode);
   };
 
   return (
@@ -46,7 +49,7 @@ function BuilderRoute() {
       }}
       onRun={() => {
         builderHistoryService.record(search);
-        updateSearch(runBuilderSearch(search), "push");
+        return navigateToSearch(runBuilderSearch(search), "push");
       }}
     />
   );

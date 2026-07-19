@@ -19,10 +19,12 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^9.2.0",
     "@tanstack/react-router": "^1.170.18",
+    "motion": "^12.42.2",
     "ooz-wasm": "^2.0.0",
     "react": "^18.2.0",
     "react-aria-components": "^1.19.0",
     "react-dom": "^18.2.0",
+    "react-hook-form": "^7.82.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

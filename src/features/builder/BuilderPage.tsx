@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useMemo } from "react";
+import { Controller, useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import PalSelect from "../../components/PalSelect";
 import PassiveSelector from "../../components/PassiveSelector";
 import { breedingRepository } from "../../data/breedingRepository";
@@ -17,6 +19,7 @@ import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
 import BuilderHistoryMenu from "./BuilderHistoryMenu";
 import BuilderParentPreview from "./BuilderParentPreview";
+import BuilderSolveAnimation from "./BuilderSolveAnimation";
 import type { BuilderHistoryEntry } from "./builderHistory";
 import {
   getBuilderExtras,
@@ -36,10 +39,18 @@ type BuilderPageProps = {
   onObjectiveChange: (value: BuilderObjective) => void;
   onExtrasChange: (value: 0 | 1 | 2) => void;
   onHistorySelect: (entry: BuilderHistoryEntry) => void;
-  onRun: () => void;
+  onRun: () => void | Promise<void>;
+};
+
+type BuilderFormValues = {
+  target?: PalId;
+  passives: "any" | PassiveId[];
+  objective: BuilderObjective;
+  extras: 0 | 1 | 2;
 };
 
 const EMPTY_INVENTORY: readonly OwnedPal[] = [];
+const SOLVE_ANIMATION_MS = 1800;
 
 export default function BuilderPage({
   search,
@@ -61,6 +72,22 @@ export default function BuilderPage({
   const passiveGoal = useMemo(() => getBuilderPassiveGoal(search), [search]);
   const allowedExtras = getBuilderExtras(search);
   const objective = getBuilderObjective(search);
+  const formValues = useMemo<BuilderFormValues>(() => ({
+    target: targetId,
+    passives: passiveGoal?.kind === "any" ? "any" : [...requiredPassiveIds],
+    objective,
+    extras: allowedExtras,
+  }), [allowedExtras, objective, passiveGoal?.kind, requiredPassiveIds, targetId]);
+  const {
+    control,
+    handleSubmit,
+    formState: { isSubmitting, isValid },
+  } = useForm<BuilderFormValues>({
+    mode: "onChange",
+    values: formValues,
+  });
+  const formPassives = useWatch({ control, name: "passives" });
+  const reduceMotion = useReducedMotion();
   const result = useMemo<BuilderResult | undefined>(() => {
     if (!search.run || !targetId || !passiveGoal || inventorySnapshot.status === "loading") return undefined;
     return buildPal({
@@ -77,6 +104,13 @@ export default function BuilderPage({
     search.run,
     targetId,
   ]);
+  const submitBuild: SubmitHandler<BuilderFormValues> = async () => {
+    const minimumDuration = reduceMotion ? 120 : SOLVE_ANIMATION_MS;
+    await Promise.all([
+      Promise.resolve(onRun()),
+      new Promise((resolve) => window.setTimeout(resolve, minimumDuration)),
+    ]);
+  };
 
   return (
     <main className="workspace feature-workspace">
@@ -90,60 +124,134 @@ export default function BuilderPage({
       </section>
 
       <section className="builder-layout">
-        <div className="feature-card builder-form-card">
+        <form
+          className="feature-card builder-form-card"
+          aria-busy={isSubmitting}
+          onSubmit={(event) => {
+            void handleSubmit(submitBuild)(event);
+          }}
+        >
           <div className="card-heading"><span>Build specification</span><BuilderHistoryMenu onSelect={onHistorySelect} /></div>
-          <PalSelect
-            label="Final Pal"
-            value={targetId}
-            onChange={onTargetChange}
-            query={{ value: search.targetQuery ?? "", onChange: onTargetInputChange }}
+          <Controller
+            name="target"
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <PalSelect
+                label="Final Pal"
+                value={field.value}
+                onChange={(value) => {
+                  field.onChange(value);
+                  onTargetChange(value);
+                }}
+                query={{ value: search.targetQuery ?? "", onChange: onTargetInputChange }}
+              />
+            )}
           />
-          <PassiveSelector
-            label="Required passives"
-            selected={requiredPassiveIds}
-            onChange={onPassivesChange}
-            query={search.passiveQuery ?? ""}
-            onQueryChange={onPassiveQueryChange}
-            allowAny
-            anySelected={passiveGoal?.kind === "any"}
-            onAnyChange={onAnyPassivesChange}
+          <Controller
+            name="passives"
+            control={control}
+            rules={{ validate: (value) => value === "any" || value.length > 0 }}
+            render={({ field }) => {
+              const anySelected = field.value === "any";
+              const selected = field.value === "any" ? [] : field.value;
+              return (
+                <PassiveSelector
+                  label="Required passives"
+                  selected={selected}
+                  onChange={(value) => {
+                    field.onChange([...value]);
+                    onPassivesChange(value);
+                  }}
+                  query={search.passiveQuery ?? ""}
+                  onQueryChange={onPassiveQueryChange}
+                  allowAny
+                  anySelected={anySelected}
+                  onAnyChange={(value) => {
+                    field.onChange(value ? "any" : []);
+                    onAnyPassivesChange(value);
+                  }}
+                />
+              );
+            }}
           />
 
           <div className="builder-settings">
-            <label className="form-field">
-              <span>Optimize for</span>
-              <select value={objective} onChange={(event) => onObjectiveChange(event.target.value as BuilderObjective)}>
-                <option value="recommended">Recommended balance</option>
-                <option value="fewest">Fewest breedings</option>
-                <option value="cleanest">Best estimated hatch odds</option>
-              </select>
-            </label>
-            <label className="form-field">
-              <span>Allowed extra passives</span>
-              <select
-                value={allowedExtras}
-                disabled={passiveGoal?.kind === "any"}
-                onChange={(event) => onExtrasChange(Number(event.target.value) as 0 | 1 | 2)}
-              >
-                <option value={0}>None / exact build</option>
-                <option value={1}>Up to one</option>
-                <option value={2}>Up to two</option>
-              </select>
-            </label>
+            <Controller
+              name="objective"
+              control={control}
+              render={({ field }) => (
+                <label className="form-field">
+                  <span>Optimize for</span>
+                  <select
+                    {...field}
+                    onChange={(event) => {
+                      field.onChange(event);
+                      onObjectiveChange(event.target.value as BuilderObjective);
+                    }}
+                  >
+                    <option value="recommended">Recommended balance</option>
+                    <option value="fewest">Fewest breedings</option>
+                    <option value="cleanest">Best estimated hatch odds</option>
+                  </select>
+                </label>
+              )}
+            />
+            <Controller
+              name="extras"
+              control={control}
+              render={({ field }) => (
+                <label className="form-field">
+                  <span>Allowed extra passives</span>
+                  <select
+                    {...field}
+                    disabled={formPassives === "any"}
+                    onChange={(event) => {
+                      const value = Number(event.target.value) as 0 | 1 | 2;
+                      field.onChange(value);
+                      onExtrasChange(value);
+                    }}
+                  >
+                    <option value={0}>None / exact build</option>
+                    <option value={1}>Up to one</option>
+                    <option value={2}>Up to two</option>
+                  </select>
+                </label>
+              )}
+            />
           </div>
-          <button className="primary-button builder-run" type="button" disabled={inventorySnapshot.status === "loading" || !targetId || !passiveGoal} onClick={onRun}>
-            <SparkIcon />Build the optimal route
+          <button
+            className="primary-button builder-run"
+            type="submit"
+            disabled={inventorySnapshot.status === "loading" || isSubmitting || !isValid}
+          >
+            <SparkIcon />{isSubmitting ? "Solving every viable path…" : "Build the optimal route"}
           </button>
           <p className="model-note">The search is exhaustive for a continuous carrier bred with imported partners. Any accepts all passive outcomes. Intermediate hatches may include one unrequested passive when it improves the route. Odds exclude gender selection and lucky random additions.</p>
-        </div>
+        </form>
 
         <div className="feature-card builder-result-card" aria-live="polite">
           <div className="card-heading"><span>Build route</span><small>{inventory.length} inventory Pals considered</small></div>
-          <BuilderResultView
-            result={result}
-            targetId={targetId}
-            passiveGoal={passiveGoal}
-          />
+          <AnimatePresence initial={false} mode="wait">
+            {isSubmitting ? (
+              <BuilderSolveAnimation key="solving" />
+            ) : (
+              <motion.div
+                key={search.run ? `result-${targetId ?? "unknown"}-${search.passives ?? "none"}` : "ready"}
+                className="builder-result-content"
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, filter: "blur(5px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8, filter: "blur(4px)" }}
+                transition={{ duration: reduceMotion ? 0.01 : 0.34, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <BuilderResultView
+                  result={result}
+                  targetId={targetId}
+                  passiveGoal={passiveGoal}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </section>
     </main>
