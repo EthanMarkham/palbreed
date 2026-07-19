@@ -27,8 +27,8 @@ export type LineageStep = {
   from: PalId;
   partner: PalId;
   result: PalId;
-  fromGender?: PalGender;
-  partnerGender?: PalGender;
+  fromGender: PalGender;
+  partnerGender: PalGender;
 };
 
 export type LineageResult =

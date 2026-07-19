@@ -49,7 +49,9 @@ export async function scanSaveSelection(
 
   return {
     platform,
-    accountLabel: platform === "xbox" ? inferXboxAccountLabel(selectedFiles) : undefined,
+    accountId: platform === "xbox"
+      ? inferXboxAccountId(selectedFiles)
+      : inferSteamAccountId(selectedFiles),
     slots,
   };
 }
@@ -303,10 +305,19 @@ class LittleEndianReader {
   }
 }
 
-function inferXboxAccountLabel(files: readonly File[]) {
+function inferXboxAccountId(files: readonly File[]) {
   const index = files.find((file) => file.name.toLowerCase() === "containers.index");
   const path = normalizePath(index?.webkitRelativePath ?? "");
   return path.split("/").find((part) => part.includes("_"));
+}
+
+function inferSteamAccountId(files: readonly File[]) {
+  for (const file of files) {
+    const parts = normalizePath(file.webkitRelativePath || file.name).split("/");
+    const worldIndex = parts.findIndex((part) => /^[a-f\d]{32}$/i.test(part));
+    if (worldIndex > 0) return parts[worldIndex - 1];
+  }
+  return undefined;
 }
 
 function normalizePath(path: string) {

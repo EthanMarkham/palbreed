@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { passiveRepository } from "../../data/passiveRepository";
-import type { PalGender, PalId } from "../../domain/pal";
-import type { PassiveId } from "../../domain/passive";
+import type { PalId } from "../../domain/pal";
+import type { PassiveGoal, PassiveId } from "../../domain/passive";
 import type { BuilderObjective } from "../../services/builder/palBuilder";
 import {
   compactSearch,
@@ -18,7 +18,6 @@ const rawBuilderSearchSchema = z.object({
   objective: optionalStringSearchParam,
   extras: z.union([z.string(), z.number()]).optional().catch(undefined),
   run: z.union([z.string(), z.boolean()]).optional().catch(undefined),
-  gender: optionalStringSearchParam,
 });
 
 export type BuilderSearchState = {
@@ -29,13 +28,12 @@ export type BuilderSearchState = {
   objective?: Exclude<BuilderObjective, "recommended">;
   extras?: 1 | 2;
   run?: true;
-  gender?: "M";
 };
 
 export function parseBuilderSearch(search: Record<string, unknown>): BuilderSearchState {
   const raw = rawBuilderSearchSchema.parse(search);
   const target = normalizePalSearch(raw.target, raw.targetQuery);
-  const passiveIds = normalizePassiveIds(raw.passives);
+  const passiveSelection = normalizePassiveSelection(raw.passives);
   const passiveQuery = normalizeSearchQuery(raw.passiveQuery);
   const objective = raw.objective === "fewest" || raw.objective === "cleanest"
     ? raw.objective
@@ -43,21 +41,35 @@ export function parseBuilderSearch(search: Record<string, unknown>): BuilderSear
   const numericExtras = Number(raw.extras);
   const extras = numericExtras === 1 || numericExtras === 2 ? numericExtras : undefined;
   const run = raw.run === true || raw.run === "true" || raw.run === "1" ? true : undefined;
+  const serializedPassives = passiveSelection === "any"
+    ? "any"
+    : passiveSelection.join(",") || undefined;
 
   return compactSearch({
     target: target.selectedId,
     targetQuery: target.query,
-    passives: passiveIds.length ? passiveIds.join(",") : undefined,
+    passives: serializedPassives,
     passiveQuery,
     objective,
     extras,
     run,
-    gender: raw.gender === "M" ? "M" as const : undefined,
   });
 }
 
 export function getBuilderPassiveIds(search: BuilderSearchState): readonly PassiveId[] {
-  return normalizePassiveIds(search.passives);
+  const selection = normalizePassiveSelection(search.passives);
+  return selection === "any" ? [] : selection;
+}
+
+export function getBuilderPassiveGoal(search: BuilderSearchState): PassiveGoal | undefined {
+  const selection = normalizePassiveSelection(search.passives);
+  if (selection === "any") return { kind: "any" };
+  if (!selection.length) return undefined;
+  return {
+    kind: "specific",
+    requiredIds: selection,
+    allowedExtras: getBuilderExtras(search),
+  };
 }
 
 export function getBuilderObjective(search: BuilderSearchState): BuilderObjective {
@@ -68,14 +80,12 @@ export function getBuilderExtras(search: BuilderSearchState): 0 | 1 | 2 {
   return search.extras ?? 0;
 }
 
-export function getBuilderGender(search: BuilderSearchState): PalGender {
-  return search.gender ?? "F";
-}
-
-function normalizePassiveIds(value: string | readonly string[] | undefined): PassiveId[] {
-  const values: readonly string[] = typeof value === "string" ? value.split(",") : value ?? [];
+function normalizePassiveSelection(value: string | readonly string[] | undefined): "any" | PassiveId[] {
+  const values = (typeof value === "string" ? [value] : value ?? [])
+    .flatMap((entry) => entry.split(","))
+    .map((id) => id.trim());
+  if (values.some((id) => id.toLowerCase() === "any")) return "any";
   const validIds = values
-    .map((id) => id.trim())
     .filter((id) => passiveRepository.get(id));
   return [...new Set(validIds)].slice(0, 4);
 }

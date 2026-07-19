@@ -1,19 +1,26 @@
 import { useRef, useState, type ChangeEvent } from "react";
-import { GenderBadge } from "../../components/OwnedPalSelect";
-import OwnedPalSelect from "../../components/OwnedPalSelect";
-import PalSelect from "../../components/PalSelect";
+import {
+  Button as AriaButton,
+  Dialog,
+  DialogTrigger,
+  Heading,
+  Popover,
+} from "react-aria-components";
+import GenderBadge from "../../components/GenderBadge";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
-import type { OwnedPal } from "../../domain/inventory";
-import type { PalId } from "../../domain/pal";
-import { SaveImportError, type SaveManifest, type SavePlatform } from "../../domain/saveImport";
-import { findInventoryLineage } from "../../services/inventory/inventoryLineageFinder";
+import type { InventoryProfile, OwnedPal } from "../../domain/inventory";
+import {
+  SaveImportError,
+  type SaveManifest,
+  type SavePlatform,
+} from "../../domain/saveImport";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
 import { extractPalsFromSlot } from "../../services/saveImport/palSaveParser";
 import { scanSaveSelection } from "../../services/saveImport/saveScanner";
-import ManualPalDialog from "./ManualPalDialog";
 import { getInventoryPlatform, type InventorySearchState } from "./inventorySearch";
+import { describeImportedWorld } from "./importedWorld";
 
 const SAVE_PATHS = {
   xbox: "%LOCALAPPDATA%\\Packages\\PocketpairInc.Palworld_ad4psfrxyesvt\\SystemAppData\\wgs",
@@ -23,42 +30,21 @@ const SAVE_PATHS = {
 type InventoryPageProps = {
   search: InventorySearchState;
   onPlatformChange: (platform: SavePlatform) => void;
-  onStartInputChange: (value: string) => void;
-  onStartSelectionChange: (value: string) => void;
-  onTargetInputChange: (value: string) => void;
-  onTargetSelectionChange: (value: PalId | undefined) => void;
-  isAddPalOpen: boolean;
-  onAddPalOpenChange: (isOpen: boolean) => void;
 };
 
 export default function InventoryPage({
   search,
   onPlatformChange,
-  onStartInputChange,
-  onStartSelectionChange,
-  onTargetInputChange,
-  onTargetSelectionChange,
-  isAddPalOpen,
-  onAddPalOpenChange,
 }: InventoryPageProps) {
   const snapshot = useInventory();
   const profile = inventoryService.getActiveProfile();
-  const includedPals = profile.pals.filter(({ included }) => included);
   const platform = getInventoryPlatform(search);
   const [manifest, setManifest] = useState<SaveManifest>();
   const [importStatus, setImportStatus] = useState<{ kind: "idle" | "working" | "success" | "error"; message?: string }>({ kind: "idle" });
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
-  const startOwnedPalId = includedPals.some(({ id }) => id === search.start) ? search.start ?? "" : "";
-  const targetId = search.target;
   const activeManifest = manifest?.platform === platform ? manifest : undefined;
   const fileInput = useRef<HTMLInputElement>(null);
   const directoryProps = { webkitdirectory: "", directory: "" };
-
-  const routeResult = targetId ? findInventoryLineage({
-    inventory: profile.pals,
-    targetId,
-    startOwnedPalId: startOwnedPalId || undefined,
-  }) : null;
 
   const onFolderChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = [...(event.target.files ?? [])];
@@ -81,18 +67,22 @@ export default function InventoryPage({
     setImportStatus({ kind: "working", message: `Decoding ${slot.label} locally…` });
     try {
       const preview = await extractPalsFromSlot(slot);
-      inventoryService.replaceImportedProfile({
-        name: slot.label,
+      const world = describeImportedWorld(slot.label, preview.players);
+      const result = inventoryService.replaceImportedProfile({
+        name: world.name,
         platform: activeManifest.platform,
         worldId: slot.worldId,
         slotId: slot.id,
+        accountId: activeManifest.accountId,
+        playerId: world.player?.id,
+        playerName: world.player?.name,
+        playerLevel: world.player?.level,
         pals: preview.pals,
       });
-      onStartSelectionChange("");
       const skipped = preview.unknownPalIds.length + preview.unknownPassiveIds.length;
       setImportStatus({
         kind: "success",
-        message: `Imported ${preview.pals.length} Pals${skipped ? `; ${skipped} unknown 1.0 identifiers were safely skipped` : ""}.`,
+        message: `${result === "updated" ? "Updated" : "Imported"} ${preview.pals.length} Pals${skipped ? `; ${skipped} unknown 1.0 identifiers were safely skipped` : ""}.`,
       });
     } catch (error) {
       setImportStatus({ kind: "error", message: importMessage(error) });
@@ -191,54 +181,40 @@ export default function InventoryPage({
 
         <aside className="inventory-side">
           <section className="feature-card collection-card">
-            <div className="card-heading"><span>{profile.name}</span><small>{includedPals.length} included / {profile.pals.length} total</small></div>
-            <div className="profile-toolbar">
-              <label>
-                <span>Active inventory</span>
-                <select value={profile.id} onChange={(event) => {
-                  inventoryService.selectProfile(event.target.value);
-                  onStartSelectionChange("");
-                }}>
-                  {snapshot.document.profiles.map((candidate) => (
-                    <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                className="secondary-button compact-button"
-                onClick={() => {
-                  inventoryService.createProfile(`Inventory ${snapshot.document.profiles.length + 1}`);
-                  onStartSelectionChange("");
-                }}
-              >
-                New list
-              </button>
+            <div className="card-heading">
+              <span>{profile?.name ?? "Imported worlds"}</span>
+              <small>{profile ? `${profile.pals.length} Pals` : "No world selected"}</small>
             </div>
-            <button className="primary-button add-pal-cta" type="button" onClick={() => onAddPalOpenChange(true)}>
-              <AddIcon />
-              Add Pal manually
-            </button>
-            <div className="collection-list">
-              {profile.pals.length ? profile.pals.map((pal) => <InventoryPalRow key={pal.id} pal={pal} />) : (
-                <div className="empty-state compact-empty"><strong>No Pals yet</strong><span>Import a world or add your first Pal.</span></div>
-              )}
-            </div>
+            {profile ? (
+              <>
+                <div className="profile-toolbar">
+                  <label>
+                    <span>Active world</span>
+                    <select value={profile.id} onChange={(event) => {
+                      inventoryService.selectProfile(event.target.value);
+                    }}>
+                      {snapshot.document.profiles.map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <RemoveWorldButton profile={profile} />
+                </div>
+                <div className="collection-list">
+                  {profile.pals.length ? profile.pals.map((pal) => <InventoryPalRow key={pal.id} pal={pal} />) : (
+                    <div className="empty-state compact-empty"><strong>No Pals found</strong><span>Re-import the world after Palworld finishes saving.</span></div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="empty-state compact-empty">
+                <strong>No world imported</strong>
+                <span>Choose a Palworld save folder, then import a discovered world.</span>
+              </div>
+            )}
           </section>
         </aside>
       </section>
-
-      <section className="feature-card route-lab">
-        <div className="card-heading"><span>Shortest inventory route</span><small>Exact breadth-first search</small></div>
-        <div className="route-lab-controls">
-          <OwnedPalSelect key={profile.id} label="Starting Pal" pals={includedPals} value={startOwnedPalId} onChange={onStartSelectionChange} query={{ value: search.startQuery ?? "", onChange: onStartInputChange }} />
-          <span className="route-arrow" aria-hidden="true">→</span>
-          <PalSelect label="Target Pal" value={targetId} onChange={onTargetSelectionChange} query={{ value: search.targetQuery ?? "", onChange: onTargetInputChange }} />
-        </div>
-        <InventoryRouteResult result={routeResult} inventory={profile.pals} />
-      </section>
-
-      {isAddPalOpen ? <ManualPalDialog isOpen onOpenChange={onAddPalOpenChange} /> : null}
     </main>
   );
 }
@@ -249,9 +225,9 @@ function InventoryHero() {
       <div>
         <span className="section-kicker">INVENTORY LAB</span>
         <h1>Your collection becomes the route.</h1>
-        <p>Import a Palworld 1.0 world or add Pals manually, then calculate the fewest breedings using only partners you actually own.</p>
+        <p>Import a Palworld 1.0 world and use its full collection to power every build across Palpath.</p>
       </div>
-      <span className="hero-index">03</span>
+      <span className="hero-index">01</span>
     </section>
   );
 }
@@ -259,10 +235,7 @@ function InventoryHero() {
 function InventoryPalRow({ pal }: { pal: OwnedPal }) {
   const species = breedingRepository.getPal(pal.speciesId);
   return (
-    <article className={`inventory-pal${pal.included ? "" : " is-excluded"}`}>
-      <label className="include-toggle" title={pal.included ? "Included in plans" : "Excluded from plans"}>
-        <input type="checkbox" checked={pal.included} onChange={(event) => inventoryService.setPalIncluded(pal.id, event.target.checked)} />
-      </label>
+    <article className="inventory-pal">
       {species ? <img src={species.image} alt="" /> : null}
       <div>
         <strong>{pal.nickname || species?.name || pal.speciesId}</strong>
@@ -273,47 +246,32 @@ function InventoryPalRow({ pal }: { pal: OwnedPal }) {
         </span>
         <small>{pal.passiveIds.length ? pal.passiveIds.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ") : "No passives recorded"}</small>
       </div>
-      <button type="button" className="icon-button" onClick={() => inventoryService.removePal(pal.id)} aria-label={`Remove ${species?.name ?? "Pal"}`}>×</button>
     </article>
   );
 }
 
-function InventoryRouteResult({ result, inventory }: {
-  result: ReturnType<typeof findInventoryLineage> | null;
-  inventory: readonly OwnedPal[];
-}) {
-  if (!result) return <div className="route-placeholder">Choose a target to calculate the shortest route from your included inventory.</div>;
-  if (result.status === "already-owned") return <StatusBanner kind="success" message="The target is already in the selected starting set. Zero breedings needed." />;
-  if (result.status !== "found") return <StatusBanner kind="error" message={result.reason} />;
+function RemoveWorldButton({ profile }: { profile: InventoryProfile }) {
   return (
-    <div className="inventory-route-result">
-      <div className="route-summary"><strong>{result.steps.length}</strong><span>{result.steps.length === 1 ? "breeding" : "breedings"}<small>Shortest continuous carrier path</small></span></div>
-      <div className="route-step-list">
-        {result.steps.map((step, index) => {
-          const from = breedingRepository.getPal(step.from);
-          const partner = breedingRepository.getPal(step.partner);
-          const child = breedingRepository.getPal(step.result);
-          const ownedPartner = inventory.find(({ id }) => id === step.partnerOwnedPalId);
-          return (
-            <article className="mini-route-step" key={`${step.from}-${step.partner}-${index}`}>
-              <span className="step-index">{String(index + 1).padStart(2, "0")}</span>
-              <PalToken palId={step.from} />
-              <span className="operator">+</span>
-              <PalToken palId={step.partner} note={ownedPartner?.nickname || "Owned partner"} />
-              <span className="operator">→</span>
-              <PalToken palId={step.result} featured />
-              <span className="sr-only">{from?.name} plus {partner?.name} makes {child?.name}</span>
-            </article>
-          );
-        })}
-      </div>
-    </div>
+    <DialogTrigger>
+      <AriaButton className="secondary-button compact-button danger-button">Remove world</AriaButton>
+      <Popover className="world-remove-popover" placement="bottom end">
+        <Dialog className="world-remove-dialog">
+          <Heading slot="title">Remove {profile.name}?</Heading>
+          <p>This removes the imported world from Palpath only. Your Palworld save files are never changed.</p>
+          <div>
+            <AriaButton slot="close" className="secondary-button compact-button">Cancel</AriaButton>
+            <AriaButton
+              slot="close"
+              className="secondary-button compact-button danger-button"
+              onPress={() => inventoryService.removeProfile(profile.id)}
+            >
+              Remove
+            </AriaButton>
+          </div>
+        </Dialog>
+      </Popover>
+    </DialogTrigger>
   );
-}
-
-function PalToken({ palId, note, featured = false }: { palId: PalId; note?: string; featured?: boolean }) {
-  const pal = breedingRepository.getPal(palId);
-  return pal ? <span className={`pal-token${featured ? " is-featured" : ""}`}><img src={pal.image} alt="" /><span><strong>{pal.name}</strong>{note ? <small>{note}</small> : null}</span></span> : null;
 }
 
 function StatusBanner({ kind, message }: { kind: "working" | "success" | "error"; message: string }) {
@@ -349,8 +307,4 @@ function FolderIcon() {
 
 function LockIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>;
-}
-
-function AddIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>;
 }

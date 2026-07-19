@@ -1,17 +1,30 @@
 import { breedingRepository } from "../../data/breedingRepository";
 import type { OwnedPal } from "../../domain/inventory";
 import type { PalGender, PalId } from "../../domain/pal";
-import type { PassiveId } from "../../domain/passive";
+import type { PassiveGoal, PassiveId } from "../../domain/passive";
 import { estimatePassiveOdds } from "./passiveProbability";
 
 export type BuilderObjective = "recommended" | "fewest" | "cleanest";
 
+export type BuilderParentPassives =
+  | { kind: "known"; ids: readonly PassiveId[] }
+  | { kind: "any" };
+
+type BuilderParentBase = {
+  speciesId: PalId;
+  gender: PalGender;
+  passives: BuilderParentPassives;
+};
+
+export type BuilderParent =
+  | BuilderParentBase & { origin: "inventory"; level?: number }
+  | BuilderParentBase & { origin: "planned"; level: 1 };
+
 export type BuilderStep = {
-  from: PalId;
-  partner: PalId;
-  partnerOwnedPalId: string;
+  firstParent: BuilderParent;
+  secondParent: BuilderParent;
   result: PalId;
-  passiveIds: readonly PassiveId[];
+  resultPassives: BuilderParentPassives;
   odds: number;
   expectedCakes: number;
 };
@@ -19,10 +32,8 @@ export type BuilderStep = {
 export type BuilderResult =
   | {
       status: "found";
-      sourceOwnedPalId: string;
       steps: readonly BuilderStep[];
       expectedCakes: number;
-      confidence: "exact-carrier-search";
     }
   | {
       status: "missing-passives";
@@ -37,6 +48,8 @@ type State = {
   gender?: PalGender;
   mask: number;
   carriedPassiveIds: readonly PassiveId[];
+  displayPassives: BuilderParentPassives;
+  level?: number;
   extraCount: number;
   sourceOwnedPalId: string;
   steps: number;
@@ -48,12 +61,15 @@ type Previous = { key: string; step: BuilderStep };
 export function buildPal(input: {
   inventory: readonly OwnedPal[];
   targetId: PalId;
-  requiredPassiveIds: readonly PassiveId[];
-  allowedExtras: 0 | 1 | 2;
+  passiveGoal: PassiveGoal;
   objective: BuilderObjective;
 }): BuilderResult {
-  const inventory = input.inventory.filter(({ included }) => included);
-  const required = [...new Set(input.requiredPassiveIds)].slice(0, 4);
+  const inventory = input.inventory;
+  const acceptsAnyPassives = input.passiveGoal.kind === "any";
+  const required: PassiveId[] = input.passiveGoal.kind === "any"
+    ? []
+    : [...new Set(input.passiveGoal.requiredIds)].slice(0, 4);
+  const allowedExtras = input.passiveGoal.kind === "any" ? 4 : input.passiveGoal.allowedExtras;
   const available = new Set(inventory.flatMap(({ passiveIds }) => passiveIds));
   const missing = required.filter((id) => !available.has(id));
   if (missing.length) {
@@ -63,7 +79,7 @@ export function buildPal(input: {
       reason: "The inventory does not contain every requested passive yet. Add one carrier for each missing passive, then re-run the build.",
     };
   }
-  if (!inventory.length) return { status: "no-route", reason: "Add or import Pals before building." };
+  if (!inventory.length) return { status: "no-route", reason: "Import a world before building." };
 
   const fullMask = (1 << required.length) - 1;
   const queue = new MinPriorityQueue<State>((first, second) => compareState(first, second, input.objective));
@@ -71,17 +87,19 @@ export function buildPal(input: {
   const previous = new Map<string, Previous>();
 
   for (const pal of inventory) {
-    const carriedPassiveIds = [...new Set(pal.passiveIds)];
-    const state = createState(
-      pal.speciesId,
-      pal.gender,
-      maskFor(carriedPassiveIds, required),
+    const carriedPassiveIds = acceptsAnyPassives ? [] : [...new Set(pal.passiveIds)];
+    const state = createState({
+      speciesId: pal.speciesId,
+      gender: pal.gender,
+      level: pal.level,
+      mask: maskFor(carriedPassiveIds, required),
       carriedPassiveIds,
-      pal.id,
-      0,
-      0,
+      displayPassives: { kind: "known", ids: [...new Set(pal.passiveIds)] },
+      sourceOwnedPalId: pal.id,
+      steps: 0,
+      expectedCakes: 0,
       required,
-    );
+    });
     const existing = best.get(state.key);
     if (!existing || compareState(state, existing, input.objective) < 0) {
       best.set(state.key, state);
@@ -95,15 +113,13 @@ export function buildPal(input: {
     if (
       current.speciesId === input.targetId
       && current.mask === fullMask
-      && current.extraCount <= input.allowedExtras
+      && current.extraCount <= allowedExtras
     ) {
       const steps = reconstruct(current.key, previous);
       return {
         status: "found",
-        sourceOwnedPalId: current.sourceOwnedPalId,
         steps,
         expectedCakes: current.expectedCakes,
-        confidence: "exact-carrier-search",
       };
     }
 
@@ -111,9 +127,15 @@ export function buildPal(input: {
       if (current.steps === 0 && partner.id === current.sourceOwnedPalId) continue;
       const nextMask = current.mask | maskFor(partner.passiveIds, required);
       for (const outcome of breedingRepository.getOutcomes(current.speciesId, partner.speciesId)) {
-        const genders = breedingRepository.getGenderRequirement(current.speciesId, partner.speciesId, outcome.childId);
-        if (genders && current.gender && genders.firstGender !== current.gender) continue;
-        if (genders && genders.secondGender !== partner.gender) continue;
+        const specialGenderRequirement = breedingRepository.getGenderRequirement(
+          current.speciesId,
+          partner.speciesId,
+          outcome.childId,
+        );
+        const firstParentGender = specialGenderRequirement?.firstGender ?? oppositeGender(partner.gender);
+        const secondParentGender = specialGenderRequirement?.secondGender ?? partner.gender;
+        if (current.gender && firstParentGender !== current.gender) continue;
+        if (secondParentGender !== partner.gender) continue;
 
         const desiredIds = passiveIdsFor(nextMask, required);
         const parentUnion = new Set([
@@ -121,31 +143,33 @@ export function buildPal(input: {
           ...partner.passiveIds,
         ]);
         const isFinalHatch = outcome.childId === input.targetId && nextMask === fullMask;
-        const acceptedExtras = isFinalHatch ? input.allowedExtras : 0;
+        const acceptedExtras = isFinalHatch ? allowedExtras : 0;
         const odds = estimatePassiveOdds(parentUnion.size, desiredIds.length, acceptedExtras);
         if (desiredIds.length && odds === 0) continue;
         const edgeCakes = odds > 0 ? 1 / odds : 1;
-        const next = createState(
-          outcome.childId,
-          undefined,
-          nextMask,
-          desiredIds,
-          current.sourceOwnedPalId,
-          current.steps + 1,
-          current.expectedCakes + edgeCakes,
+        const next = createState({
+          speciesId: outcome.childId,
+          level: 1,
+          mask: nextMask,
+          carriedPassiveIds: desiredIds,
+          displayPassives: acceptsAnyPassives
+            ? { kind: "any" }
+            : { kind: "known", ids: desiredIds },
+          sourceOwnedPalId: current.sourceOwnedPalId,
+          steps: current.steps + 1,
+          expectedCakes: current.expectedCakes + edgeCakes,
           required,
-        );
+        });
         const existing = best.get(next.key);
         if (existing && compareState(next, existing, input.objective) >= 0) continue;
         best.set(next.key, next);
         previous.set(next.key, {
           key: current.key,
           step: {
-            from: current.speciesId,
-            partner: partner.speciesId,
-            partnerOwnedPalId: partner.id,
+            firstParent: createCurrentParent(current, firstParentGender),
+            secondParent: createInventoryParent(partner, secondParentGender),
             result: outcome.childId,
-            passiveIds: desiredIds,
+            resultPassives: next.displayPassives,
             odds,
             expectedCakes: edgeCakes,
           },
@@ -157,20 +181,34 @@ export function buildPal(input: {
 
   return {
     status: "no-route",
-    reason: "No continuous carrier build can reach that species and passive set with the included Pals and gender constraints.",
+    reason: "No continuous carrier build can reach that species and passive set with the imported Pals and gender constraints.",
   };
 }
 
-function createState(
-  speciesId: PalId,
-  gender: PalGender | undefined,
-  mask: number,
-  carriedPassiveIds: readonly PassiveId[],
-  sourceOwnedPalId: string,
-  steps: number,
-  expectedCakes: number,
-  required: readonly PassiveId[],
-): State {
+function createState(input: {
+  speciesId: PalId;
+  gender?: PalGender;
+  level?: number;
+  mask: number;
+  carriedPassiveIds: readonly PassiveId[];
+  displayPassives: BuilderParentPassives;
+  sourceOwnedPalId: string;
+  steps: number;
+  expectedCakes: number;
+  required: readonly PassiveId[];
+}): State {
+  const {
+    speciesId,
+    gender,
+    level,
+    mask,
+    carriedPassiveIds,
+    displayPassives,
+    sourceOwnedPalId,
+    steps,
+    expectedCakes,
+    required,
+  } = input;
   const normalizedPassives = [...new Set(carriedPassiveIds)].sort();
   const requiredSet = new Set(required);
   const extraCount = normalizedPassives.filter((id) => !requiredSet.has(id)).length;
@@ -180,6 +218,8 @@ function createState(
     gender,
     mask,
     carriedPassiveIds: normalizedPassives,
+    displayPassives,
+    level,
     extraCount,
     sourceOwnedPalId,
     steps,
@@ -215,6 +255,31 @@ function maskFor(ids: readonly PassiveId[], required: readonly PassiveId[]) {
 
 function passiveIdsFor(mask: number, required: readonly PassiveId[]) {
   return required.filter((_, index) => (mask & (1 << index)) !== 0);
+}
+
+function oppositeGender(gender: PalGender): PalGender {
+  return gender === "F" ? "M" : "F";
+}
+
+function createCurrentParent(state: State, gender: PalGender): BuilderParent {
+  const parent = {
+    speciesId: state.speciesId,
+    gender,
+    passives: state.displayPassives,
+  };
+  return state.steps === 0
+    ? { ...parent, origin: "inventory", level: state.level }
+    : { ...parent, origin: "planned", level: 1 };
+}
+
+function createInventoryParent(pal: OwnedPal, gender: PalGender): BuilderParent {
+  return {
+    speciesId: pal.speciesId,
+    origin: "inventory",
+    level: pal.level,
+    gender,
+    passives: { kind: "known", ids: [...new Set(pal.passiveIds)] },
+  };
 }
 
 function reconstruct(targetKey: string, previous: ReadonlyMap<string, Previous>) {

@@ -4,15 +4,17 @@ import PalSelect from "../../components/PalSelect";
 import PassiveSelector from "../../components/PassiveSelector";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
-import type { PalGender, PalId } from "../../domain/pal";
-import type { PassiveId } from "../../domain/passive";
+import type { PalId } from "../../domain/pal";
+import type { OwnedPal } from "../../domain/inventory";
+import type { PassiveGoal, PassiveId } from "../../domain/passive";
 import { buildPal, type BuilderObjective, type BuilderResult } from "../../services/builder/palBuilder";
-import { createId, inventoryService } from "../../services/inventory/inventoryService";
+import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
+import BuilderParentPreview from "./BuilderParentPreview";
 import {
   getBuilderExtras,
-  getBuilderGender,
   getBuilderObjective,
+  getBuilderPassiveGoal,
   getBuilderPassiveIds,
   type BuilderSearchState,
 } from "./builderSearch";
@@ -22,62 +24,50 @@ type BuilderPageProps = {
   onTargetInputChange: (value: string) => void;
   onTargetChange: (value: PalId | undefined) => void;
   onPassivesChange: (value: readonly PassiveId[]) => void;
+  onAnyPassivesChange: (value: boolean) => void;
   onPassiveQueryChange: (value: string) => void;
   onObjectiveChange: (value: BuilderObjective) => void;
   onExtrasChange: (value: 0 | 1 | 2) => void;
-  onGenderChange: (value: PalGender) => void;
   onRun: () => void;
 };
+
+const EMPTY_INVENTORY: readonly OwnedPal[] = [];
 
 export default function BuilderPage({
   search,
   onTargetInputChange,
   onTargetChange,
   onPassivesChange,
+  onAnyPassivesChange,
   onPassiveQueryChange,
   onObjectiveChange,
   onExtrasChange,
-  onGenderChange,
   onRun,
 }: BuilderPageProps) {
   const inventorySnapshot = useInventory();
   const profile = inventoryService.getActiveProfile();
+  const inventory = profile?.pals ?? EMPTY_INVENTORY;
   const targetId = search.target;
   const requiredPassiveIds = useMemo(() => getBuilderPassiveIds(search), [search]);
+  const passiveGoal = useMemo(() => getBuilderPassiveGoal(search), [search]);
   const allowedExtras = getBuilderExtras(search);
   const objective = getBuilderObjective(search);
-  const hatchGender = getBuilderGender(search);
   const result = useMemo<BuilderResult | undefined>(() => {
-    if (!search.run || !targetId || inventorySnapshot.status === "loading") return undefined;
+    if (!search.run || !targetId || !passiveGoal || inventorySnapshot.status === "loading") return undefined;
     return buildPal({
-      inventory: profile.pals,
+      inventory,
       targetId,
-      requiredPassiveIds,
-      allowedExtras,
+      passiveGoal,
       objective,
     });
   }, [
-    allowedExtras,
     inventorySnapshot.status,
     objective,
-    profile.pals,
-    requiredPassiveIds,
+    inventory,
+    passiveGoal,
     search.run,
     targetId,
   ]);
-
-  const logHatch = () => {
-    if (!targetId || inventorySnapshot.status === "loading") return;
-    inventoryService.upsertPal({
-      id: createId(),
-      speciesId: targetId,
-      gender: hatchGender,
-      passiveIds: requiredPassiveIds,
-      location: "manual",
-      source: "session",
-      included: true,
-    });
-  };
 
   return (
     <main className="workspace feature-workspace">
@@ -85,9 +75,9 @@ export default function BuilderPage({
         <div>
           <span className="section-kicker">PAL BUILDER</span>
           <h1>Design the Pal. Solve the bridge.</h1>
-          <p>Set the final species and passives. Palpath searches every continuous carrier state reachable from your included inventory and explains any missing acquisition.</p>
+          <p>Set the final species and choose exact passives or Any. Palpath searches every continuous carrier state reachable from your imported world and explains any missing acquisition.</p>
         </div>
-        <span className="hero-index">04</span>
+        <span className="hero-index">02</span>
       </section>
 
       <section className="builder-layout">
@@ -105,6 +95,9 @@ export default function BuilderPage({
             onChange={onPassivesChange}
             query={search.passiveQuery ?? ""}
             onQueryChange={onPassiveQueryChange}
+            allowAny
+            anySelected={passiveGoal?.kind === "any"}
+            onAnyChange={onAnyPassivesChange}
           />
 
           <div className="builder-settings">
@@ -118,28 +111,29 @@ export default function BuilderPage({
             </label>
             <label className="form-field">
               <span>Allowed extra passives</span>
-              <select value={allowedExtras} onChange={(event) => onExtrasChange(Number(event.target.value) as 0 | 1 | 2)}>
+              <select
+                value={allowedExtras}
+                disabled={passiveGoal?.kind === "any"}
+                onChange={(event) => onExtrasChange(Number(event.target.value) as 0 | 1 | 2)}
+              >
                 <option value={0}>None / exact build</option>
                 <option value={1}>Up to one</option>
                 <option value={2}>Up to two</option>
               </select>
             </label>
           </div>
-          <button className="primary-button builder-run" type="button" disabled={inventorySnapshot.status === "loading" || !targetId || !requiredPassiveIds.length} onClick={onRun}>
+          <button className="primary-button builder-run" type="button" disabled={inventorySnapshot.status === "loading" || !targetId || !passiveGoal} onClick={onRun}>
             <SparkIcon />Build the optimal route
           </button>
-          <p className="model-note">The species/passive search is exhaustive for a continuous carrier bred with owned partners. Extra-passive tolerance applies to the final hatch; intermediate carriers stay clean. Hatch odds are estimates from reverse-engineered inheritance distributions and exclude gender selection and lucky random additions.</p>
+          <p className="model-note">The species/passive search is exhaustive for a continuous carrier bred with imported partners. Any accepts every passive combination, including none. Extra-passive tolerance applies to exact final hatches; intermediate carriers stay clean. Hatch odds are estimates from reverse-engineered inheritance distributions and exclude gender selection and lucky random additions.</p>
         </div>
 
         <div className="feature-card builder-result-card" aria-live="polite">
-          <div className="card-heading"><span>Build route</span><small>{profile.pals.filter(({ included }) => included).length} inventory Pals considered</small></div>
+          <div className="card-heading"><span>Build route</span><small>{inventory.length} inventory Pals considered</small></div>
           <BuilderResultView
             result={result}
             targetId={targetId}
-            requiredPassiveIds={requiredPassiveIds}
-            hatchGender={hatchGender}
-            onHatchGenderChange={onGenderChange}
-            onLogHatch={logHatch}
+            passiveGoal={passiveGoal}
           />
         </div>
       </section>
@@ -150,20 +144,14 @@ export default function BuilderPage({
 function BuilderResultView({
   result,
   targetId,
-  requiredPassiveIds,
-  hatchGender,
-  onHatchGenderChange,
-  onLogHatch,
+  passiveGoal,
 }: {
   result?: BuilderResult;
   targetId?: PalId;
-  requiredPassiveIds: readonly PassiveId[];
-  hatchGender: PalGender;
-  onHatchGenderChange: (gender: PalGender) => void;
-  onLogHatch: () => void;
+  passiveGoal?: PassiveGoal;
 }) {
   if (!result) {
-    return <div className="empty-state builder-empty"><span className="empty-glyph">◇</span><strong>Ready for a build</strong><span>Choose a final Pal and the exact passives you care about.</span></div>;
+    return <div className="empty-state builder-empty"><span className="empty-glyph">◇</span><strong>Ready for a build</strong><span>Choose a final Pal, then select exact passives or Any.</span></div>;
   }
   if (result.status === "missing-passives") {
     return (
@@ -174,49 +162,53 @@ function BuilderResultView({
         <div className="gap-list">
           {result.missingPassiveIds.map((id) => {
             const passive = passiveRepository.get(id);
-            return <span key={id}><strong>{passive?.name ?? id}</strong><small>Add any owned carrier with this passive.</small></span>;
+            return <span key={id}><strong>{passive?.name ?? id}</strong><small>Import a world containing a carrier with this passive.</small></span>;
           })}
         </div>
-        <Link className="secondary-button link-button" to="/inventory">Open inventory to add carriers</Link>
+        <Link className="secondary-button link-button" to="/">Review imported worlds</Link>
       </div>
     );
   }
   if (result.status === "no-route") {
-    return <div className="empty-state is-error"><strong>No inventory-only build</strong><span>{result.reason}</span><Link to="/inventory">Review included Pals</Link></div>;
+    return <div className="empty-state is-error"><strong>No inventory-only build</strong><span>{result.reason}</span><Link to="/">Review imported worlds</Link></div>;
   }
 
   const target = targetId ? breedingRepository.getPal(targetId) : undefined;
+  const passiveSummary = passiveGoal?.kind === "any"
+    ? "Any passives, including none"
+    : passiveGoal?.requiredIds.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ") ?? "";
   return (
     <div className="build-result">
       <div className="build-summary">
         {target ? <img src={target.image} alt="" /> : null}
-        <div><span className="result-eyebrow">EXACT CARRIER SEARCH</span><h2>{target?.name}</h2><p>{requiredPassiveIds.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ")}</p></div>
+        <div><span className="result-eyebrow">EXHAUSTIVE CARRIER SEARCH</span><h2>{target?.name}</h2><p>{passiveSummary}</p></div>
         <div className="build-metrics"><span><strong>{result.steps.length}</strong>breedings</span><span><strong>{formatCakes(result.expectedCakes)}</strong>expected cakes</span></div>
       </div>
 
       {result.steps.length ? (
         <div className="build-steps">
           {result.steps.map((step, index) => {
-            const from = breedingRepository.getPal(step.from);
-            const partner = breedingRepository.getPal(step.partner);
             const child = breedingRepository.getPal(step.result);
+            const resultPassives = step.resultPassives.kind === "any"
+              ? "Any passive outcome accepted"
+              : step.resultPassives.ids.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ") || "No passives";
             return (
-              <article key={`${step.from}-${step.partner}-${index}`}>
+              <article key={`${step.firstParent.speciesId}-${step.secondParent.speciesId}-${index}`}>
                 <span className="step-index">{String(index + 1).padStart(2, "0")}</span>
-                <div className="build-equation"><strong>{from?.name}</strong><span>+</span><strong>{partner?.name}</strong><span>→</span><strong>{child?.name}</strong></div>
-                <div className="passive-line">{step.passiveIds.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ")}</div>
+                <div className="build-equation">
+                  <div className="build-parent-slot is-first"><BuilderParentPreview parent={step.firstParent} /></div>
+                  <span className="build-equation-operator is-plus">+</span>
+                  <div className="build-parent-slot is-second"><BuilderParentPreview parent={step.secondParent} /></div>
+                  <span className="build-equation-operator is-arrow">→</span>
+                  <strong className="build-equation-result">{child?.name}</strong>
+                </div>
+                <div className="passive-line">Result · {resultPassives}</div>
                 <div className="odds-meter"><span style={{ width: `${Math.max(2, step.odds * 100)}%` }} /><small>{formatOdds(step.odds)} estimated / ~{formatCakes(step.expectedCakes)} cakes</small></div>
               </article>
             );
           })}
         </div>
       ) : <div className="status-banner is-success"><span>✓</span><p>You already own this completed build. No breeding is required.</p></div>}
-
-      <div className="hatch-adapter">
-        <div><strong>I hatched the final Pal</strong><span>Add the result to this session and immediately make it available to every planner.</span></div>
-        <select value={hatchGender} onChange={(event) => onHatchGenderChange(event.target.value as PalGender)} aria-label="Hatched Pal gender"><option value="F">Female</option><option value="M">Male</option></select>
-        <button type="button" className="secondary-button compact-button" onClick={onLogHatch}>Log hatch</button>
-      </div>
     </div>
   );
 }

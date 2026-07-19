@@ -1,4 +1,4 @@
-import type { PalGender, PalId } from "../../domain/pal";
+import type { PalId } from "../../domain/pal";
 import type { PassiveId } from "../../domain/passive";
 import type { BuilderObjective } from "../../services/builder/palBuilder";
 import {
@@ -32,7 +32,21 @@ export function setBuilderPassives(
   search: BuilderSearchState,
   passives: readonly PassiveId[],
 ): BuilderSearchState {
-  return compactSearch({ ...search, passives: passives.length ? passives.join(",") : undefined, run: undefined });
+  return compactSearch({
+    ...search,
+    passives: passives.length ? passives.join(",") : undefined,
+    passiveQuery: undefined,
+    run: undefined,
+  });
+}
+
+export function setBuilderAnyPassives(search: BuilderSearchState, selected: boolean): BuilderSearchState {
+  return compactSearch({
+    ...search,
+    passives: selected ? "any" : undefined,
+    passiveQuery: undefined,
+    run: undefined,
+  });
 }
 
 export function setBuilderPassiveQuery(search: BuilderSearchState, value: string): BuilderSearchState {
@@ -45,10 +59,6 @@ export function setBuilderObjective(search: BuilderSearchState, objective: Build
 
 export function setBuilderExtras(search: BuilderSearchState, extras: 0 | 1 | 2): BuilderSearchState {
   return compactSearch({ ...search, extras: extras || undefined, run: undefined });
-}
-
-export function setBuilderGender(search: BuilderSearchState, gender: PalGender): BuilderSearchState {
-  return compactSearch({ ...search, gender: gender === "M" ? "M" : undefined });
 }
 
 export function runBuilderSearch(search: BuilderSearchState): BuilderSearchState {

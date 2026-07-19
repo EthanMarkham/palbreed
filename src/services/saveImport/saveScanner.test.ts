@@ -52,6 +52,7 @@ describe("strict Palworld 1.0 format guard", () => {
 
     expect(manifest.slots).toHaveLength(2);
     expect(manifest.slots.map(({ label }) => label)).toEqual(["World 1", "World 2"]);
+    expect(manifest.accountId).toBe("account");
     expect(manifest.slots[0]?.worldId).toBe(secondWorld);
     expect(manifest.slots[0]?.updatedAt).toBe(30);
   });

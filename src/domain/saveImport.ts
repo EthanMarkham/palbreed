@@ -20,13 +20,20 @@ export type SaveSlotCandidate = {
 
 export type SaveManifest = {
   platform: SavePlatform;
-  accountLabel?: string;
+  accountId?: string;
   slots: readonly SaveSlotCandidate[];
+};
+
+export type ImportedPlayer = {
+  id: string;
+  name?: string;
+  level?: number;
 };
 
 export type ImportPreview = {
   slot: SaveSlotCandidate;
   pals: readonly OwnedPal[];
+  players: readonly ImportedPlayer[];
   unknownPalIds: readonly string[];
   unknownPassiveIds: readonly string[];
 };

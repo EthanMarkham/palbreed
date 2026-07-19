@@ -17,8 +17,6 @@ type PalSelectProps = {
   label: string;
   value?: PalId;
   onChange: (value: PalId | undefined) => void;
-  optional?: boolean;
-  optionalLabel?: string;
   query?: {
     value: string;
     onChange: (value: string) => void;
@@ -31,8 +29,6 @@ export default function PalSelect({
   label,
   value,
   onChange,
-  optional = false,
-  optionalLabel = "Any owned Pal",
   query,
 }: PalSelectProps) {
   const selected = value ? breedingRepository.getPal(value) : undefined;
@@ -73,7 +69,7 @@ export default function PalSelect({
         </span>
         <span className="catalog-pal-select-input">
           <small>{selected ? formatPalNumber(selected.number) : "Search catalog"}</small>
-          <Input placeholder={optional ? optionalLabel : "Choose a Pal"} autoComplete="off" />
+          <Input placeholder="Choose a Pal" autoComplete="off" />
         </span>
         <Button className="catalog-pal-select-toggle" aria-label="Show options">
           <ChevronIcon />
@@ -116,7 +112,7 @@ export default function PalSelect({
 }
 
 function SearchIcon() {
-  return <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>;
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>;
 }
 
 function ChevronIcon() {
@@ -124,5 +120,5 @@ function ChevronIcon() {
 }
 
 function CheckIcon() {
-  return <svg viewBox="0 0 24 24"><path d="m6 12.5 3.5 3.5L18 8" /></svg>;
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 3.5 3.5L18 8" /></svg>;
 }

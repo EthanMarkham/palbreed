@@ -2,10 +2,15 @@ import aliases from "../../data/save-pal-aliases-1.0.json";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { OwnedPal, PalLocation } from "../../domain/inventory";
-import { SaveImportError, type ImportPreview, type SaveSlotCandidate } from "../../domain/saveImport";
+import {
+  SaveImportError,
+  type ImportedPlayer,
+  type ImportPreview,
+  type SaveSlotCandidate,
+} from "../../domain/saveImport";
 import type { PalGender, PalId } from "../../domain/pal";
 import type { PassiveId } from "../../domain/passive";
-import { normalizePalsFromParsedSave } from "./palSaveNormalizer";
+import { normalizePalsFromParsedSave, normalizePlayersFromParsedSave } from "./palSaveNormalizer";
 import { assertPalworldOnePointZero } from "./saveScanner";
 
 const saveAliases: Readonly<Record<string, PalId>> = aliases.aliases;
@@ -19,6 +24,7 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
   const unknownPalIds = new Set<string>();
   const unknownPassiveIds = new Set<string>();
   const palsByInstance = new Map<string, OwnedPal>();
+  const playersById = new Map<string, ImportedPlayer>();
   const relevant = [...slot.files.entries()].filter(([path]) =>
     /^level\/\d+\.sav$/i.test(path) ||
     /^players\/.+\.sav$/i.test(path) ||
@@ -35,10 +41,29 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
         `Could not parse ${path}. ${error instanceof Error ? error.message : "The save data is invalid."}`,
       );
     }
+    const playerId = playerIdFromPath(path);
+    for (const metadata of normalizePlayersFromParsedSave(parsed)) {
+      const id = metadata.id ?? playerId;
+      if (!id) continue;
+      const existing = playersById.get(id);
+      playersById.set(id, {
+        id,
+        name: metadata.name ?? existing?.name,
+        level: metadata.level ?? existing?.level,
+      });
+    }
+    if (playerId && !playersById.has(playerId)) {
+      playersById.set(playerId, { id: playerId });
+    }
     const candidates = normalizePalsFromParsedSave(parsed);
     for (const [index, candidate] of candidates.entries()) {
       const rawSpeciesId = candidate.speciesId;
-      if (!rawSpeciesId || rawSpeciesId === "None" || rawSpeciesId.startsWith("Human")) continue;
+      if (
+        !rawSpeciesId
+        || rawSpeciesId === "None"
+        || rawSpeciesId.startsWith("Human")
+        || /^player/i.test(rawSpeciesId)
+      ) continue;
       if (ignoredSaveIds.has(rawSpeciesId)) continue;
       const speciesId = resolveSpeciesId(rawSpeciesId);
       if (!speciesId) {
@@ -62,9 +87,8 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
         gender,
         passiveIds,
         location,
-        source: "save",
-        included: true,
         worldId: slot.worldId,
+        playerId,
         nickname: candidate.nickname || undefined,
         level: candidate.level || undefined,
       };
@@ -78,9 +102,14 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
   return {
     slot,
     pals: [...palsByInstance.values()],
+    players: [...playersById.values()].sort((first, second) => first.id.localeCompare(second.id)),
     unknownPalIds: [...unknownPalIds].sort(),
     unknownPassiveIds: [...unknownPassiveIds].sort(),
   };
+}
+
+function playerIdFromPath(path: string) {
+  return /^players\/([^/]+)\.sav$/i.exec(path)?.[1]?.toLowerCase();
 }
 
 async function parseSave(file: File): Promise<unknown> {

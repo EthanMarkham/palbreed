@@ -7,6 +7,12 @@ export interface RawSavePal {
   level?: number;
 }
 
+export interface RawSavePlayer {
+  id?: string;
+  name?: string;
+  level?: number;
+}
+
 /**
  * Reads the stable Pal fields from uesave's lossless JSON model. Palworld 1.0
  * appends numeric schema suffixes to property names, so every key comparison
@@ -23,6 +29,23 @@ export function normalizePalsFromParsedSave(root: unknown): RawSavePal[] {
       ?? stringValue(findNamedValue(parameter, "Nickname")),
     level: numberValue(findNamedValue(parameter, "Level")),
   }));
+}
+
+export function normalizePlayersFromParsedSave(root: unknown): RawSavePlayer[] {
+  return findSaveParameters(root).flatMap(({ parameter, context }) => {
+    const characterId = stringValue(findNamedValue(parameter, "CharacterID"));
+    if (!characterId || !/player/i.test(characterId)) return [];
+    const id = normalizePlayerId(
+      stringValue(findNamedValue(context, "PlayerUId"))
+      ?? stringValue(findNamedValue(context, "PlayerUID")),
+    );
+    const name =
+      stringValue(findNamedValue(parameter, "NickName"))
+      ?? stringValue(findNamedValue(parameter, "Nickname"))
+      ?? stringValue(findNamedValue(parameter, "PlayerName"));
+    const level = numberValue(findNamedValue(parameter, "Level"));
+    return id || name || level !== undefined ? [{ id, name, level }] : [];
+  });
 }
 
 function findSaveParameters(root: unknown) {
@@ -54,12 +77,18 @@ function findSaveParameters(root: unknown) {
 }
 
 function findInstanceContext(current: unknown, ancestors: readonly unknown[]) {
-  if (findNamedValue(current, "InstanceId") !== undefined) return current;
+  if (hasCharacterIdentity(current)) return current;
   for (let index = ancestors.length - 1; index >= 0; index -= 1) {
     const candidate = ancestors[index];
-    if (findNamedValue(candidate, "InstanceId") !== undefined) return candidate;
+    if (hasCharacterIdentity(candidate)) return candidate;
   }
   return current;
+}
+
+function hasCharacterIdentity(value: unknown) {
+  return findNamedValue(value, "InstanceId") !== undefined
+    || findNamedValue(value, "PlayerUId") !== undefined
+    || findNamedValue(value, "PlayerUID") !== undefined;
 }
 
 function findNamedValue(root: unknown, target: string, depth = 0, seen = new Set<unknown>()): unknown {
@@ -136,4 +165,10 @@ function normalizeKey(value: string) {
     .replace(/_\d+$/g, "")
     .replace(/[^a-z\d]/gi, "")
     .toLocaleLowerCase();
+}
+
+function normalizePlayerId(value?: string) {
+  if (!value) return undefined;
+  const compact = value.replace(/[^a-f\d]/gi, "").toLocaleLowerCase();
+  return compact.length === 32 ? compact : value.toLocaleLowerCase();
 }

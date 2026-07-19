@@ -1,9 +1,8 @@
 import type { PalGender, PalId } from "./pal";
 import type { PassiveId } from "./passive";
 
-export type PalLocation = "party" | "palbox" | "base" | "global-storage" | "manual";
-export type InventoryPlatform = "xbox" | "steam" | "manual";
-export type InventorySource = "save" | "manual" | "session";
+export type PalLocation = "party" | "palbox" | "base" | "global-storage";
+export type InventoryPlatform = "xbox" | "steam";
 
 export type InventoryOwner =
   | { kind: "anonymous"; id: string }
@@ -11,13 +10,11 @@ export type InventoryOwner =
 
 export type OwnedPal = {
   id: string;
-  sourceInstanceId?: string;
+  sourceInstanceId: string;
   speciesId: PalId;
   gender: PalGender;
   passiveIds: readonly PassiveId[];
   location: PalLocation;
-  source: InventorySource;
-  included: boolean;
   worldId?: string;
   playerId?: string;
   nickname?: string;
@@ -32,7 +29,10 @@ export type InventoryProfile = {
   platform: InventoryPlatform;
   worldId?: string;
   slotId?: string;
+  accountId?: string;
   playerId?: string;
+  playerName?: string;
+  playerLevel?: number;
   importedAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -42,7 +42,7 @@ export type InventoryProfile = {
 
 export type InventoryDocument = {
   schemaVersion: 1;
-  activeProfileId: string;
+  activeProfileId?: string;
   profiles: readonly InventoryProfile[];
 };
 

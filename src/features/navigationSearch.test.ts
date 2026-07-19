@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { passiveRepository } from "../data/passiveRepository";
 import {
   runBuilderSearch,
+  setBuilderAnyPassives,
   setBuilderPassiveQuery,
   setBuilderPassives,
 } from "./builder/builderNavigation";
@@ -9,11 +10,13 @@ import { getBuilderPassiveIds, parseBuilderSearch } from "./builder/builderSearc
 import {
   parseInventorySearch,
   setInventoryPlatform,
-  setInventoryTarget,
-  setInventoryTargetInput,
 } from "./inventory/inventorySearch";
-import { setPairSelection, swapPairSearch } from "./pair/pairNavigation";
-import { parsePairSearch } from "./pair/pairSearch";
+import {
+  parseToolsSearch,
+  setToolsInput,
+  setToolsSelection,
+  swapToolsSelections,
+} from "./tools/toolsSearch";
 import {
   compactSearch,
   normalizePalSearch,
@@ -41,7 +44,6 @@ describe("route-backed search state", () => {
       objective: "cleanest",
       extras: "2",
       run: "1",
-      gender: "M",
     });
 
     expect(search).toMatchObject({
@@ -50,9 +52,12 @@ describe("route-backed search state", () => {
       objective: "cleanest",
       extras: 2,
       run: true,
-      gender: "M",
     });
     expect(getBuilderPassiveIds(search)).toEqual(passiveIds.slice(0, 4));
+    expect(parseBuilderSearch({ passives: "any", run: true })).toEqual({ passives: "any", run: true });
+    expect(parseBuilderSearch({ passives: [`${passiveIds[0]},${passiveIds[1]}`, passiveIds[2]] })).toEqual({
+      passives: passiveIds.slice(0, 3).join(","),
+    });
   });
 
   it("keeps multi-word passive typing usable and clears stale Builder results", () => {
@@ -63,32 +68,35 @@ describe("route-backed search state", () => {
     expect(typed.passiveQuery).toBe("work speed ");
     expect(setBuilderPassives(typed, [passiveId])).toEqual({
       target: "lamball",
-      passiveQuery: "work speed ",
       passives: passiveId,
+    });
+    expect(setBuilderAnyPassives(typed, true)).toEqual({
+      target: "lamball",
+      passives: "any",
     });
   });
 
-  it("makes Pair selections and swaps serializable", () => {
-    const parsed = parsePairSearch({ first: "lamball", firstQuery: "Cattiva" });
-    expect(parsed).toEqual({ firstQuery: "Cattiva" });
+  it("keeps both condensed tools serializable in one route", () => {
+    const parsed = parseToolsSearch({ first: "lamball", firstQuery: "Cattiva", from: "cattiva" });
+    expect(parsed).toEqual({ from: "cattiva", firstQuery: "Cattiva" });
 
-    const selected = setPairSelection(parsed, "first", "lamball");
-    expect(selected).toEqual({ first: "lamball" });
-    expect(swapPairSearch({ first: "lamball", second: "cattiva" })).toEqual({
+    const selected = setToolsSelection(parsed, "first", "lamball");
+    expect(selected).toEqual({ from: "cattiva", first: "lamball" });
+    expect(setToolsInput(selected, "to", "Daedream ")).toEqual({
+      from: "cattiva",
+      toQuery: "Daedream ",
+      first: "lamball",
+    });
+    expect(swapToolsSelections({ first: "lamball", second: "cattiva" }, "parents")).toEqual({
       first: "cattiva",
       second: "lamball",
     });
   });
 
-  it("normalizes Inventory platform and target state for browser history", () => {
+  it("normalizes Inventory platform state for browser history", () => {
     expect(parseInventorySearch({ platform: "steam", target: "missing" })).toEqual({ platform: "steam" });
 
-    const steam = setInventoryPlatform({}, "steam");
-    const typing = setInventoryTargetInput(steam, "Relaxaurus Lux ");
-    expect(typing).toEqual({ platform: "steam", targetQuery: "Relaxaurus Lux " });
-    expect(setInventoryTarget(typing, "relaxaurus-lux")).toEqual({
-      platform: "steam",
-      target: "relaxaurus-lux",
-    });
+    expect(setInventoryPlatform({}, "steam")).toEqual({ platform: "steam" });
+    expect(setInventoryPlatform({ platform: "steam" }, "xbox")).toEqual({});
   });
 });

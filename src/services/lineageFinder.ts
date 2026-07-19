@@ -22,22 +22,22 @@ export function findLineage(startId: PalId, targetId: PalId): LineageResult {
         previous.set(parent, {
           child,
           partner,
-          fromGender: genders?.firstGender,
-          partnerGender: genders?.secondGender,
+          fromGender: genders?.firstGender ?? "F",
+          partnerGender: genders?.secondGender ?? "M",
         });
         if (parent === startId) return reconstruct(startId, targetId, previous);
         queue.push(parent);
       }
     }
   }
-  return { status: "no-route", reason: "No passive transfer route was found in the loaded data." };
+  return { status: "no-route", reason: "No breeding path was found in the loaded data." };
 }
 
 type PreviousEdge = {
   child: PalId;
   partner: PalId;
-  fromGender?: PalGender;
-  partnerGender?: PalGender;
+  fromGender: PalGender;
+  partnerGender: PalGender;
 };
 
 function reconstruct(startId: PalId, targetId: PalId, previous: Map<PalId, PreviousEdge>): LineageResult {
@@ -45,7 +45,7 @@ function reconstruct(startId: PalId, targetId: PalId, previous: Map<PalId, Previ
   let current = startId;
   while (current !== targetId) {
     const edge = previous.get(current);
-    if (!edge) return { status: "no-route", reason: "The passive transfer route could not be reconstructed." };
+    if (!edge) return { status: "no-route", reason: "The breeding path could not be reconstructed." };
     steps.push({
       from: current,
       partner: edge.partner,

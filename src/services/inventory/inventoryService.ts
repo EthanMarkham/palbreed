@@ -24,7 +24,7 @@ export class InventoryService {
   ) {
     this.snapshot = {
       status: "loading",
-      document: createInitialDocument(ownerId),
+      document: createInitialDocument(),
     };
   }
 
@@ -41,11 +41,10 @@ export class InventoryService {
     void this.load();
   }
 
-  getActiveProfile(): InventoryProfile {
-    const profile = this.snapshot.document.profiles.find(
+  getActiveProfile(): InventoryProfile | undefined {
+    return this.snapshot.document.profiles.find(
       ({ id }) => id === this.snapshot.document.activeProfileId,
-    );
-    return profile ?? this.snapshot.document.profiles[0];
+    ) ?? this.snapshot.document.profiles[0];
   }
 
   selectProfile(profileId: string) {
@@ -53,34 +52,13 @@ export class InventoryService {
     this.commit({ ...this.snapshot.document, activeProfileId: profileId });
   }
 
-  createProfile(name: string, platform: InventoryPlatform = "manual") {
-    const profile = createProfile(this.ownerId, name.trim() || "My Pals", platform);
-    this.commit({
-      ...this.snapshot.document,
-      activeProfileId: profile.id,
-      profiles: [...this.snapshot.document.profiles, profile],
-    });
-  }
-
-  upsertPal(pal: OwnedPal) {
-    this.updateActiveProfile((profile) => ({
-      ...profile,
-      pals: [...profile.pals.filter(({ id }) => id !== pal.id), pal],
-    }));
-  }
-
-  removePal(palId: string) {
-    this.updateActiveProfile((profile) => ({
-      ...profile,
-      pals: profile.pals.filter(({ id }) => id !== palId),
-    }));
-  }
-
-  setPalIncluded(palId: string, included: boolean) {
-    this.updateActiveProfile((profile) => ({
-      ...profile,
-      pals: profile.pals.map((pal) => pal.id === palId ? { ...pal, included } : pal),
-    }));
+  removeProfile(profileId: string) {
+    const profiles = this.snapshot.document.profiles.filter(({ id }) => id !== profileId);
+    if (profiles.length === this.snapshot.document.profiles.length) return;
+    const activeProfileId = this.snapshot.document.activeProfileId === profileId
+      ? profiles[0]?.id
+      : this.snapshot.document.activeProfileId;
+    this.commit({ ...this.snapshot.document, activeProfileId, profiles });
   }
 
   replaceImportedProfile(input: {
@@ -88,41 +66,40 @@ export class InventoryService {
     platform: InventoryPlatform;
     worldId: string;
     slotId: string;
+    accountId?: string;
+    playerId?: string;
+    playerName?: string;
+    playerLevel?: number;
     pals: readonly OwnedPal[];
   }) {
-    const existing = this.snapshot.document.profiles.find(
-      (profile) => profile.platform === input.platform && profile.slotId === input.slotId,
-    );
+    const matches = this.snapshot.document.profiles.filter((profile) => isSameWorld(profile, input));
+    const existing = matches[0];
     const now = new Date().toISOString();
-    const existingSavePals = new Map<string, OwnedPal>();
-    for (const pal of existing?.pals ?? []) {
-      if (pal.source === "save" && pal.sourceInstanceId) {
-        existingSavePals.set(pal.sourceInstanceId.toLowerCase(), pal);
-      }
-    }
-    const importedPals = input.pals.map((pal) => {
-      const previous = pal.sourceInstanceId
-        ? existingSavePals.get(pal.sourceInstanceId.toLowerCase())
-        : undefined;
-      return previous ? { ...pal, included: previous.included } : pal;
-    });
-    const locallyAddedPals = (existing?.pals ?? []).filter(({ source }) => source !== "save");
     const profile: InventoryProfile = {
-      ...(existing ?? createProfile(this.ownerId, input.name, input.platform)),
+      ...(existing ?? createImportedProfile(this.ownerId, input.name, input.platform)),
       name: input.name,
       platform: input.platform,
       worldId: input.worldId,
       slotId: input.slotId,
+      accountId: input.accountId,
+      playerId: input.playerId,
+      playerName: input.playerName,
+      playerLevel: input.playerLevel,
       importedAt: now,
       updatedAt: now,
       revision: (existing?.revision ?? 0) + 1,
-      pals: [...importedPals, ...locallyAddedPals],
+      pals: input.pals,
     };
+    const duplicateIds = new Set(matches.map(({ id }) => id));
     this.commit({
       ...this.snapshot.document,
       activeProfileId: profile.id,
-      profiles: [...this.snapshot.document.profiles.filter(({ id }) => id !== profile.id), profile],
+      profiles: [
+        ...this.snapshot.document.profiles.filter(({ id }) => !duplicateIds.has(id)),
+        profile,
+      ],
     });
+    return existing ? "updated" as const : "created" as const;
   }
 
   private async load() {
@@ -130,7 +107,7 @@ export class InventoryService {
       const stored = await this.gateway.load(this.ownerId);
       this.snapshot = {
         status: "ready",
-        document: stored ?? this.snapshot.document,
+        document: stored ? sanitizeDocument(stored) : this.snapshot.document,
       };
     } catch (error) {
       this.snapshot = {
@@ -140,19 +117,6 @@ export class InventoryService {
       };
     }
     this.emit();
-  }
-
-  private updateActiveProfile(update: (profile: InventoryProfile) => InventoryProfile) {
-    const active = this.getActiveProfile();
-    const now = new Date().toISOString();
-    const next = update(active);
-    const versioned = { ...next, updatedAt: now, revision: active.revision + 1 };
-    this.commit({
-      ...this.snapshot.document,
-      profiles: this.snapshot.document.profiles.map((profile) =>
-        profile.id === active.id ? versioned : profile,
-      ),
-    });
   }
 
   private commit(document: InventoryDocument) {
@@ -175,12 +139,60 @@ export class InventoryService {
   }
 }
 
-function createInitialDocument(ownerId: string): InventoryDocument {
-  const profile = createProfile(ownerId, "My Pals", "manual");
-  return { schemaVersion: 1, activeProfileId: profile.id, profiles: [profile] };
+function isSameWorld(
+  profile: InventoryProfile,
+  input: Pick<InventoryProfile, "platform" | "worldId" | "slotId" | "accountId">,
+) {
+  if (profile.platform !== input.platform) return false;
+  const accountMatches = !profile.accountId || !input.accountId || profile.accountId === input.accountId;
+  if (profile.worldId && input.worldId && profile.worldId === input.worldId) {
+    return !/^world-\d+$/i.test(input.worldId) || accountMatches;
+  }
+  return Boolean(profile.slotId && profile.slotId === input.slotId && accountMatches);
 }
 
-function createProfile(ownerId: string, name: string, platform: InventoryPlatform): InventoryProfile {
+function sanitizeDocument(document: InventoryDocument): InventoryDocument {
+  const profiles = document.profiles
+    .filter(({ platform }) => platform === "xbox" || platform === "steam")
+    .map((profile) => ({
+      ...profile,
+      pals: profile.pals.flatMap((pal) => {
+        const imported = sanitizeImportedPal(pal);
+        return imported ? [imported] : [];
+      }),
+    }));
+  const activeProfileId = profiles.some(({ id }) => id === document.activeProfileId)
+    ? document.activeProfileId
+    : profiles[0]?.id;
+  return { ...document, activeProfileId, profiles };
+}
+
+function sanitizeImportedPal(pal: OwnedPal): OwnedPal | undefined {
+  const legacySource = (pal as OwnedPal & { source?: string }).source;
+  if (!pal.sourceInstanceId || (legacySource && legacySource !== "save")) return undefined;
+  return {
+    id: pal.id,
+    sourceInstanceId: pal.sourceInstanceId,
+    speciesId: pal.speciesId,
+    gender: pal.gender,
+    passiveIds: pal.passiveIds,
+    location: pal.location,
+    worldId: pal.worldId,
+    playerId: pal.playerId,
+    nickname: pal.nickname,
+    level: pal.level,
+  };
+}
+
+function createInitialDocument(): InventoryDocument {
+  return { schemaVersion: 1, profiles: [] };
+}
+
+function createImportedProfile(
+  ownerId: string,
+  name: string,
+  platform: InventoryPlatform,
+): InventoryProfile {
   const now = new Date().toISOString();
   return {
     id: createId(),
@@ -195,7 +207,7 @@ function createProfile(ownerId: string, name: string, platform: InventoryPlatfor
   };
 }
 
-export function createId(): string {
+function createId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `palpath-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 

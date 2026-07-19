@@ -1,11 +1,10 @@
 # Palpath
 
-A browser-first Palworld 1.0 breeding suite with four focused tools:
+A browser-first Palworld 1.0 breeding suite centered on three workflows:
 
-- shortest passive-transfer planning across the complete breeding table;
-- forward Pair Checker results, including gender-specific exceptions;
-- local inventory profiles with Steam/Xbox save import and exact shortest routes;
-- a passive-aware Pal Builder with acquisition gaps, hatch estimates, and adaptive hatch logging.
+- local inventory profiles with Steam/Xbox save import;
+- a passive-aware Pal Builder with wildcard or exact passive goals, acquisition gaps, and hatch estimates;
+- condensed Path Finder and Parent Finder lookups across the complete breeding table, including gender-specific exceptions.
 
 Save files are decoded locally and never modified or uploaded. Import is intentionally strict: only the Palworld 1.0 `LevelMeta.sav` + `Level/01.sav` world layout is accepted, while pre-1.0 worlds receive a typed error.
 

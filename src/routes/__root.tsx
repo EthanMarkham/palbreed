@@ -17,15 +17,14 @@ function RootLayout() {
       <div className="ambient ambient-two" aria-hidden="true" />
 
       <header className="site-header">
-        <Link className="brand" to="/" aria-label="Palpath home">
+        <Link className="brand" to="/" aria-label="Palpath inventory">
           <span className="brand-mark">PP</span>
           <span className="brand-name">PALPATH</span>
         </Link>
         <nav className="site-nav" aria-label="Primary navigation">
-          <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "is-active" }}>Planner</Link>
-          <Link to="/pair" activeProps={{ className: "is-active" }}>Pair</Link>
-          <Link to="/inventory" activeProps={{ className: "is-active" }}>Inventory</Link>
+          <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "is-active" }}>Inventory</Link>
           <Link to="/builder" activeProps={{ className: "is-active" }}>Builder</Link>
+          <Link to="/tools" activeProps={{ className: "is-active" }}>Tools</Link>
         </nav>
         <span className="version-label">v{metadata.gameVersion}</span>
       </header>
@@ -39,12 +38,10 @@ function RootLayout() {
 
 function NotFoundPage() {
   return (
-    <main className="workspace">
-      <section className="route-stage route-status is-warning">
-        <div>
-          <h2>Page not found</h2>
-          <p>The route you requested does not exist.</p>
-        </div>
+    <main className="workspace feature-workspace">
+      <section className="feature-card empty-state">
+        <strong>Page not found</strong>
+        <span>The route you requested does not exist.</span>
       </section>
     </main>
   );
