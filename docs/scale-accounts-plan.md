@@ -19,9 +19,10 @@
 The production app has three bounded layers:
 
 1. Static generated breeding data and pure browser solvers.
-2. Local browser storage for inventory, history, and offline operation.
-3. Optional Supabase Auth plus revisioned world snapshots for account and team
-   persistence.
+2. Local browser storage for inventory and offline operation.
+3. Supabase RPCs for recent Builder searches, plus optional Auth and revisioned
+   world snapshots for account and team persistence. Anonymous recent searches
+   are scoped by a hashed browser-session bearer token and claimed on sign-in.
 
 There is no solver RPC. Moving deterministic solver work to Postgres would add
 latency, database load, operational cost, and a second implementation without
@@ -38,6 +39,9 @@ performance or a trusted server-only feature requires it.
   solver execution without a measured need.
 - Track monthly active users, database size, Auth email volume, and egress.
   Upgrade Supabase only when actual usage or recovery requirements justify it.
+- Deduplicate Builder history by target and canonical passive set. Keep compact
+  aggregate counters on that definition instead of writing an event row for
+  every repeat search.
 
 ## Security and operations
 
@@ -45,7 +49,8 @@ performance or a trusted server-only feature requires it.
 - Browser clients receive only the Supabase publishable key. Service-role and
   OAuth secrets never belong in `VITE_` variables.
 - Workspace mutations stay behind authenticated, membership-checking database
-  functions. Anonymous access remains denied.
+  functions. Anonymous access is limited to recent-search RPCs and requires a
+  high-entropy session token whose one-way hash is the only stored identifier.
 - Test export, world deletion, invitation expiry, role changes, conflicts, and
   sign-out before each account-system release.
 - Keep the production Site URL and redirect allow-list narrow. Preview builds

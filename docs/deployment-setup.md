@@ -13,9 +13,11 @@ configuration.
 2. Install/login to the Supabase CLI, run `supabase init` once if the local
    `config.toml` does not exist, link the repository to the project, and run
    `supabase db push`. The migration in `supabase/migrations` creates the
-   profile, workspace, membership, invitation, and snapshot model.
+   profile, workspace, membership, invitation, snapshot, and Builder search
+   history models.
 3. Run `supabase test db`. The pgTAP suite verifies cross-workspace isolation,
-   owner/editor/viewer enforcement, and the denial of direct browser writes.
+   owner/editor/viewer enforcement, anonymous search isolation and claiming,
+   canonical search deduplication, and the denial of direct browser writes.
 4. Keep separate Supabase projects for preview/staging and production. Never
    point pull-request previews at production data.
 
@@ -68,8 +70,8 @@ Copy `.env.example` into the host's environment settings and set:
 - Upgrade from Free only when beta usage or backup requirements justify it.
 - Enable spend alerts, database backups, and point-in-time recovery according
   to the actual recovery objective.
-- Track MAU, database size, and egress monthly. Solves and raw save parsing do
-  not use Supabase compute.
+- Track MAU, database size, Builder search RPC volume, and egress monthly.
+  Solves and raw save parsing do not use Supabase compute.
 - Review Auth logs and database advisors after the first real-user beta.
 - Test export, world deletion, viewer access, invitation expiry/revocation,
   concurrent edits, and sign-out in staging before production.

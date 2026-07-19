@@ -44,7 +44,7 @@ export default function BuilderHistoryMenu({ onSelect }: BuilderHistoryMenuProps
         <Dialog className="builder-history-dialog">
           <header className="builder-history-header">
             <div>
-              <span>SAVED ON THIS DEVICE</span>
+              <span>SEARCH HISTORY</span>
               <Heading slot="title">Recent builds</Heading>
             </div>
             {entries.length ? (
@@ -73,7 +73,7 @@ export default function BuilderHistoryMenu({ onSelect }: BuilderHistoryMenuProps
           )}
 
           <p className="builder-history-note">
-            Up to eight recent builds are saved on this device.
+            Up to eight recent builds are synced. Anonymous history moves to your account when you sign in.
           </p>
         </Dialog>
       </Popover>

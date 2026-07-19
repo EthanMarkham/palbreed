@@ -1,6 +1,6 @@
-import { z } from "zod";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
+import { runtimeConfig } from "../../config/runtimeConfig";
 import type { PalId } from "../../domain/pal";
 import type { PassiveId } from "../../domain/passive";
 import type { BuilderObjective } from "../../services/builder/palBuilder";
@@ -11,21 +11,7 @@ import {
   type BuilderSearchState,
 } from "./builderSearch";
 
-export const BUILDER_HISTORY_STORAGE_KEY = "palpath:builder-history";
 export const BUILDER_HISTORY_LIMIT = 8;
-
-const storedEntrySchema = z.object({
-  targetId: z.string(),
-  passives: z.union([z.literal("any"), z.array(z.string())]),
-  objective: z.enum(["recommended", "fewest", "cleanest"]),
-  allowedExtras: z.union([z.literal(0), z.literal(1), z.literal(2)]),
-  searchedAt: z.string(),
-});
-
-const storedDocumentSchema = z.object({
-  version: z.literal(1),
-  entries: z.array(storedEntrySchema),
-});
 
 export type BuilderHistoryEntry = Readonly<{
   targetId: PalId;
@@ -35,70 +21,142 @@ export type BuilderHistoryEntry = Readonly<{
   searchedAt: string;
 }>;
 
-type BuilderHistoryStorage = Pick<Storage, "getItem" | "setItem">;
+export type BuilderHistoryBackend = {
+  isAuthenticated(): Promise<boolean>;
+  subscribeToAuth(listener: (authenticated: boolean) => void): () => void;
+  list(anonymousSessionToken?: string): Promise<readonly BuilderHistoryEntry[]>;
+  record(entry: BuilderHistoryEntry, anonymousSessionToken?: string): Promise<void>;
+  remove(entry: BuilderHistoryEntry, anonymousSessionToken?: string): Promise<void>;
+  clear(anonymousSessionToken?: string): Promise<void>;
+  claim(anonymousSessionToken: string): Promise<number>;
+};
+
+export type BuilderHistorySessionStore = {
+  read(): string | undefined;
+  getOrCreate(): string;
+  clear(): void;
+};
+
 type Listener = () => void;
+type BackendLoader = () => Promise<BuilderHistoryBackend | undefined>;
 
 export class BuilderHistoryService {
   private readonly listeners = new Set<Listener>();
-  private entries: readonly BuilderHistoryEntry[] | undefined;
+  private entries: readonly BuilderHistoryEntry[] = [];
+  private backend: BuilderHistoryBackend | undefined;
+  private authenticated = false;
+  private started = false;
+  private ready: Promise<void> = Promise.resolve();
+  private operationQueue: Promise<void> = Promise.resolve();
 
-  constructor(private readonly getStorage: () => BuilderHistoryStorage | undefined) {}
+  constructor(
+    private readonly loadBackend: BackendLoader = loadSupabaseBackend,
+    private readonly sessionStore: BuilderHistorySessionStore = browserSessionStore,
+  ) {}
 
-  getSnapshot = (): readonly BuilderHistoryEntry[] => {
-    this.entries ??= this.read();
-    return this.entries;
-  };
+  getSnapshot = (): readonly BuilderHistoryEntry[] => this.entries;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   };
 
+  start() {
+    if (this.started) return;
+    this.started = true;
+    this.ready = this.initialize();
+  }
+
   record(search: BuilderSearchState, searchedAt = new Date().toISOString()) {
     const entry = createBuilderHistoryEntry(search, searchedAt);
     if (!entry) return;
-    this.update(mergeBuilderHistory(this.getSnapshot(), entry));
+    this.update(mergeBuilderHistory(this.entries, entry));
+    this.enqueue((backend, token) => backend.record(entry, token));
   }
 
   remove(entry: BuilderHistoryEntry) {
     const key = getBuilderHistoryKey(entry);
-    this.update(this.getSnapshot().filter((candidate) => getBuilderHistoryKey(candidate) !== key));
+    this.update(this.entries.filter((candidate) => getBuilderHistoryKey(candidate) !== key));
+    this.enqueue((backend, token) => backend.remove(entry, token));
   }
 
   clear() {
-    if (!this.getSnapshot().length) return;
+    if (!this.entries.length) return;
     this.update([]);
+    this.enqueue((backend, token) => backend.clear(token));
   }
 
   reload() {
-    this.entries = this.read();
-    this.emit();
+    this.start();
+    this.enqueue(() => Promise.resolve());
   }
 
-  private read(): readonly BuilderHistoryEntry[] {
+  async whenIdle() {
+    this.start();
+    await this.ready;
+    await this.operationQueue;
+  }
+
+  private async initialize() {
     try {
-      const serialized = this.getStorage()?.getItem(BUILDER_HISTORY_STORAGE_KEY);
-      if (!serialized) return [];
-      const raw: unknown = JSON.parse(serialized);
-      const document = storedDocumentSchema.safeParse(raw);
-      if (!document.success) return [];
-      return normalizeBuilderHistory(document.data.entries);
+      this.backend = await this.loadBackend();
+      if (!this.backend) return;
+      this.backend.subscribeToAuth((authenticated) => {
+        this.operationQueue = this.operationQueue
+          .then(() => this.switchIdentity(authenticated))
+          .catch(() => undefined);
+      });
+      await this.switchIdentity(await this.backend.isAuthenticated());
     } catch {
-      return [];
+      // The builder remains usable and keeps optimistic history for this page session.
     }
+  }
+
+  private async switchIdentity(authenticated: boolean) {
+    const backend = this.backend;
+    if (!backend) return;
+    this.authenticated = authenticated;
+    if (authenticated) {
+      const anonymousSessionToken = this.sessionStore.read();
+      if (anonymousSessionToken) {
+        try {
+          await backend.claim(anonymousSessionToken);
+          this.sessionStore.clear();
+        } catch {
+          // Keep the bearer token so a later authenticated refresh can retry the claim.
+        }
+      }
+    } else {
+      this.sessionStore.getOrCreate();
+    }
+    await this.refresh();
+  }
+
+  private enqueue(
+    operation: (backend: BuilderHistoryBackend, token: string | undefined) => Promise<void>,
+  ) {
+    this.start();
+    this.operationQueue = this.operationQueue
+      .then(async () => {
+        await this.ready;
+        const backend = this.backend;
+        if (!backend) return;
+        const token = this.authenticated ? undefined : this.sessionStore.getOrCreate();
+        await operation(backend, token);
+        await this.refresh();
+      })
+      .catch(() => undefined);
+  }
+
+  private async refresh() {
+    const backend = this.backend;
+    if (!backend) return;
+    const token = this.authenticated ? undefined : this.sessionStore.getOrCreate();
+    this.update(normalizeBuilderHistory(await backend.list(token)));
   }
 
   private update(entries: readonly BuilderHistoryEntry[]) {
     this.entries = entries;
-    try {
-      this.getStorage()?.setItem(BUILDER_HISTORY_STORAGE_KEY, JSON.stringify({ version: 1, entries }));
-    } catch {
-      // Keep history available for this session when persistent storage is unavailable.
-    }
-    this.emit();
-  }
-
-  private emit() {
     this.listeners.forEach((listener) => listener());
   }
 }
@@ -153,11 +211,11 @@ export function mergeBuilderHistory(
 
 export function getBuilderHistoryKey(entry: BuilderHistoryEntry): string {
   const passives = entry.passives === "any" ? "any" : [...entry.passives].sort().join(",");
-  return [entry.targetId, passives, entry.objective, entry.allowedExtras].join("|");
+  return [entry.targetId, passives].join("|");
 }
 
-function normalizeBuilderHistory(
-  entries: readonly z.infer<typeof storedEntrySchema>[],
+export function normalizeBuilderHistory(
+  entries: readonly BuilderHistoryEntry[],
 ): readonly BuilderHistoryEntry[] {
   const normalized: BuilderHistoryEntry[] = [];
   const seen = new Set<string>();
@@ -201,12 +259,45 @@ function normalizeDate(value: string): string | undefined {
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : undefined;
 }
 
-function getBrowserStorage(): BuilderHistoryStorage | undefined {
-  try {
-    return typeof window === "undefined" ? undefined : window.localStorage;
-  } catch {
-    return undefined;
-  }
+async function loadSupabaseBackend(): Promise<BuilderHistoryBackend | undefined> {
+  if (!runtimeConfig.supabase) return undefined;
+  const [{ supabaseClient }, { SupabaseBuilderHistoryBackend }] = await Promise.all([
+    import("../../services/supabase/supabaseClient"),
+    import("./supabaseBuilderHistoryBackend"),
+  ]);
+  return supabaseClient ? new SupabaseBuilderHistoryBackend(supabaseClient) : undefined;
 }
 
-export const builderHistoryService = new BuilderHistoryService(getBrowserStorage);
+const ANONYMOUS_SESSION_COOKIE = "palpath_builder_session";
+const ANONYMOUS_SESSION_PATTERN = /^[0-9a-f]{64}$/;
+
+const browserSessionStore: BuilderHistorySessionStore = {
+  read() {
+    if (typeof document === "undefined") return undefined;
+    const token = document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${ANONYMOUS_SESSION_COOKIE}=`))
+      ?.slice(ANONYMOUS_SESSION_COOKIE.length + 1);
+    return token && ANONYMOUS_SESSION_PATTERN.test(token) ? token : undefined;
+  },
+  getOrCreate() {
+    const existing = this.read();
+    if (existing) return existing;
+    const bytes = new Uint8Array(32);
+    globalThis.crypto.getRandomValues(bytes);
+    const token = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+    if (typeof document !== "undefined") {
+      const secure = globalThis.location?.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `${ANONYMOUS_SESSION_COOKIE}=${token}; Path=/; SameSite=Lax${secure}`;
+    }
+    return token;
+  },
+  clear() {
+    if (typeof document === "undefined") return;
+    const secure = globalThis.location?.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${ANONYMOUS_SESSION_COOKIE}=; Path=/; SameSite=Lax; Max-Age=0${secure}`;
+  },
+};
+
+export const builderHistoryService = new BuilderHistoryService();

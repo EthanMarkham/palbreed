@@ -1,6 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
 import {
-  BUILDER_HISTORY_STORAGE_KEY,
   builderHistoryService,
   type BuilderHistoryEntry,
 } from "./builderHistory";
@@ -15,13 +14,7 @@ export function useBuilderHistory(): readonly BuilderHistoryEntry[] {
   );
 
   useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === BUILDER_HISTORY_STORAGE_KEY) {
-        builderHistoryService.reload();
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    builderHistoryService.start();
   }, []);
 
   return entries;
