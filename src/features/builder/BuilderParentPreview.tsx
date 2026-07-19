@@ -8,7 +8,7 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
   const species = breedingRepository.getPal(parent.speciesId);
   const name = species?.name ?? parent.speciesId;
   const genderLabel = getGenderLabel(parent.gender);
-  const passiveNames = parent.passives.kind === "known"
+  const passiveNames = parent.passives.kind !== "any"
     ? parent.passives.ids.map((id) => passiveRepository.get(id)?.name ?? id)
     : [];
   const passiveSummary = getPassiveSummary(parent, passiveNames);
@@ -42,7 +42,14 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
             {parent.passives.kind === "any" ? (
               <p>Any combination accepted</p>
             ) : passiveNames.length ? (
-              <ul>{passiveNames.map((passive) => <li key={passive}>{passive}</li>)}</ul>
+              <>
+                <ul>{passiveNames.map((passive) => <li key={passive}>{passive}</li>)}</ul>
+                {parent.passives.kind === "bounded"
+                  ? <p>Up to {formatExtraCount(parent.passives.maxExtras)} also accepted</p>
+                  : null}
+              </>
+            ) : parent.passives.kind === "bounded" ? (
+              <p>Up to {formatExtraCount(parent.passives.maxExtras)} accepted</p>
             ) : (
               <p>None</p>
             )}
@@ -59,9 +66,21 @@ function getGenderLabel(gender: BuilderParent["gender"]) {
 
 function getPassiveSummary(parent: BuilderParent, passiveNames: readonly string[]) {
   if (parent.passives.kind === "any") return "Any passives";
+  if (parent.passives.kind === "bounded") {
+    const required = passiveNames.length === 0
+      ? ""
+      : passiveNames.length === 1
+        ? `${passiveNames[0]} · `
+        : `${passiveNames[0]} +${passiveNames.length - 1} · `;
+    return `${required}up to ${formatExtraCount(parent.passives.maxExtras)}`;
+  }
   if (passiveNames.length === 0) return "No passives";
   if (passiveNames.length === 1) return passiveNames[0];
   return `${passiveNames[0]} +${passiveNames.length - 1}`;
+}
+
+function formatExtraCount(count: number) {
+  return `${count} extra passive${count === 1 ? "" : "s"}`;
 }
 
 function InfoIcon() {

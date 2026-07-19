@@ -8,6 +8,7 @@ export type BuilderObjective = "recommended" | "fewest" | "cleanest";
 
 export type BuilderParentPassives =
   | { kind: "known"; ids: readonly PassiveId[] }
+  | { kind: "bounded"; ids: readonly PassiveId[]; maxExtras: number }
   | { kind: "any" };
 
 type BuilderParentBase = {
@@ -48,6 +49,9 @@ type State = {
   gender?: PalGender;
   mask: number;
   carriedPassiveIds: readonly PassiveId[];
+  // A bounded hatch accepts cleaner results too, but downstream estimates use
+  // the upper bound so the route never assumes that an unknown extra vanished.
+  maxUnknownExtraCount: number;
   displayPassives: BuilderParentPassives;
   level?: number;
   extraCount: number;
@@ -57,6 +61,9 @@ type State = {
 };
 
 type Previous = { key: string; step: BuilderStep };
+
+const MAX_PASSIVES = 4;
+const MAX_INTERMEDIATE_EXTRAS = 1;
 
 export function buildPal(input: {
   inventory: readonly OwnedPal[];
@@ -94,6 +101,7 @@ export function buildPal(input: {
       level: pal.level,
       mask: maskFor(carriedPassiveIds, required),
       carriedPassiveIds,
+      maxUnknownExtraCount: 0,
       displayPassives: { kind: "known", ids: [...new Set(pal.passiveIds)] },
       sourceOwnedPalId: pal.id,
       steps: 0,
@@ -143,38 +151,44 @@ export function buildPal(input: {
           ...partner.passiveIds,
         ]);
         const isFinalHatch = outcome.childId === input.targetId && nextMask === fullMask;
-        const acceptedExtras = isFinalHatch ? allowedExtras : 0;
-        const odds = estimatePassiveOdds(parentUnion.size, desiredIds.length, acceptedExtras);
-        if (desiredIds.length && odds === 0) continue;
-        const edgeCakes = odds > 0 ? 1 / odds : 1;
-        const next = createState({
-          speciesId: outcome.childId,
-          level: 1,
-          mask: nextMask,
-          carriedPassiveIds: desiredIds,
-          displayPassives: acceptsAnyPassives
-            ? { kind: "any" }
-            : { kind: "known", ids: desiredIds },
-          sourceOwnedPalId: current.sourceOwnedPalId,
-          steps: current.steps + 1,
-          expectedCakes: current.expectedCakes + edgeCakes,
-          required,
+        const passiveCandidates = getPassiveCandidates({
+          acceptsAnyPassives,
+          parentUnionSize: parentUnion.size + current.maxUnknownExtraCount,
+          desiredIds,
+          isFinalHatch,
+          allowedFinalExtras: allowedExtras,
         });
-        const existing = best.get(next.key);
-        if (existing && compareState(next, existing, input.objective) >= 0) continue;
-        best.set(next.key, next);
-        previous.set(next.key, {
-          key: current.key,
-          step: {
-            firstParent: createCurrentParent(current, firstParentGender),
-            secondParent: createInventoryParent(partner, secondParentGender),
-            result: outcome.childId,
-            resultPassives: next.displayPassives,
-            odds,
-            expectedCakes: edgeCakes,
-          },
-        });
-        queue.push(next);
+
+        for (const candidate of passiveCandidates) {
+          const edgeCakes = 1 / candidate.odds;
+          const next = createState({
+            speciesId: outcome.childId,
+            level: 1,
+            mask: nextMask,
+            carriedPassiveIds: desiredIds,
+            maxUnknownExtraCount: candidate.maxExtras,
+            displayPassives: candidate.displayPassives,
+            sourceOwnedPalId: current.sourceOwnedPalId,
+            steps: current.steps + 1,
+            expectedCakes: current.expectedCakes + edgeCakes,
+            required,
+          });
+          const existing = best.get(next.key);
+          if (existing && compareState(next, existing, input.objective) >= 0) continue;
+          best.set(next.key, next);
+          previous.set(next.key, {
+            key: current.key,
+            step: {
+              firstParent: createCurrentParent(current, firstParentGender),
+              secondParent: createInventoryParent(partner, secondParentGender),
+              result: outcome.childId,
+              resultPassives: next.displayPassives,
+              odds: candidate.odds,
+              expectedCakes: edgeCakes,
+            },
+          });
+          queue.push(next);
+        }
       }
     }
   }
@@ -191,6 +205,7 @@ function createState(input: {
   level?: number;
   mask: number;
   carriedPassiveIds: readonly PassiveId[];
+  maxUnknownExtraCount: number;
   displayPassives: BuilderParentPassives;
   sourceOwnedPalId: string;
   steps: number;
@@ -203,6 +218,7 @@ function createState(input: {
     level,
     mask,
     carriedPassiveIds,
+    maxUnknownExtraCount,
     displayPassives,
     sourceOwnedPalId,
     steps,
@@ -211,13 +227,15 @@ function createState(input: {
   } = input;
   const normalizedPassives = [...new Set(carriedPassiveIds)].sort();
   const requiredSet = new Set(required);
-  const extraCount = normalizedPassives.filter((id) => !requiredSet.has(id)).length;
+  const knownExtraCount = normalizedPassives.filter((id) => !requiredSet.has(id)).length;
+  const extraCount = knownExtraCount + maxUnknownExtraCount;
   return {
-    key: `${speciesId}|${gender ?? "*"}|${mask}|${normalizedPassives.join(",")}`,
+    key: `${speciesId}|${gender ?? "*"}|${mask}|${normalizedPassives.join(",")}|${maxUnknownExtraCount}`,
     speciesId,
     gender,
     mask,
     carriedPassiveIds: normalizedPassives,
+    maxUnknownExtraCount,
     displayPassives,
     level,
     extraCount,
@@ -225,6 +243,53 @@ function createState(input: {
     steps,
     expectedCakes,
   };
+}
+
+function getPassiveCandidates(input: {
+  acceptsAnyPassives: boolean;
+  parentUnionSize: number;
+  desiredIds: readonly PassiveId[];
+  isFinalHatch: boolean;
+  allowedFinalExtras: number;
+}) {
+  if (input.acceptsAnyPassives) {
+    return [{
+      odds: estimatePassiveOdds(input.parentUnionSize, { kind: "any" }),
+      maxExtras: 0,
+      displayPassives: { kind: "any" } as const,
+    }];
+  }
+
+  const maxExtras = input.isFinalHatch
+    ? input.allowedFinalExtras
+    : Math.min(MAX_INTERMEDIATE_EXTRAS, MAX_PASSIVES - input.desiredIds.length);
+  const extraLimits = input.isFinalHatch
+    ? [maxExtras]
+    : Array.from({ length: maxExtras + 1 }, (_, index) => index);
+  const candidates: Array<{
+    odds: number;
+    maxExtras: number;
+    displayPassives: BuilderParentPassives;
+  }> = [];
+  let previousOdds = 0;
+
+  for (const acceptedExtras of extraLimits) {
+    const odds = estimatePassiveOdds(
+      input.parentUnionSize,
+      { kind: "specific", desiredCount: input.desiredIds.length, allowedExtras: acceptedExtras },
+    );
+    if (odds <= previousOdds) continue;
+    previousOdds = odds;
+    candidates.push({
+      odds,
+      maxExtras: acceptedExtras,
+      displayPassives: acceptedExtras === 0
+        ? { kind: "known", ids: input.desiredIds }
+        : { kind: "bounded", ids: input.desiredIds, maxExtras: acceptedExtras },
+    });
+  }
+
+  return candidates;
 }
 
 function compareState(first: State, second: State, objective: BuilderObjective) {

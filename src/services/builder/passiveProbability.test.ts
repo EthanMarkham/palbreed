@@ -2,12 +2,50 @@ import { describe, expect, it } from "vitest";
 import { estimatePassiveOdds } from "./passiveProbability";
 
 describe("passive probability estimate", () => {
-  it("calculates the exact four-passive outcome", () => {
-    expect(estimatePassiveOdds(4, 4, 0)).toBeCloseTo(0.04);
+  it.each([
+    [1, 0.4],
+    [2, 0.24],
+    [3, 0.12],
+    [4, 0.1],
+  ])("calculates an exact %i-passive outcome", (desiredCount, expected) => {
+    expect(estimatePassiveOdds(
+      desiredCount,
+      { kind: "specific", desiredCount, allowedExtras: 0 },
+    )).toBeCloseTo(expected);
   });
 
   it("increases when one parent extra is allowed", () => {
-    expect(estimatePassiveOdds(4, 2, 0)).toBeCloseTo(0.02);
-    expect(estimatePassiveOdds(4, 2, 1)).toBeCloseTo(0.06);
+    expect(estimatePassiveOdds(4, { kind: "specific", desiredCount: 2, allowedExtras: 0 })).toBeCloseTo(0.02);
+    expect(estimatePassiveOdds(4, { kind: "specific", desiredCount: 2, allowedExtras: 1 })).toBeCloseTo(0.075);
+  });
+
+  it("distinguishes an exact zero-passive hatch from a wildcard outcome", () => {
+    const exactNoPassives = { kind: "specific", desiredCount: 0, allowedExtras: 0 } as const;
+
+    expect(estimatePassiveOdds(0, exactNoPassives)).toBeCloseTo(0.4);
+    expect(estimatePassiveOdds(1, exactNoPassives)).toBe(0);
+    expect(estimatePassiveOdds(4, { kind: "any" })).toBe(1);
+  });
+
+  it("estimates an exact one-passive hatch from clean and passive-bearing parents", () => {
+    const cleanParentsAtMostZero = estimatePassiveOdds(
+      0,
+      { kind: "specific", desiredCount: 0, allowedExtras: 0 },
+    );
+    const cleanParentsAtMostOne = estimatePassiveOdds(
+      0,
+      { kind: "specific", desiredCount: 0, allowedExtras: 1 },
+    );
+    const dirtyParentsAtMostZero = estimatePassiveOdds(
+      3,
+      { kind: "specific", desiredCount: 0, allowedExtras: 0 },
+    );
+    const dirtyParentsAtMostOne = estimatePassiveOdds(
+      3,
+      { kind: "specific", desiredCount: 0, allowedExtras: 1 },
+    );
+
+    expect(cleanParentsAtMostOne - cleanParentsAtMostZero).toBeCloseTo(0.3);
+    expect(dirtyParentsAtMostOne - dirtyParentsAtMostZero).toBeCloseTo(0.16);
   });
 });

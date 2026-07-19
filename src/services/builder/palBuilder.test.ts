@@ -156,6 +156,48 @@ describe("Pal Builder", () => {
     if (result.status === "found") {
       expect(result.steps).toHaveLength(1);
       expect(result.steps[0].resultPassives).toEqual({ kind: "any" });
+      expect(result.steps[0].odds).toBe(1);
+    }
+  });
+
+  it("requires clean parents for an exact no-passive hatch", () => {
+    const dirtyResult = buildPal({
+      inventory,
+      targetId: "daedream",
+      passiveGoal: { kind: "specific", requiredIds: [], allowedExtras: 0 },
+      objective: "fewest",
+    });
+    const cleanResult = buildPal({
+      inventory: inventory.map((pal) => ({ ...pal, passiveIds: [] })),
+      targetId: "daedream",
+      passiveGoal: { kind: "specific", requiredIds: [], allowedExtras: 0 },
+      objective: "fewest",
+    });
+
+    expect(dirtyResult.status).toBe("no-route");
+    expect(cleanResult.status).toBe("found");
+    if (cleanResult.status === "found") {
+      expect(cleanResult.steps[0].odds).toBeCloseTo(0.4);
+      expect(cleanResult.steps[0].expectedCakes).toBeCloseTo(2.5);
+    }
+  });
+
+  it("accepts up to one passive when an exact clean hatch is impossible", () => {
+    const result = buildPal({
+      inventory: inventory.map((pal, index) => ({
+        ...pal,
+        passiveIds: [`unwanted-${index}`],
+      })),
+      targetId: "daedream",
+      passiveGoal: { kind: "specific", requiredIds: [], allowedExtras: 1 },
+      objective: "fewest",
+    });
+
+    expect(result.status).toBe("found");
+    if (result.status === "found") {
+      expect(result.steps[0].resultPassives).toEqual({ kind: "bounded", ids: [], maxExtras: 1 });
+      expect(result.steps[0].odds).toBeCloseTo(0.16);
+      expect(result.steps[0].expectedCakes).toBeCloseTo(6.25);
     }
   });
 });

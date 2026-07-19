@@ -7,7 +7,12 @@ import { passiveRepository } from "../../data/passiveRepository";
 import type { PalId } from "../../domain/pal";
 import type { OwnedPal } from "../../domain/inventory";
 import type { PassiveGoal, PassiveId } from "../../domain/passive";
-import { buildPal, type BuilderObjective, type BuilderResult } from "../../services/builder/palBuilder";
+import {
+  buildPal,
+  type BuilderObjective,
+  type BuilderParentPassives,
+  type BuilderResult,
+} from "../../services/builder/palBuilder";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
 import BuilderHistoryMenu from "./BuilderHistoryMenu";
@@ -129,7 +134,7 @@ export default function BuilderPage({
           <button className="primary-button builder-run" type="button" disabled={inventorySnapshot.status === "loading" || !targetId || !passiveGoal} onClick={onRun}>
             <SparkIcon />Build the optimal route
           </button>
-          <p className="model-note">The species/passive search is exhaustive for a continuous carrier bred with imported partners. Any accepts every passive combination, including none. Extra-passive tolerance applies to exact final hatches; intermediate carriers stay clean. Hatch odds are estimates from reverse-engineered inheritance distributions and exclude gender selection and lucky random additions.</p>
+          <p className="model-note">The species/passive search is exhaustive for a continuous carrier bred with imported partners. Any accepts every passive combination, including none. Final hatches use your extra-passive tolerance; intermediate carriers may accept up to one extra when that produces a better route. Hatch odds are estimates from reverse-engineered inheritance distributions and exclude gender selection and lucky random additions.</p>
         </div>
 
         <div className="feature-card builder-result-card" aria-live="polite">
@@ -193,9 +198,7 @@ function BuilderResultView({
         <div className="build-steps">
           {result.steps.map((step, index) => {
             const child = breedingRepository.getPal(step.result);
-            const resultPassives = step.resultPassives.kind === "any"
-              ? "Any passive outcome accepted"
-              : step.resultPassives.ids.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ") || "No passives";
+            const resultPassives = getResultPassiveSummary(step.resultPassives);
             return (
               <article key={`${step.firstParent.speciesId}-${step.secondParent.speciesId}-${index}`}>
                 <span className="step-index">{String(index + 1).padStart(2, "0")}</span>
@@ -224,6 +227,16 @@ function formatOdds(value: number) {
 
 function formatCakes(value: number) {
   return value < 10 ? value.toFixed(1) : Math.round(value).toString();
+}
+
+function getResultPassiveSummary(passives: BuilderParentPassives) {
+  if (passives.kind === "any") return "Any passive outcome accepted";
+  const required = passives.ids.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ");
+  if (passives.kind === "bounded") {
+    const extras = `up to ${passives.maxExtras} extra passive${passives.maxExtras === 1 ? "" : "s"}`;
+    return required ? `${required} / ${extras}` : `${extras} accepted`;
+  }
+  return required || "No passives";
 }
 
 function SparkIcon() {

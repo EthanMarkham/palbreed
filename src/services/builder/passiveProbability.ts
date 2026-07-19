@@ -1,27 +1,58 @@
+const MAX_PASSIVES = 4;
 const inheritedCountProbability = [0, 0.4, 0.3, 0.2, 0.1] as const;
-const noRandomPassiveProbability = 0.4;
+const randomAdditionCountProbability = [0.4, 0.3, 0.2, 0.1] as const;
+
+export type PassiveOutcomeRequirement =
+  | { kind: "any" }
+  | { kind: "specific"; desiredCount: number; allowedExtras: number };
 
 /**
- * Estimated chance that an offspring inherits every desired passive and no
- * more than `allowedExtras` other parent passives. This deliberately excludes
- * lucky random additions and is presented as an estimate in the UI.
+ * Estimated chance that an offspring satisfies a passive requirement.
+ *
+ * Parent passives are deduplicated before this function is called. Randomly
+ * added passives are conservatively treated as extras; the estimate does not
+ * credit a random addition for luckily matching a desired passive.
  */
 export function estimatePassiveOdds(
   parentUnionSize: number,
-  desiredCount: number,
-  allowedExtras: number,
+  requirement: PassiveOutcomeRequirement,
 ) {
-  if (desiredCount === 0) return 1;
-  if (desiredCount > parentUnionSize || desiredCount > 4) return 0;
+  if (requirement.kind === "any") return 1;
+
+  const { desiredCount, allowedExtras } = requirement;
+  if (
+    !Number.isInteger(parentUnionSize)
+    || !Number.isInteger(desiredCount)
+    || !Number.isInteger(allowedExtras)
+    || parentUnionSize < 0
+    || desiredCount < 0
+    || allowedExtras < 0
+    || desiredCount > parentUnionSize
+    || desiredCount > MAX_PASSIVES
+  ) return 0;
+
   const otherCount = parentUnionSize - desiredCount;
   let probability = 0;
-  for (let extras = 0; extras <= Math.min(allowedExtras, otherCount, 4 - desiredCount); extras += 1) {
-    const inherited = desiredCount + extras;
-    probability += inheritedCountProbability[inherited]
-      * choose(otherCount, extras)
-      / choose(parentUnionSize, inherited);
+
+  for (let inheritedRoll = 1; inheritedRoll <= MAX_PASSIVES; inheritedRoll += 1) {
+    const inheritedCount = Math.min(inheritedRoll, parentUnionSize);
+    if (inheritedCount < desiredCount) continue;
+
+    const inheritedExtras = inheritedCount - desiredCount;
+    const selectionProbability = choose(otherCount, inheritedExtras)
+      / choose(parentUnionSize, inheritedCount);
+    if (!Number.isFinite(selectionProbability) || selectionProbability === 0) continue;
+
+    for (let randomRoll = 0; randomRoll < randomAdditionCountProbability.length; randomRoll += 1) {
+      const randomAdditions = Math.min(randomRoll, MAX_PASSIVES - inheritedCount);
+      if (inheritedExtras + randomAdditions > allowedExtras) continue;
+      probability += inheritedCountProbability[inheritedRoll]
+        * selectionProbability
+        * randomAdditionCountProbability[randomRoll];
+    }
   }
-  return probability * noRandomPassiveProbability;
+
+  return probability;
 }
 
 function choose(total: number, count: number) {
