@@ -249,7 +249,7 @@ function BuilderResultView({
       <div className="build-summary">
         {target ? <img src={target.image} alt="" /> : null}
         <div><span className="result-eyebrow">BREEDING ROUTE</span><h2>{target?.name}</h2><p>{passiveSummary}</p></div>
-        <div className="build-metrics"><span><strong>{result.steps.length}</strong>breedings</span><span><strong>{formatCakes(result.expectedCakes)}</strong>cakes on average</span></div>
+        <div className="build-metrics"><span><strong>{result.steps.length}</strong>breedings</span><span><strong>{formatCakes(result.expectedCakes)}</strong>eggs on average</span></div>
       </div>
 
       {result.steps.length ? (
