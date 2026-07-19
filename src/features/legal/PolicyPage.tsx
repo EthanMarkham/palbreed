@@ -5,22 +5,20 @@ export function PrivacyPage() {
   return (
     <PolicyShell title="Privacy" index="05">
       <PolicySection title="Local use">
-        <p>Palpath assigns a random device identifier and stores imported inventory and builder history in browser storage. Save files are parsed locally and are never uploaded.</p>
+        <p>Palpath assigns a random device identifier and stores imported inventory in browser storage. Save files are parsed locally and are never uploaded.</p>
       </PolicySection>
       <PolicySection title="Optional account sync">
-        <p>When you sign in, Supabase processes your authentication identifier, provider account metadata, profile name, workspace memberships, and the extracted world snapshots you choose to sync. A snapshot contains Pal inventory and world/player metadata, but not the original save file.</p>
+        <p>Supabase stores up to eight recent Builder searches. Before sign-in, a random session cookie keeps those searches together; the server stores only a one-way hash of its value. When you sign in, those searches move to your account. Aggregate search counts may be used to improve discovery features.</p>
+        <p>When you sign in, Supabase also processes your authentication identifier, provider account metadata, profile name, workspace memberships, and the extracted world snapshots you choose to sync. A snapshot contains Pal inventory and world/player metadata, but not the original save file.</p>
         <p>Removing a synced world clears its snapshot payload after an optimistic revision check. A minimal tombstone remains to prevent another device from restoring deleted data accidentally.</p>
       </PolicySection>
-      <PolicySection title="Advertising">
-        <p>Advertising code is disabled unless the site operator explicitly configures it. When enabled, Google AdSense loads only on Builder and Tools—not on Inventory, save import, Account, Privacy, or Legal pages. Google may process device, cookie, consent, and advertising data under its own policies and the choices shown through its consent platform.</p>
-      </PolicySection>
       <PolicySection title="Your choices">
-        <p>You can use Palpath without an account, export the local inventory cache from Account, remove synced worlds from Inventory, sign out, reject advertising consent where offered, and request account deletion from the site operator.</p>
+        <p>You can use Palpath without an account, export the local inventory cache from Account, remove synced worlds from Inventory, sign out, and request account deletion from the site operator.</p>
       </PolicySection>
       <PolicySection title="Contact">
         <p>{runtimeConfig.legalContactEmail
           ? <>For privacy or deletion requests, email <a href={`mailto:${runtimeConfig.legalContactEmail}`}>{runtimeConfig.legalContactEmail}</a>.</>
-          : "This local build has no configured site-operator contact and does not enable cloud sync or advertising."}</p>
+          : "This local build has no configured site-operator contact and does not enable cloud sync."}</p>
       </PolicySection>
     </PolicyShell>
   );

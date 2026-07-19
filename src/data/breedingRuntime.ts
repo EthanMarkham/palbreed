@@ -2,6 +2,7 @@ import runtimeData from "./breeding-runtime-1.0.json";
 import { pairKey, type Pal, type PalGender, type PalId } from "../domain/pal";
 
 const BASE36 = "0123456789abcdefghijklmnopqrstuvwxyz";
+const PAL_IMAGE_BASE_URL = "https://palbreeder.com/pal-icons/";
 
 type RuntimeBreedingOutcome = {
   firstParentId: PalId;
@@ -15,6 +16,7 @@ export const runtimeMetadata = runtimeData.metadata;
 export const runtimePals: readonly Pal[] = runtimeData.pals.map((pal, index) => ({
   ...pal,
   number: index + 1,
+  image: `${PAL_IMAGE_BASE_URL}${pal.id}.webp`,
 }));
 const runtimePalIndexById = new Map(runtimePals.map((pal, index) => [pal.id, index]));
 

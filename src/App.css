@@ -598,30 +598,7 @@
 .pal-avatar {
   min-width: 0;
   min-height: 0;
-  display: grid;
-  place-content: center;
-  gap: 2px;
-  border-radius: inherit;
-  color: hsl(var(--pal-avatar-hue) 42% 24%);
-  background:
-    radial-gradient(circle at 30% 24%, hsl(var(--pal-avatar-hue) 78% 91%), transparent 43%),
-    linear-gradient(145deg, hsl(var(--pal-avatar-hue) 54% 85%), hsl(var(--pal-avatar-hue) 48% 73%));
-  box-shadow: inset 0 0 0 1px hsl(var(--pal-avatar-hue) 34% 48% / 0.2);
-  font-family: "Space Grotesk", sans-serif;
-  line-height: 1;
-  text-align: center;
-}
-
-.pal-avatar strong {
-  font-size: 0.72em;
-  letter-spacing: -0.07em;
-}
-
-.pal-avatar small {
-  color: inherit;
-  font-size: 0.32em;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  object-fit: contain;
 }
 
 .finder-pal-avatar {
@@ -2829,32 +2806,7 @@
   background: rgba(255, 235, 225, 0.88);
 }
 
-/* Route-scoped advertising and policy pages */
-.ad-placement {
-  min-height: 112px;
-  overflow: hidden;
-  padding: 10px;
-  display: grid;
-  align-content: start;
-  gap: 7px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.36);
-}
-
-.ad-placement > span {
-  color: var(--text-subtle);
-  font: 700 0.46rem/1 "Space Grotesk", sans-serif;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.ad-placement .adsbygoogle {
-  width: 100%;
-  min-height: 84px;
-  display: block;
-}
-
+/* Policy pages */
 .policy-workspace {
   grid-template-rows: auto auto;
   align-content: start;

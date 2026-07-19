@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import AdSlot from "../ads/AdSlot";
 import PalAvatar from "../../components/PalAvatar";
 import PalSelect from "../../components/PalSelect";
 import { breedingRepository } from "../../data/breedingRepository";
@@ -91,7 +90,6 @@ export default function ToolsPage({
           <ParentResult first={search.first} second={search.second} outcomes={outcomes} />
         </div>
       </section>
-      <AdSlot placement="tools" />
     </main>
   );
 }

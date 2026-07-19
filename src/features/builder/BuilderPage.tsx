@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import AdSlot from "../ads/AdSlot";
 import PalAvatar from "../../components/PalAvatar";
 import PalSelect from "../../components/PalSelect";
 import PassiveSelector from "../../components/PassiveSelector";
@@ -189,7 +188,6 @@ export default function BuilderPage({
           </div>
         </div>
       </section>
-      <AdSlot placement="builder" />
     </main>
   );
 }

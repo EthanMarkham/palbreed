@@ -41,8 +41,8 @@ publishable key; service-role credentials never belong in this app.
 The `schemaVersion` on the document is independent from the Palworld game
 version and enables deterministic local migrations before sync.
 
-See `scale-accounts-ads-plan.md` for implementation phases, cost controls,
-licensing gates, and the ad-supported launch checklist.
+See `scale-accounts-plan.md` for account boundaries, cost controls, licensing,
+and the measurement gates for additional infrastructure.
 
 ## Save parser contract
 

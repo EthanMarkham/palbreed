@@ -1,16 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 
 export default defineConfig(({ mode }) => {
-  const environment = loadEnv(mode, process.cwd(), "");
-  const publisherId = environment.VITE_ADSENSE_PUBLISHER_ID?.trim();
-  if (publisherId && !/^ca-pub-\d{16}$/.test(publisherId)) {
-    throw new Error("VITE_ADSENSE_PUBLISHER_ID must use the ca-pub-################ format.");
-  }
-
   return {
     base: mode === "github-pages" ? "/palbreed/" : "/",
     plugins: [
@@ -19,7 +13,7 @@ export default defineConfig(({ mode }) => {
         autoCodeSplitting: true,
       }),
       react(),
-      releaseArtifacts(publisherId),
+      releaseArtifacts(),
     ],
     build: {
       rolldownOptions: {
@@ -61,25 +55,10 @@ export default defineConfig(({ mode }) => {
   };
 });
 
-function releaseArtifacts(publisherId: string | undefined): Plugin {
+function releaseArtifacts(): Plugin {
   return {
     name: "palpath-release-artifacts",
-    transformIndexHtml() {
-      return publisherId ? [{
-        tag: "meta",
-        attrs: { name: "google-adsense-account", content: publisherId },
-        injectTo: "head" as const,
-      }] : [];
-    },
     generateBundle() {
-      if (publisherId) {
-        this.emitFile({
-          type: "asset",
-          fileName: "ads.txt",
-          source: `google.com, ${publisherId.replace("ca-", "")}, DIRECT, f08c47fec0942fa0\n`,
-        });
-      }
-
       const licenses = collectProductionLicenses();
       for (const license of licenses) {
         this.emitFile({ type: "asset", fileName: license.fileName, source: license.text });

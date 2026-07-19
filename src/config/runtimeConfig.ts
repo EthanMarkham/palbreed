@@ -8,18 +8,11 @@ export type RuntimeConfig = {
     publishableKey: string;
     signInMethod: SupportedSignInMethod;
   };
-  adsense?: {
-    publisherId: string;
-    builderSlot: string;
-    toolsSlot: string;
-  };
   errors: readonly string[];
 };
 
 type Environment = Record<string, string | boolean | undefined>;
 
-const PUBLISHER_ID = /^ca-pub-\d{16}$/;
-const AD_SLOT_ID = /^\d{6,20}$/;
 const SIGN_IN_METHODS = new Set<SupportedSignInMethod>(["discord", "email", "github", "google"]);
 
 export function createRuntimeConfig(environment: Environment): RuntimeConfig {
@@ -53,41 +46,14 @@ export function createRuntimeConfig(environment: Environment): RuntimeConfig {
     }
   }
 
-  const adsEnabled = readString(environment.VITE_ADSENSE_ENABLED) === "true";
-  const publisherId = readString(environment.VITE_ADSENSE_PUBLISHER_ID);
-  const builderSlot = readString(environment.VITE_ADSENSE_BUILDER_SLOT);
-  const toolsSlot = readString(environment.VITE_ADSENSE_TOOLS_SLOT);
-  let adsense: RuntimeConfig["adsense"];
-
-  if (adsEnabled) {
-    if (!PUBLISHER_ID.test(publisherId)) {
-      errors.push("VITE_ADSENSE_PUBLISHER_ID must use the ca-pub-################ format.");
-    }
-    if (!AD_SLOT_ID.test(builderSlot) || !AD_SLOT_ID.test(toolsSlot)) {
-      errors.push("Both AdSense slot IDs are required when advertising is enabled.");
-    }
-    if (PUBLISHER_ID.test(publisherId) && AD_SLOT_ID.test(builderSlot) && AD_SLOT_ID.test(toolsSlot)) {
-      adsense = { publisherId, builderSlot, toolsSlot };
-    }
-  }
-
   if (supabase && !legalContactEmail) {
     errors.push("VITE_LEGAL_CONTACT_EMAIL is required when cloud sync is enabled.");
-  }
-  if (adsense && !legalContactEmail) {
-    errors.push("VITE_LEGAL_CONTACT_EMAIL is required before advertising can be enabled.");
-    adsense = undefined;
-  }
-  if (adsense && !sourceUrl) {
-    errors.push("VITE_SOURCE_URL is required before advertising can be enabled.");
-    adsense = undefined;
   }
 
   return {
     legalContactEmail: legalContactEmail || undefined,
     sourceUrl: sourceUrl || undefined,
     supabase,
-    adsense,
     errors,
   };
 }

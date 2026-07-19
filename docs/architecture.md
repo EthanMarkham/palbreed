@@ -15,5 +15,5 @@ Migrating to Next.js is not inherently a bad refactor, but it would add routing,
 
 If Next.js is required later, move `domain`, `data`, and `services` unchanged into the app, render the existing planner as a client component, and keep generated data out of server-only code. Do not migrate only for Vercel deployment: Vercel supports Vite static deployments directly.
 
-The staged account, team, cost, licensing, and advertising plan is documented in
-`docs/scale-accounts-ads-plan.md`.
+The account, team, cost, and licensing boundaries are documented in
+`docs/scale-accounts-plan.md`.

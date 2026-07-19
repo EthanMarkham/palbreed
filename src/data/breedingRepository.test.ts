@@ -25,6 +25,13 @@ describe("breedingRepository forward lookup", () => {
 });
 
 describe("compact breeding runtime lookup", () => {
+  it("provides the original Pal artwork URL for every runtime Pal", () => {
+    expect(runtimePals).not.toHaveLength(0);
+    for (const pal of runtimePals) {
+      expect(pal.image).toBe(`https://palbreeder.com/pal-icons/${pal.id}.webp`);
+    }
+  });
+
   it("resolves ordinary and gender-specific children by numeric index", () => {
     const lamball = getRuntimePalIndex("lamball");
     const cattiva = getRuntimePalIndex("cattiva");

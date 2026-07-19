@@ -1,9 +1,9 @@
-# Production setup: Supabase and AdSense
+# Production setup: Supabase
 
 The application remains fully local when no environment variables are set.
-Supabase and AdSense are independent, optional integrations. Never put a
-Supabase service-role key, OAuth client secret, or AdSense account credential in
-a `VITE_` variable; every `VITE_` value is public browser configuration.
+Supabase is optional. Never put a Supabase service-role key or OAuth client
+secret in a `VITE_` variable; every `VITE_` value is public browser
+configuration.
 
 ## Supabase
 
@@ -63,8 +63,6 @@ Copy `.env.example` into the host's environment settings and set:
   release, including application source, WASM interface code, build scripts,
   and lockfiles.
 
-Do not set `VITE_ADSENSE_ENABLED` for Supabase-only deployments.
-
 ### 4. Production controls
 
 - Upgrade from Free only when beta usage or backup requirements justify it.
@@ -77,44 +75,3 @@ Do not set `VITE_ADSENSE_ENABLED` for Supabase-only deployments.
   concurrent edits, and sign-out in staging before production.
 - Handle full account-deletion requests through the monitored privacy contact
   until an attorney-approved self-service ownership-transfer flow is added.
-
-## AdSense
-
-AdSense must remain disabled until all of these external gates are closed:
-
-1. Written Pocketpair/Palworld Entertainment permission covers the actual
-   ad-supported use of Pal names and data, or counsel approves the current
-   neutral-avatar presentation and nominative use. Official or derived images
-   require separate written permission before they are added back.
-2. `ooz-wasm` and underlying `ooz` provenance is cleared, and counsel confirms
-   the corresponding-source/copyleft boundary for the deployed build.
-3. The privacy policy, audience/COPPA classification, and regional consent
-   behavior have been reviewed for the real deployment.
-
-After those gates are documented:
-
-1. Create the AdSense account and add the production domain.
-2. Set `VITE_ADSENSE_PUBLISHER_ID` to the full `ca-pub-################` value
-   while leaving `VITE_ADSENSE_ENABLED=false`. The production build adds the
-   ownership-verification meta tag and generates `/ads.txt` automatically.
-3. Request site review. The domain must serve real content and be publicly
-   reachable.
-4. Create two responsive display units, one for Builder and one for Tools, and
-   set `VITE_ADSENSE_BUILDER_SLOT` and `VITE_ADSENSE_TOOLS_SLOT`.
-5. In Privacy & messaging, configure Google's CMP for the EEA, UK, and
-   Switzerland and the applicable US-state messages. Test accept, reject, and
-   opt-out paths by region.
-6. Disable Auto ads. Palpath deliberately renders manual units only on Builder
-   and Tools, away from import, Inventory, Account, Privacy, and Legal.
-7. Disable user-based/personalized advertising for the initial contextual
-   pilot, subject to the reviewed consent design.
-8. Set `VITE_LEGAL_CONTACT_EMAIL` and an immutable, exact-release
-   `VITE_SOURCE_URL`.
-9. Set `VITE_ADSENSE_ENABLED=true`, deploy, and verify:
-   `/ads.txt`, the `google-adsense-account` meta tag, consent flows, ad labels,
-   layout stability, and the absence of ad requests on sensitive routes.
-10. Start with one placement per eligible page. Add nothing until revenue,
-    latency, Core Web Vitals, and policy results justify it.
-
-Turning the flag off removes all ad script loading on the next deployment; it
-does not require removing components or changing routes.

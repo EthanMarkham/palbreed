@@ -30,30 +30,13 @@ describe("runtime configuration", () => {
     }).supabase?.signInMethod).toBe("email");
   });
 
-  it("does not partially enable Supabase or AdSense", () => {
+  it("does not partially enable Supabase", () => {
     const result = createRuntimeConfig({
       VITE_SUPABASE_URL: "http://project.supabase.co",
       VITE_SUPABASE_PUBLISHABLE_KEY: "key",
-      VITE_ADSENSE_ENABLED: "true",
-      VITE_ADSENSE_PUBLISHER_ID: "publisher",
     });
 
     expect(result.supabase).toBeUndefined();
-    expect(result.adsense).toBeUndefined();
-    expect(result.errors).toHaveLength(3);
-  });
-
-  it("keeps valid ad units disabled until legal contact and source are configured", () => {
-    const result = createRuntimeConfig({
-      VITE_ADSENSE_ENABLED: "true",
-      VITE_ADSENSE_PUBLISHER_ID: "ca-pub-1234567890123456",
-      VITE_ADSENSE_BUILDER_SLOT: "1234567890",
-      VITE_ADSENSE_TOOLS_SLOT: "0987654321",
-    });
-
-    expect(result.adsense).toBeUndefined();
-    expect(result.errors).toContain(
-      "VITE_LEGAL_CONTACT_EMAIL is required before advertising can be enabled.",
-    );
+    expect(result.errors).toHaveLength(1);
   });
 });

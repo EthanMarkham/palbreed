@@ -8,7 +8,7 @@ The production calculator reads only static, generated data shipped with the app
 
 ## Required source fields
 
-Each source release must provide a stable form ID, display name, form name when applicable, breedability, elements, stats, and the full authoritative unordered parent-pair to child table. The import is rejected when a parent or child does not resolve to a known form. The product renders locally generated neutral avatars, not source artwork.
+Each source release must provide a stable form ID, display name, form name when applicable, breedability, elements, stats, image attribution, and the full authoritative unordered parent-pair to child table. The import is rejected when a parent or child does not resolve to a known form. Pal images are loaded from the source site's `pal-icons` endpoint.
 
 ## Generated artifacts
 

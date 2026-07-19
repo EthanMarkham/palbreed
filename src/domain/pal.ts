@@ -5,6 +5,7 @@ export type Pal = {
   id: PalId;
   number: number;
   name: string;
+  image: string;
 };
 
 export type ParentPair = readonly [PalId, PalId];
