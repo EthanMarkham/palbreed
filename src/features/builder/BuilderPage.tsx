@@ -105,7 +105,7 @@ export default function BuilderPage({
         <div>
           <span className="section-kicker">BUILDER</span>
           <h1>Plan your next Pal</h1>
-          <p>Choose a Pal and the exact passives you want, or select Any if you're flexible. We'll look for a route using Pals in your selected world.</p>
+          <p>Choose a Pal and the exact passives you want. We'll look for a route using Pals in your selected world.</p>
         </div>
         <span className="hero-index">02</span>
       </section>
@@ -218,7 +218,7 @@ function BuilderResultView({
     return <div className="empty-state is-error"><strong>We couldn't finish that route</strong><span>{solveError}</span></div>;
   }
   if (!result) {
-    return <div className="empty-state builder-empty"><span className="empty-glyph">◇</span><strong>Choose a Pal to get started</strong><span>Then pick the passives you want, or select Any if you're flexible.</span></div>;
+    return <div className="empty-state builder-empty"><span className="empty-glyph">◇</span><strong>Choose a Pal to get started</strong><span>Then pick the passives you want.</span></div>;
   }
   if (result.status === "missing-passives") {
     return (
