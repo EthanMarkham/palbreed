@@ -25,11 +25,17 @@ export function usePalBuilder(input: BuilderInput | undefined): BuilderSolveStat
   const [cancelledInput, setCancelledInput] = useState<BuilderInput>();
   const [settled, setSettled] = useState<SettledAttempt>();
   const workerRef = useRef<Worker>();
+  const pendingWorkerRef = useRef<Worker>();
+  const disposeWorker = useCallback((worker = workerRef.current) => {
+    if (!worker) return;
+    worker.terminate();
+    if (workerRef.current === worker) workerRef.current = undefined;
+    if (pendingWorkerRef.current === worker) pendingWorkerRef.current = undefined;
+  }, []);
   const cancel = useCallback(() => {
-    workerRef.current?.terminate();
-    workerRef.current = undefined;
+    disposeWorker();
     setCancelledInput(input);
-  }, [input]);
+  }, [disposeWorker, input]);
   const restart = useCallback(() => {
     setCancelledInput(undefined);
     setAttempt((current) => current + 1);
@@ -39,19 +45,22 @@ export function usePalBuilder(input: BuilderInput | undefined): BuilderSolveStat
     if (!input || cancelledInput === input) return;
 
     let active = true;
-    const worker = new Worker(new URL("./palBuilder.worker.ts", import.meta.url), {
-      type: "module",
-    });
+    const worker = workerRef.current ?? new Worker(
+      new URL("./palBuilder.worker.ts", import.meta.url),
+      { type: "module" },
+    );
     workerRef.current = worker;
+    pendingWorkerRef.current = worker;
     const request: BuilderWorkerRequest = { input };
 
-    worker.onmessage = ({ data }: MessageEvent<BuilderWorkerResponse>) => {
+    const handleMessage = ({ data }: MessageEvent<BuilderWorkerResponse>) => {
       if (!active) return;
+      if (pendingWorkerRef.current === worker) pendingWorkerRef.current = undefined;
+      worker.removeEventListener("message", handleMessage);
+      worker.removeEventListener("error", handleError);
       setSettled({ input, attempt, response: data });
-      worker.terminate();
-      if (workerRef.current === worker) workerRef.current = undefined;
     };
-    worker.onerror = (event) => {
+    const handleError = (event: ErrorEvent) => {
       event.preventDefault();
       if (!active) return;
       setSettled({
@@ -62,17 +71,21 @@ export function usePalBuilder(input: BuilderInput | undefined): BuilderSolveStat
           message: event.message || "Please try the search again.",
         },
       });
-      worker.terminate();
-      if (workerRef.current === worker) workerRef.current = undefined;
+      disposeWorker(worker);
     };
+    worker.addEventListener("message", handleMessage);
+    worker.addEventListener("error", handleError);
     worker.postMessage(request);
 
     return () => {
       active = false;
-      worker.terminate();
-      if (workerRef.current === worker) workerRef.current = undefined;
+      worker.removeEventListener("message", handleMessage);
+      worker.removeEventListener("error", handleError);
+      if (pendingWorkerRef.current === worker) disposeWorker(worker);
     };
-  }, [attempt, cancelledInput, input]);
+  }, [attempt, cancelledInput, disposeWorker, input]);
+
+  useEffect(() => () => disposeWorker(), [disposeWorker]);
 
   if (!input || cancelledInput === input) return { status: "idle", cancel, restart };
   if (settled?.input !== input || settled.attempt !== attempt) {

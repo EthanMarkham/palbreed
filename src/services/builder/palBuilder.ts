@@ -1,4 +1,8 @@
-import { breedingRepository } from "../../data/breedingRepository";
+import {
+  getRuntimeChildIndex,
+  getRuntimePalIndex,
+  runtimePals,
+} from "../../data/breedingRuntime";
 import type { OwnedPal } from "../../domain/inventory";
 import type { PalGender, PalId } from "../../domain/pal";
 import type { PassiveGoal, PassiveId } from "../../domain/passive";
@@ -50,35 +54,56 @@ export type BuilderInput = {
   objective: BuilderObjective;
 };
 
-type State = {
-  key: string;
-  speciesId: PalId;
-  gender?: PalGender;
-  mask: number;
-  carriedPassiveIds: readonly PassiveId[];
-  // A bounded hatch accepts cleaner results too, but downstream estimates use
-  // the upper bound so the route never assumes that an unknown extra vanished.
-  maxUnknownExtraCount: number;
-  displayPassives: BuilderParentPassives;
-  level?: number;
+type EncodedOwnedPal = {
+  pal: OwnedPal;
+  speciesIndex: number;
+  passiveIds: readonly PassiveId[];
+  requiredMask: number;
   extraCount: number;
-  sourceOwnedPalId: string;
+};
+
+type PartnerAction = {
+  childIndex: number;
+  partnerIndex: number;
+};
+
+type QueueEntry = {
+  state: number;
   steps: number;
   expectedCakes: number;
 };
 
-type Previous = { key: string; step: BuilderStep };
-
 const MAX_PASSIVES = 4;
+const EXTRA_VARIANTS = MAX_PASSIVES + 1;
+const UNVISITED_STATE = -2;
+const SEED_STATE = -1;
+const UNREACHED_STEPS = 0xffff;
+const MAX_CACHED_PARENT_UNION = MAX_PASSIVES * 3;
+const ODDS_DIMENSION = MAX_PASSIVES + 1;
+const passiveOdds = new Float64Array(
+  (MAX_CACHED_PARENT_UNION + 1) * ODDS_DIMENSION * ODDS_DIMENSION,
+);
+
+for (let parentUnionSize = 0; parentUnionSize <= MAX_CACHED_PARENT_UNION; parentUnionSize += 1) {
+  for (let desiredCount = 0; desiredCount <= MAX_PASSIVES; desiredCount += 1) {
+    for (let allowedExtras = 0; allowedExtras <= MAX_PASSIVES; allowedExtras += 1) {
+      passiveOdds[oddsOffset(parentUnionSize, desiredCount, allowedExtras)] = estimatePassiveOdds(
+        parentUnionSize,
+        { kind: "specific", desiredCount, allowedExtras },
+      );
+    }
+  }
+}
 
 export function buildPal(input: BuilderInput): BuilderResult {
   const inventory = input.inventory;
-  const acceptsAnyPassives = input.passiveGoal.kind === "any";
-  const required: PassiveId[] = input.passiveGoal.kind === "any"
+  const passiveGoal = input.passiveGoal;
+  const acceptsAnyPassives = passiveGoal.kind === "any";
+  const required: PassiveId[] = passiveGoal.kind === "any"
     ? []
-    : [...new Set(input.passiveGoal.requiredIds)].slice(0, 4);
-  const allowedExtras = input.passiveGoal.kind === "any" ? 4 : input.passiveGoal.allowedExtras;
-  const available = new Set(inventory.flatMap(({ passiveIds }) => passiveIds));
+    : [...new Set(passiveGoal.requiredIds)].slice(0, MAX_PASSIVES);
+  const allowedExtras = passiveGoal.kind === "any" ? MAX_PASSIVES : passiveGoal.allowedExtras;
+  const available = new Set(inventory.flatMap(({ passiveIds: ids }) => ids));
   const missing = required.filter((id) => !available.has(id));
   if (missing.length) {
     return {
@@ -89,317 +114,571 @@ export function buildPal(input: BuilderInput): BuilderResult {
   }
   if (!inventory.length) return { status: "no-route", reason: "Import a world before building." };
 
+  const requiredIndex = new Map(required.map((id, index) => [id, index]));
   const fullMask = (1 << required.length) - 1;
-  const queue = new MinPriorityQueue<State>((first, second) => compareState(first, second, input.objective));
-  const best = new Map<string, State>();
-  const previous = new Map<string, Previous>();
+  const maskVariants = 1 << required.length;
+  const encodedInventory = inventory.map((pal): EncodedOwnedPal => {
+    const passiveIds = [...new Set(pal.passiveIds)];
+    let requiredMask = 0;
+    let extraCount = 0;
+    for (const id of passiveIds) {
+      const index = requiredIndex.get(id);
+      if (index === undefined) extraCount += 1;
+      else requiredMask |= 1 << index;
+    }
+    return {
+      pal,
+      speciesIndex: getRuntimePalIndex(pal.speciesId) ?? -1,
+      passiveIds,
+      requiredMask,
+      extraCount,
+    };
+  });
 
-  for (const pal of inventory) {
-    const carriedPassiveIds = acceptsAnyPassives ? [] : [...new Set(pal.passiveIds)];
-    const state = createState({
-      speciesId: pal.speciesId,
-      gender: pal.gender,
-      level: pal.level,
-      mask: maskFor(carriedPassiveIds, required),
-      carriedPassiveIds,
-      maxUnknownExtraCount: 0,
-      displayPassives: { kind: "known", ids: [...new Set(pal.passiveIds)] },
-      sourceOwnedPalId: pal.id,
-      steps: 0,
-      expectedCakes: 0,
-      required,
-    });
-    const existing = best.get(state.key);
-    if (!existing || compareState(state, existing, input.objective) < 0) {
-      best.set(state.key, state);
-      queue.push(state);
+  const ownedTarget = encodedInventory.some(({ pal, requiredMask, extraCount }) =>
+    pal.speciesId === input.targetId
+    && (acceptsAnyPassives || (requiredMask === fullMask && extraCount <= allowedExtras)),
+  );
+  if (ownedTarget) return { status: "found", steps: [], expectedCakes: 0 };
+
+  const targetIndex = getRuntimePalIndex(input.targetId);
+  if (targetIndex === undefined) return noRoute();
+
+  const actionsBySpecies = buildPartnerActions(
+    encodedInventory,
+    maskVariants,
+    acceptsAnyPassives,
+  );
+  const canReachTarget = findSpeciesThatCanReach(actionsBySpecies, targetIndex);
+  const stateCount = runtimePals.length * maskVariants * EXTRA_VARIANTS;
+  const bestSteps = new Uint16Array(stateCount).fill(UNREACHED_STEPS);
+  const bestExpectedCakes = new Float64Array(stateCount).fill(Number.POSITIVE_INFINITY);
+  const previousState = new Int32Array(stateCount).fill(UNVISITED_STATE);
+  const firstInventoryParent = new Int32Array(stateCount).fill(-1);
+  const inventoryPartner = new Int32Array(stateCount).fill(-1);
+  const edgeOdds = new Float64Array(stateCount);
+  const queue = new StatePriorityQueue(input.objective);
+
+  const relaxState = (
+    childIndex: number,
+    nextMask: number,
+    maxUnknownExtraCount: number,
+    odds: number,
+    steps: number,
+    expectedCakes: number,
+    predecessor: number,
+    firstParentIndex: number,
+    partnerIndex: number,
+  ) => {
+    if (odds <= 0 || !canReachTarget[childIndex]) return;
+    const state = encodeState(childIndex, nextMask, maxUnknownExtraCount, maskVariants);
+    if (bestSteps[state] !== UNREACHED_STEPS && compareLabels(
+      steps,
+      expectedCakes,
+      maxUnknownExtraCount,
+      bestSteps[state],
+      bestExpectedCakes[state],
+      maxUnknownExtraCount,
+      input.objective,
+    ) >= 0) return;
+
+    bestSteps[state] = steps;
+    bestExpectedCakes[state] = expectedCakes;
+    previousState[state] = predecessor;
+    firstInventoryParent[state] = firstParentIndex;
+    inventoryPartner[state] = partnerIndex;
+    edgeOdds[state] = odds;
+    queue.push(state, steps, expectedCakes);
+  };
+
+  const relaxOutcome = (
+    childIndex: number,
+    nextMask: number,
+    parentUnionSize: number,
+    currentSteps: number,
+    currentExpectedCakes: number,
+    predecessor: number,
+    firstParentIndex: number,
+    partnerIndex: number,
+  ) => {
+    if (acceptsAnyPassives) {
+      relaxState(
+        childIndex,
+        nextMask,
+        0,
+        1,
+        currentSteps + 1,
+        currentExpectedCakes + 1,
+        predecessor,
+        firstParentIndex,
+        partnerIndex,
+      );
+      return;
+    }
+
+    const desiredCount = countBits(nextMask);
+    const availableExtraSlots = MAX_PASSIVES - desiredCount;
+    const isFinalHatch = childIndex === targetIndex && nextMask === fullMask;
+    const maxExtras = isFinalHatch
+      ? Math.min(allowedExtras, availableExtraSlots)
+      : availableExtraSlots;
+    const firstExtraLimit = isFinalHatch ? maxExtras : 0;
+    let previousOdds = 0;
+
+    for (let acceptedExtras = firstExtraLimit; acceptedExtras <= maxExtras; acceptedExtras += 1) {
+      const odds = getPassiveOdds(parentUnionSize, desiredCount, acceptedExtras);
+      if (odds <= previousOdds) continue;
+      previousOdds = odds;
+      relaxState(
+        childIndex,
+        nextMask,
+        acceptedExtras,
+        odds,
+        currentSteps + 1,
+        currentExpectedCakes + 1 / odds,
+        predecessor,
+        firstParentIndex,
+        partnerIndex,
+      );
+    }
+  };
+
+  for (let firstIndex = 0; firstIndex < encodedInventory.length; firstIndex += 1) {
+    const first = encodedInventory[firstIndex];
+    if (first.speciesIndex < 0) continue;
+
+    for (let secondIndex = firstIndex + 1; secondIndex < encodedInventory.length; secondIndex += 1) {
+      const second = encodedInventory[secondIndex];
+      if (
+        second.speciesIndex < 0
+        || first.pal.id === second.pal.id
+        || first.pal.gender === second.pal.gender
+      ) continue;
+      const childIndex = getRuntimeChildIndex(
+        first.speciesIndex,
+        second.speciesIndex,
+        second.pal.gender,
+      );
+      if (childIndex < 0 || !canReachTarget[childIndex]) continue;
+      relaxOutcome(
+        childIndex,
+        first.requiredMask | second.requiredMask,
+        acceptsAnyPassives ? 0 : passiveUnionSize(first.passiveIds, second.passiveIds),
+        0,
+        0,
+        SEED_STATE,
+        firstIndex,
+        secondIndex,
+      );
     }
   }
 
   while (queue.size) {
     const current = queue.pop();
-    if (!current || best.get(current.key) !== current) continue;
     if (
-      current.speciesId === input.targetId
-      && current.mask === fullMask
-      && current.extraCount <= allowedExtras
+      !current
+      || bestSteps[current.state] !== current.steps
+      || bestExpectedCakes[current.state] !== current.expectedCakes
+    ) continue;
+
+    const decoded = decodeState(current.state, maskVariants);
+    if (
+      decoded.speciesIndex === targetIndex
+      && decoded.mask === fullMask
+      && decoded.maxUnknownExtraCount <= allowedExtras
     ) {
-      const steps = reconstruct(current.key, previous);
       return {
         status: "found",
-        steps,
+        steps: reconstruct(
+          current.state,
+          maskVariants,
+          encodedInventory,
+          required,
+          acceptsAnyPassives,
+          previousState,
+          firstInventoryParent,
+          inventoryPartner,
+          edgeOdds,
+        ),
         expectedCakes: current.expectedCakes,
       };
     }
 
-    for (const partner of inventory) {
-      if (current.steps === 0 && partner.id === current.sourceOwnedPalId) continue;
-      const nextMask = current.mask | maskFor(partner.passiveIds, required);
-      for (const outcome of breedingRepository.getOutcomes(current.speciesId, partner.speciesId)) {
-        const specialGenderRequirement = breedingRepository.getGenderRequirement(
-          current.speciesId,
-          partner.speciesId,
-          outcome.childId,
-        );
-        const firstParentGender = specialGenderRequirement?.firstGender ?? oppositeGender(partner.gender);
-        const secondParentGender = specialGenderRequirement?.secondGender ?? partner.gender;
-        if (current.gender && firstParentGender !== current.gender) continue;
-        if (secondParentGender !== partner.gender) continue;
-
-        const desiredIds = passiveIdsFor(nextMask, required);
-        const parentUnion = new Set([
-          ...current.carriedPassiveIds,
-          ...partner.passiveIds,
-        ]);
-        const isFinalHatch = outcome.childId === input.targetId && nextMask === fullMask;
-        const passiveCandidates = getPassiveCandidates({
-          acceptsAnyPassives,
-          parentUnionSize: parentUnion.size + current.maxUnknownExtraCount,
-          desiredIds,
-          isFinalHatch,
-          allowedFinalExtras: allowedExtras,
-        });
-
-        for (const candidate of passiveCandidates) {
-          const edgeCakes = 1 / candidate.odds;
-          const next = createState({
-            speciesId: outcome.childId,
-            level: 1,
-            mask: nextMask,
-            carriedPassiveIds: desiredIds,
-            maxUnknownExtraCount: candidate.maxExtras,
-            displayPassives: candidate.displayPassives,
-            sourceOwnedPalId: current.sourceOwnedPalId,
-            steps: current.steps + 1,
-            expectedCakes: current.expectedCakes + edgeCakes,
-            required,
-          });
-          const existing = best.get(next.key);
-          if (existing && compareState(next, existing, input.objective) >= 0) continue;
-          best.set(next.key, next);
-          previous.set(next.key, {
-            key: current.key,
-            step: {
-              firstParent: createCurrentParent(current, firstParentGender),
-              secondParent: createInventoryParent(partner, secondParentGender),
-              result: outcome.childId,
-              resultPassives: next.displayPassives,
-              odds: candidate.odds,
-              expectedCakes: edgeCakes,
-            },
-          });
-          queue.push(next);
-        }
-      }
+    for (const action of actionsBySpecies[decoded.speciesIndex]) {
+      if (!canReachTarget[action.childIndex]) continue;
+      const partner = encodedInventory[action.partnerIndex];
+      const nextMask = decoded.mask | partner.requiredMask;
+      relaxOutcome(
+        action.childIndex,
+        nextMask,
+        acceptsAnyPassives
+          ? 0
+          : countBits(nextMask) + partner.extraCount + decoded.maxUnknownExtraCount,
+        current.steps,
+        current.expectedCakes,
+        current.state,
+        -1,
+        action.partnerIndex,
+      );
     }
   }
 
-  return {
-    status: "no-route",
-    reason: "We couldn't find a route to that Pal with the Pals and sexes available in this world.",
-  };
+  return noRoute();
 }
 
-function createState(input: {
-  speciesId: PalId;
-  gender?: PalGender;
-  level?: number;
-  mask: number;
-  carriedPassiveIds: readonly PassiveId[];
-  maxUnknownExtraCount: number;
-  displayPassives: BuilderParentPassives;
-  sourceOwnedPalId: string;
-  steps: number;
-  expectedCakes: number;
-  required: readonly PassiveId[];
-}): State {
-  const {
-    speciesId,
-    gender,
-    level,
-    mask,
-    carriedPassiveIds,
-    maxUnknownExtraCount,
-    displayPassives,
-    sourceOwnedPalId,
-    steps,
-    expectedCakes,
-    required,
-  } = input;
-  const normalizedPassives = [...new Set(carriedPassiveIds)].sort();
-  const requiredSet = new Set(required);
-  const knownExtraCount = normalizedPassives.filter((id) => !requiredSet.has(id)).length;
-  const extraCount = knownExtraCount + maxUnknownExtraCount;
-  return {
-    key: `${speciesId}|${gender ?? "*"}|${mask}|${normalizedPassives.join(",")}|${maxUnknownExtraCount}`,
-    speciesId,
-    gender,
-    mask,
-    carriedPassiveIds: normalizedPassives,
-    maxUnknownExtraCount,
-    displayPassives,
-    level,
-    extraCount,
-    sourceOwnedPalId,
-    steps,
-    expectedCakes,
-  };
+function buildPartnerActions(
+  inventory: readonly EncodedOwnedPal[],
+  maskVariants: number,
+  acceptsAnyPassives: boolean,
+) {
+  return runtimePals.map((_, firstParentIndex): readonly PartnerAction[] => {
+    const bestPartnerByOutcome = new Map<number, number>();
+
+    for (let partnerIndex = 0; partnerIndex < inventory.length; partnerIndex += 1) {
+      const partner = inventory[partnerIndex];
+      if (partner.speciesIndex < 0) continue;
+      const childIndex = getRuntimeChildIndex(
+        firstParentIndex,
+        partner.speciesIndex,
+        partner.pal.gender,
+      );
+      if (childIndex < 0) continue;
+      const actionKey = childIndex * maskVariants + partner.requiredMask;
+      const existingIndex = bestPartnerByOutcome.get(actionKey);
+      if (
+        existingIndex !== undefined
+        && (acceptsAnyPassives || inventory[existingIndex].extraCount <= partner.extraCount)
+      ) continue;
+      bestPartnerByOutcome.set(actionKey, partnerIndex);
+    }
+
+    return [...bestPartnerByOutcome].map(([actionKey, partnerIndex]) => ({
+      childIndex: Math.floor(actionKey / maskVariants),
+      partnerIndex,
+    }));
+  });
 }
 
-function getPassiveCandidates(input: {
-  acceptsAnyPassives: boolean;
-  parentUnionSize: number;
-  desiredIds: readonly PassiveId[];
-  isFinalHatch: boolean;
-  allowedFinalExtras: number;
-}) {
-  if (input.acceptsAnyPassives) {
-    return [{
-      odds: estimatePassiveOdds(input.parentUnionSize, { kind: "any" }),
-      maxExtras: 0,
-      displayPassives: { kind: "any" } as const,
-    }];
+function findSpeciesThatCanReach(
+  actionsBySpecies: readonly (readonly PartnerAction[])[],
+  targetIndex: number,
+) {
+  const reverse: number[][] = Array.from({ length: runtimePals.length }, () => []);
+  for (let parentIndex = 0; parentIndex < actionsBySpecies.length; parentIndex += 1) {
+    for (const { childIndex } of actionsBySpecies[parentIndex]) {
+      reverse[childIndex].push(parentIndex);
+    }
   }
 
-  const availableExtraSlots = MAX_PASSIVES - input.desiredIds.length;
-  const maxExtras = input.isFinalHatch
-    ? Math.min(input.allowedFinalExtras, availableExtraSlots)
-    : availableExtraSlots;
-  const extraLimits = input.isFinalHatch
-    ? [maxExtras]
-    : Array.from({ length: maxExtras + 1 }, (_, index) => index);
-  const candidates: Array<{
-    odds: number;
-    maxExtras: number;
-    displayPassives: BuilderParentPassives;
-  }> = [];
-  let previousOdds = 0;
+  const reachable = new Uint8Array(runtimePals.length);
+  const queue = new Uint16Array(runtimePals.length);
+  let head = 0;
+  let tail = 0;
+  reachable[targetIndex] = 1;
+  queue[tail] = targetIndex;
+  tail += 1;
 
-  for (const acceptedExtras of extraLimits) {
-    const odds = estimatePassiveOdds(
-      input.parentUnionSize,
-      { kind: "specific", desiredCount: input.desiredIds.length, allowedExtras: acceptedExtras },
+  while (head < tail) {
+    const childIndex = queue[head];
+    head += 1;
+    for (const parentIndex of reverse[childIndex]) {
+      if (reachable[parentIndex]) continue;
+      reachable[parentIndex] = 1;
+      queue[tail] = parentIndex;
+      tail += 1;
+    }
+  }
+  return reachable;
+}
+
+function reconstruct(
+  targetState: number,
+  maskVariants: number,
+  inventory: readonly EncodedOwnedPal[],
+  required: readonly PassiveId[],
+  acceptsAnyPassives: boolean,
+  previousState: Int32Array,
+  firstInventoryParent: Int32Array,
+  inventoryPartner: Int32Array,
+  edgeOdds: Float64Array,
+) {
+  const steps: BuilderStep[] = [];
+  let state = targetState;
+
+  while (state >= 0) {
+    const predecessor = previousState[state];
+    if (predecessor === UNVISITED_STATE) break;
+    const partner = inventory[inventoryPartner[state]];
+    const resultState = decodeState(state, maskVariants);
+    const resultPassives = passivesForState(
+      resultState.mask,
+      resultState.maxUnknownExtraCount,
+      required,
+      acceptsAnyPassives,
     );
-    if (odds <= previousOdds) continue;
-    previousOdds = odds;
-    candidates.push({
+    const firstParent = predecessor === SEED_STATE
+      ? createInventoryParent(inventory[firstInventoryParent[state]].pal)
+      : createPlannedParent(
+          decodeState(predecessor, maskVariants),
+          oppositeGender(partner.pal.gender),
+          required,
+          acceptsAnyPassives,
+        );
+    const odds = edgeOdds[state];
+    steps.push({
+      firstParent,
+      secondParent: createInventoryParent(partner.pal),
+      result: runtimePals[resultState.speciesIndex].id,
+      resultPassives,
       odds,
-      maxExtras: acceptedExtras,
-      displayPassives: acceptedExtras === 0
-        ? { kind: "known", ids: input.desiredIds }
-        : { kind: "bounded", ids: input.desiredIds, maxExtras: acceptedExtras },
+      expectedCakes: 1 / odds,
     });
+    state = predecessor;
   }
 
-  return candidates;
+  return steps.reverse();
 }
 
-function compareState(first: State, second: State, objective: BuilderObjective) {
+function createPlannedParent(
+  state: { speciesIndex: number; mask: number; maxUnknownExtraCount: number },
+  gender: PalGender,
+  required: readonly PassiveId[],
+  acceptsAnyPassives: boolean,
+): BuilderParent {
+  return {
+    speciesId: runtimePals[state.speciesIndex].id,
+    origin: "planned",
+    level: 1,
+    gender,
+    passives: passivesForState(
+      state.mask,
+      state.maxUnknownExtraCount,
+      required,
+      acceptsAnyPassives,
+    ),
+  };
+}
+
+function createInventoryParent(pal: OwnedPal): BuilderParent {
+  return {
+    speciesId: pal.speciesId,
+    origin: "inventory",
+    level: pal.level,
+    gender: pal.gender,
+    passives: { kind: "known", ids: [...new Set(pal.passiveIds)] },
+  };
+}
+
+function passivesForState(
+  mask: number,
+  maxUnknownExtraCount: number,
+  required: readonly PassiveId[],
+  acceptsAnyPassives: boolean,
+): BuilderParentPassives {
+  if (acceptsAnyPassives) return { kind: "any" };
+  const ids = required.filter((_, index) => (mask & (1 << index)) !== 0);
+  return maxUnknownExtraCount === 0
+    ? { kind: "known", ids }
+    : { kind: "bounded", ids, maxExtras: maxUnknownExtraCount };
+}
+
+function compareLabels(
+  firstSteps: number,
+  firstExpectedCakes: number,
+  firstExtraCount: number,
+  secondSteps: number,
+  secondExpectedCakes: number,
+  secondExtraCount: number,
+  objective: BuilderObjective,
+) {
   if (objective === "cleanest") {
-    return first.expectedCakes - second.expectedCakes
-      || first.steps - second.steps
-      || first.extraCount - second.extraCount;
+    return firstExpectedCakes - secondExpectedCakes
+      || firstSteps - secondSteps
+      || firstExtraCount - secondExtraCount;
   }
   if (objective === "recommended") {
-    // One extra generation has meaningful setup/incubation cost, but can still
-    // win when it removes enough low-odds hatches. The score stays additive,
-    // so the priority search retains its optimality guarantee.
-    const firstScore = first.expectedCakes + first.steps * 8;
-    const secondScore = second.expectedCakes + second.steps * 8;
-    return firstScore - secondScore
-      || first.steps - second.steps
-      || first.expectedCakes - second.expectedCakes
-      || first.extraCount - second.extraCount;
+    return (firstExpectedCakes + firstSteps * 8) - (secondExpectedCakes + secondSteps * 8)
+      || firstSteps - secondSteps
+      || firstExpectedCakes - secondExpectedCakes
+      || firstExtraCount - secondExtraCount;
   }
-  return first.steps - second.steps
-    || first.expectedCakes - second.expectedCakes
-    || first.extraCount - second.extraCount;
+  return firstSteps - secondSteps
+    || firstExpectedCakes - secondExpectedCakes
+    || firstExtraCount - secondExtraCount;
 }
 
-function maskFor(ids: readonly PassiveId[], required: readonly PassiveId[]) {
-  return required.reduce((mask, id, index) => ids.includes(id) ? mask | (1 << index) : mask, 0);
+function getPassiveOdds(parentUnionSize: number, desiredCount: number, allowedExtras: number) {
+  if (parentUnionSize <= MAX_CACHED_PARENT_UNION) {
+    return passiveOdds[oddsOffset(parentUnionSize, desiredCount, allowedExtras)];
+  }
+  return estimatePassiveOdds(
+    parentUnionSize,
+    { kind: "specific", desiredCount, allowedExtras },
+  );
 }
 
-function passiveIdsFor(mask: number, required: readonly PassiveId[]) {
-  return required.filter((_, index) => (mask & (1 << index)) !== 0);
+function oddsOffset(parentUnionSize: number, desiredCount: number, allowedExtras: number) {
+  return ((parentUnionSize * ODDS_DIMENSION + desiredCount) * ODDS_DIMENSION) + allowedExtras;
+}
+
+function passiveUnionSize(first: readonly PassiveId[], second: readonly PassiveId[]) {
+  let size = first.length;
+  for (const id of second) {
+    if (!first.includes(id)) size += 1;
+  }
+  return size;
+}
+
+function countBits(value: number) {
+  let count = 0;
+  for (let remaining = value; remaining; remaining &= remaining - 1) count += 1;
+  return count;
+}
+
+function encodeState(
+  speciesIndex: number,
+  mask: number,
+  maxUnknownExtraCount: number,
+  maskVariants: number,
+) {
+  return ((speciesIndex * maskVariants + mask) * EXTRA_VARIANTS) + maxUnknownExtraCount;
+}
+
+function decodeState(state: number, maskVariants: number) {
+  const maxUnknownExtraCount = state % EXTRA_VARIANTS;
+  const withoutExtras = (state - maxUnknownExtraCount) / EXTRA_VARIANTS;
+  const mask = withoutExtras % maskVariants;
+  return {
+    speciesIndex: (withoutExtras - mask) / maskVariants,
+    mask,
+    maxUnknownExtraCount,
+  };
 }
 
 function oppositeGender(gender: PalGender): PalGender {
   return gender === "F" ? "M" : "F";
 }
 
-function createCurrentParent(state: State, gender: PalGender): BuilderParent {
-  const parent = {
-    speciesId: state.speciesId,
-    gender,
-    passives: state.displayPassives,
-  };
-  return state.steps === 0
-    ? { ...parent, origin: "inventory", level: state.level }
-    : { ...parent, origin: "planned", level: 1 };
-}
-
-function createInventoryParent(pal: OwnedPal, gender: PalGender): BuilderParent {
+function noRoute(): BuilderResult {
   return {
-    speciesId: pal.speciesId,
-    origin: "inventory",
-    level: pal.level,
-    gender,
-    passives: { kind: "known", ids: [...new Set(pal.passiveIds)] },
+    status: "no-route",
+    reason: "We couldn't find a route to that Pal with the Pals and sexes available in this world.",
   };
 }
 
-function reconstruct(targetKey: string, previous: ReadonlyMap<string, Previous>) {
-  const steps: BuilderStep[] = [];
-  let key = targetKey;
-  while (previous.has(key)) {
-    const edge = previous.get(key);
-    if (!edge) break;
-    steps.push(edge.step);
-    key = edge.key;
-  }
-  return steps.reverse();
-}
+class StatePriorityQueue {
+  private readonly states: number[] = [];
+  private readonly steps: number[] = [];
+  private readonly expectedCakes: number[] = [];
 
-class MinPriorityQueue<T> {
-  private readonly values: T[] = [];
-
-  constructor(private readonly compare: (first: T, second: T) => number) {}
+  constructor(private readonly objective: BuilderObjective) {}
 
   get size() {
-    return this.values.length;
+    return this.states.length;
   }
 
-  push(value: T) {
-    this.values.push(value);
-    let index = this.values.length - 1;
+  push(state: number, steps: number, expectedCakes: number) {
+    let index = this.states.length;
+    this.states.push(state);
+    this.steps.push(steps);
+    this.expectedCakes.push(expectedCakes);
+
     while (index > 0) {
       const parent = Math.floor((index - 1) / 2);
-      if (this.compare(this.values[parent], value) <= 0) break;
-      this.values[index] = this.values[parent];
+      if (this.compareAt(parent, state, steps, expectedCakes) <= 0) break;
+      this.states[index] = this.states[parent];
+      this.steps[index] = this.steps[parent];
+      this.expectedCakes[index] = this.expectedCakes[parent];
       index = parent;
     }
-    this.values[index] = value;
+    this.states[index] = state;
+    this.steps[index] = steps;
+    this.expectedCakes[index] = expectedCakes;
   }
 
-  pop(): T | undefined {
-    const first = this.values[0];
-    const tail = this.values.pop();
-    if (this.values.length && tail !== undefined) {
+  pop(): QueueEntry | undefined {
+    if (!this.states.length) return undefined;
+    const first = {
+      state: this.states[0],
+      steps: this.steps[0],
+      expectedCakes: this.expectedCakes[0],
+    };
+    const tailState = this.states.pop();
+    const tailSteps = this.steps.pop();
+    const tailExpectedCakes = this.expectedCakes.pop();
+
+    if (
+      this.states.length
+      && tailState !== undefined
+      && tailSteps !== undefined
+      && tailExpectedCakes !== undefined
+    ) {
       let index = 0;
       while (true) {
         const left = index * 2 + 1;
-        if (left >= this.values.length) break;
+        if (left >= this.states.length) break;
         const right = left + 1;
-        const child = right < this.values.length && this.compare(this.values[right], this.values[left]) < 0
+        const child = right < this.states.length && this.compareIndices(right, left) < 0
           ? right
           : left;
-        if (this.compare(tail, this.values[child]) <= 0) break;
-        this.values[index] = this.values[child];
+        if (this.compareValues(
+          tailState,
+          tailSteps,
+          tailExpectedCakes,
+          this.states[child],
+          this.steps[child],
+          this.expectedCakes[child],
+        ) <= 0) break;
+        this.states[index] = this.states[child];
+        this.steps[index] = this.steps[child];
+        this.expectedCakes[index] = this.expectedCakes[child];
         index = child;
       }
-      this.values[index] = tail;
+      this.states[index] = tailState;
+      this.steps[index] = tailSteps;
+      this.expectedCakes[index] = tailExpectedCakes;
     }
     return first;
+  }
+
+  private compareAt(index: number, state: number, steps: number, expectedCakes: number) {
+    return this.compareValues(
+      this.states[index],
+      this.steps[index],
+      this.expectedCakes[index],
+      state,
+      steps,
+      expectedCakes,
+    );
+  }
+
+  private compareIndices(first: number, second: number) {
+    return this.compareValues(
+      this.states[first],
+      this.steps[first],
+      this.expectedCakes[first],
+      this.states[second],
+      this.steps[second],
+      this.expectedCakes[second],
+    );
+  }
+
+  private compareValues(
+    firstState: number,
+    firstSteps: number,
+    firstExpectedCakes: number,
+    secondState: number,
+    secondSteps: number,
+    secondExpectedCakes: number,
+  ) {
+    return compareLabels(
+      firstSteps,
+      firstExpectedCakes,
+      firstState % EXTRA_VARIANTS,
+      secondSteps,
+      secondExpectedCakes,
+      secondState % EXTRA_VARIANTS,
+      this.objective,
+    );
   }
 }

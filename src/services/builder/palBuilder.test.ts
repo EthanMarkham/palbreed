@@ -70,6 +70,34 @@ describe("Pal Builder", () => {
     expect(result.status).toBe("no-route");
   });
 
+  it.each([
+    { firstGender: "F" as const, secondGender: "M" as const, targetId: "katress-ignis" },
+    { firstGender: "M" as const, secondGender: "F" as const, targetId: "wixen-noct" },
+  ])(
+    "preserves gender-specific children when building $targetId",
+    ({ firstGender, secondGender, targetId }) => {
+      const result = buildPal({
+        inventory: [
+          { ...inventory[0], id: "katress-1", speciesId: "katress", gender: firstGender },
+          { ...inventory[1], id: "wixen-1", speciesId: "wixen", gender: secondGender },
+        ],
+        targetId,
+        passiveGoal: { kind: "any" },
+        objective: "fewest",
+      });
+
+      expect(result.status).toBe("found");
+      if (result.status === "found") {
+        expect(result.steps).toHaveLength(1);
+        expect(result.steps[0]).toMatchObject({
+          firstParent: { speciesId: "katress", gender: firstGender },
+          secondParent: { speciesId: "wixen", gender: secondGender },
+          result: targetId,
+        });
+      }
+    },
+  );
+
   it("reports the acquisition gap before searching", () => {
     const result = buildPal({
       inventory,
