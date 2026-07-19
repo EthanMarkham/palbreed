@@ -8,19 +8,26 @@ from PIL import Image, ImageDraw, ImageFont
 
 PAPER = (244, 241, 231, 255)
 INK = (20, 32, 27, 255)
+TEAL = (35, 133, 109, 255)
+TEAL_DARK = (22, 103, 83, 255)
+LIME_STRONG = (197, 232, 112, 255)
 GRID = (235, 233, 223, 255)
 
 
 def extract_mark(source: Path) -> Image.Image:
-    image = Image.open(source).convert("RGB")
+    image = Image.open(source).convert("RGBA")
     pixels = image.load()
     width, height = image.size
+    has_transparency = image.getchannel("A").getextrema()[0] < 255
 
     rgba = Image.new("RGBA", image.size)
     output = rgba.load()
     for y in range(height):
         for x in range(width):
-            red, green, blue = pixels[x, y]
+            red, green, blue, alpha = pixels[x, y]
+            if has_transparency:
+                output[x, y] = (red, green, blue, alpha) if alpha > 8 else (0, 0, 0, 0)
+                continue
             luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
             # The source is a flat silhouette on a very light warm background.
             # A crisp mask avoids carrying a pale fringe into dark UI contexts;
@@ -41,6 +48,37 @@ def extract_mark(source: Path) -> Image.Image:
         min(height, bottom + padding),
     )
     return rgba.crop(crop_box)
+
+
+def mix_color(low: tuple[int, int, int, int], high: tuple[int, int, int, int], amount: float) -> tuple[int, int, int]:
+    amount = max(0.0, min(1.0, amount))
+    return tuple(round(start + (end - start) * amount) for start, end in zip(low[:3], high[:3]))
+
+
+def field_palette_mark(mark: Image.Image) -> Image.Image:
+    """Apply the original Palpath ink, teal, and lime palette without changing the mark."""
+    recolored = Image.new("RGBA", mark.size, (0, 0, 0, 0))
+    source = mark.load()
+    output = recolored.load()
+    width_scale = max(1, mark.width - 1)
+    height_scale = max(1, mark.height - 1)
+
+    for y in range(mark.height):
+        for x in range(mark.width):
+            _, _, _, alpha = source[x, y]
+            if alpha == 0:
+                continue
+
+            horizontal = x / width_scale
+            vertical = y / height_scale
+            is_signpost = horizontal >= 0.56 and vertical < 0.88
+            if is_signpost:
+                color = mix_color(TEAL, LIME_STRONG, (horizontal - 0.56) / 0.44)
+            else:
+                color = mix_color(INK, TEAL_DARK, min(1.0, horizontal / 0.62) * 0.42)
+            output[x, y] = (*color, alpha)
+
+    return recolored
 
 
 def contain(mark: Image.Image, size: tuple[int, int], padding: int = 0) -> Image.Image:
@@ -108,7 +146,7 @@ def social_card(mark: Image.Image) -> Image.Image:
     body_font = load_font(27)
     draw.text((540, 218), "PALPATH", fill=INK, font=title_font, spacing=2)
     draw.text((546, 326), "Inventory + breeding routes", fill=(47, 61, 53, 255), font=body_font)
-    draw.rounded_rectangle((546, 388, 760, 394), radius=3, fill=(35, 133, 109, 255))
+    draw.rounded_rectangle((546, 388, 760, 394), radius=3, fill=TEAL)
     return card.convert("RGB")
 
 
@@ -119,7 +157,7 @@ def main() -> None:
     args = parser.parse_args()
 
     args.output.mkdir(parents=True, exist_ok=True)
-    mark = extract_mark(args.source)
+    mark = field_palette_mark(extract_mark(args.source))
 
     master = contain(mark, (1024, 768), 24)
     master.save(args.output / "palpath-mark.png", optimize=True)

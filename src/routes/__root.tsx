@@ -12,7 +12,6 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   const brandMarkUrl = `${import.meta.env.BASE_URL}brand/palpath-mark-512.png`;
-  const darkBrandMarkUrl = `${import.meta.env.BASE_URL}brand/palpath-mark-dark-512.png`;
 
   return (
     <div className="site-frame">
@@ -22,7 +21,6 @@ function RootLayout() {
       <header className="site-header">
         <Link className="brand" to="/" aria-label="Palpath home">
           <picture className="brand-logo-frame" aria-hidden="true">
-            <source media="(prefers-color-scheme: dark)" srcSet={darkBrandMarkUrl} />
             <img className="brand-logo" src={brandMarkUrl} width="512" height="384" alt="" />
           </picture>
           <span className="brand-name">PALPATH</span>
