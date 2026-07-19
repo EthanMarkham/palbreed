@@ -1,17 +1,6 @@
-import { useMemo, useState, type Key } from "react";
-import {
-  Button,
-  ComboBox,
-  Group,
-  Input,
-  Label,
-  ListBox,
-  ListBoxItem,
-  Popover,
-  Tag,
-  TagGroup,
-  TagList,
-} from "react-aria-components";
+import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
+import TextField from "@mui/material/TextField";
+import { useMemo, useState } from "react";
 import { passiveRepository } from "../data/passiveRepository";
 import type { PassiveDefinition, PassiveId } from "../domain/passive";
 
@@ -46,6 +35,9 @@ const anyPassive: PassiveOption = {
   rank: 0,
   isAny: true,
 };
+const filterPassives = createFilterOptions<PassiveOption>({
+  stringify: (passive) => `${passive.name} ${passive.description} ${passive.id}`,
+});
 
 export default function PassiveSelector({
   label,
@@ -64,15 +56,7 @@ export default function PassiveSelector({
     () => allowAny ? [anyPassive, ...allPassives] : allPassives,
     [allowAny],
   );
-  const visibleOptions = useMemo(() => {
-    const tokens = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-    if (!tokens.length) return options;
-    return options.filter((passive) => {
-      const searchable = `${passive.name} ${passive.description} ${passive.id}`.toLocaleLowerCase();
-      return tokens.every((token) => searchable.includes(token));
-    });
-  }, [options, query]);
-  const selectedOptions = useMemo<readonly PassiveOption[]>(() => {
+  const selectedOptions = useMemo<PassiveOption[]>(() => {
     if (anySelected) return [anyPassive];
     return selected.flatMap((id) => {
       const passive = passiveRepository.get(id);
@@ -85,112 +69,97 @@ export default function PassiveSelector({
     else setLocalQuery(value);
   };
 
-  const clearLocalQuery = () => {
-    if (controlledQuery === undefined) setLocalQuery("");
-  };
-
-  const handleSelection = (key: Key | null) => {
-    if (typeof key !== "string") return;
-    if (key === ANY_PASSIVE_ID) {
-      clearLocalQuery();
-      onAnyChange?.(true);
-      return;
-    }
-    if (!passiveRepository.get(key) || selected.includes(key) || selected.length >= max) return;
-    clearLocalQuery();
-    onChange(anySelected ? [key] : [...selected, key]);
-  };
-
-  const removeSelections = (keys: Set<Key>) => {
-    if (keys.has(ANY_PASSIVE_ID)) {
-      onAnyChange?.(false);
-      return;
-    }
-    onChange(selected.filter((id) => !keys.has(id)));
-  };
-
-  const countLabel = anySelected ? "Any" : `${selected.length}/${max}`;
-
   return (
     <fieldset className="passive-selector">
-      <legend>{label} <span>{countLabel}</span></legend>
-
-      <TagGroup className="passive-tag-group" onRemove={removeSelections} aria-label={`Selected ${label.toLocaleLowerCase()}`}>
-        <TagList<PassiveOption>
-          className="passive-tags"
-          items={selectedOptions}
-          renderEmptyState={() => <span className="passive-empty">No passives selected</span>}
-        >
-          {(passive) => (
-            <Tag id={passive.id} textValue={passive.name} className={`passive-tag${passive.isAny ? " is-any" : ""}`}>
-              <span>{passive.name}</span>
-              <Button slot="remove" aria-label={`Remove ${passive.name}`}><CloseIcon /></Button>
-            </Tag>
-          )}
-        </TagList>
-      </TagGroup>
-
-      <ComboBox<PassiveOption>
-        className="passive-combobox"
-        items={visibleOptions}
-        selectedKey={null}
+      <legend>{label} <span>{anySelected ? "Any" : `${selected.length}/${max}`}</span></legend>
+      <Autocomplete<PassiveOption, true, false, false>
+        className="passive-autocomplete"
+        multiple
+        options={options}
+        value={selectedOptions}
         inputValue={query}
-        onInputChange={updateQuery}
-        onSelectionChange={handleSelection}
-        menuTrigger="focus"
-        allowsEmptyCollection
-      >
-        <Label className="sr-only">Add {label.toLocaleLowerCase()}</Label>
-        <Group className="passive-combobox-control">
-          <SearchIcon />
-          <Input placeholder="Type to search passives" autoComplete="off" />
-          <Button className="passive-combobox-toggle" aria-label="Show passive options"><ChevronIcon /></Button>
-        </Group>
-        <Popover className="passive-combobox-popover" placement="bottom start">
-          <ListBox<PassiveOption>
-            className="passive-combobox-options"
-            renderEmptyState={() => (
-              <div className="passive-no-results"><strong>No matching passives</strong><span>Try a name, effect, or identifier.</span></div>
-            )}
-          >
-            {(passive) => {
-              const isSelected = passive.isAny ? anySelected : selected.includes(passive.id);
-              const isAtLimit = !passive.isAny && !isSelected && !anySelected && selected.length >= max;
-              return (
-                <ListBoxItem
-                  id={passive.id}
-                  textValue={`${passive.name} ${passive.description}`}
-                  isDisabled={isSelected || isAtLimit}
-                  className={`passive-combobox-option${passive.isAny ? " is-any" : ""}`}
-                >
-                  <span className="passive-option-copy">
-                    <strong>{passive.name}</strong>
-                    <small>{passive.description}</small>
-                  </span>
-                  {passive.isAny ? <span className="passive-any-badge">Wildcard</span> : <em>{passive.rank > 0 ? `+${passive.rank}` : passive.rank}</em>}
-                  <span className={`passive-option-check${isSelected ? " is-visible" : ""}`} aria-hidden="true"><CheckIcon /></span>
-                </ListBoxItem>
-              );
+        onInputChange={(_, nextValue, reason) => {
+          if (reason === "input" || reason === "clear") updateQuery(nextValue);
+        }}
+        onChange={(_, nextOptions, reason, details) => {
+          const changedOption = details?.option;
+          if (reason === "selectOption" && changedOption?.isAny) {
+            onAnyChange?.(true);
+            return;
+          }
+          if (reason === "removeOption" && changedOption?.isAny) {
+            onAnyChange?.(false);
+            return;
+          }
+          const nextIds = nextOptions
+            .filter((passive) => !passive.isAny)
+            .map((passive) => passive.id)
+            .slice(0, max);
+          onChange(nextIds);
+        }}
+        getOptionLabel={(passive) => passive.name}
+        getOptionKey={(passive) => passive.id}
+        isOptionEqualToValue={(passive, selectedPassive) => passive.id === selectedPassive.id}
+        getOptionDisabled={(passive) => (
+          !passive.isAny
+          && !anySelected
+          && !selected.includes(passive.id)
+          && selected.length >= max
+        )}
+        filterOptions={filterPassives}
+        filterSelectedOptions
+        blurOnSelect
+        openOnFocus
+        autoHighlight
+        noOptionsText={(
+          <span className="autocomplete-empty">
+            <strong>No matching passives</strong>
+            <small>Try a name, effect, or identifier.</small>
+          </span>
+        )}
+        slotProps={{
+          popper: { className: "passive-autocomplete-popper" },
+          paper: { className: "autocomplete-paper" },
+          listbox: {
+            className: "passive-autocomplete-listbox",
+            "aria-label": `Add ${label.toLocaleLowerCase()}`,
+          },
+          chip: { className: anySelected ? "is-any" : undefined },
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            placeholder={selectedOptions.length ? "Search for another" : "Search by name or effect"}
+            slotProps={{
+              ...params.slotProps,
+              htmlInput: {
+                ...params.slotProps?.htmlInput,
+                "aria-label": `Add ${label.toLocaleLowerCase()}`,
+                autoComplete: "off",
+                enterKeyHint: "search",
+              },
             }}
-          </ListBox>
-        </Popover>
-      </ComboBox>
+          />
+        )}
+        renderOption={(props, passive) => {
+          const { key, ...optionProps } = props;
+          return (
+            <li
+              {...optionProps}
+              key={key}
+              className={`${optionProps.className ?? ""} passive-autocomplete-option${passive.isAny ? " is-any" : ""}`}
+            >
+              <span className="passive-autocomplete-copy">
+                <strong>{passive.name}</strong>
+                <small>{passive.description}</small>
+              </span>
+              {passive.isAny
+                ? <span className="passive-any-badge">Wildcard</span>
+                : <em>{passive.rank > 0 ? `+${passive.rank}` : passive.rank}</em>}
+            </li>
+          );
+        }}
+      />
     </fieldset>
   );
-}
-
-function SearchIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>;
-}
-
-function ChevronIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5" /></svg>;
-}
-
-function CloseIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8 8 8M16 8l-8 8" /></svg>;
-}
-
-function CheckIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 3.5 3.5L18 8" /></svg>;
 }

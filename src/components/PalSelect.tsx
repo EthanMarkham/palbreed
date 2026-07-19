@@ -1,17 +1,7 @@
-import { useState, type Key } from "react";
-import {
-  Button,
-  ComboBox,
-  Group,
-  Input,
-  Label,
-  ListBox,
-  ListBoxItem,
-  Popover,
-} from "react-aria-components";
+import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
+import TextField from "@mui/material/TextField";
 import { breedingRepository } from "../data/breedingRepository";
 import type { Pal, PalId } from "../domain/pal";
-import { filterPals, formatPalMeta, formatPalNumber } from "./palPickerUtils";
 
 type PalSelectProps = {
   label: string;
@@ -24,6 +14,14 @@ type PalSelectProps = {
 };
 
 const pals = breedingRepository.allPals();
+const filterPals = createFilterOptions<Pal>({
+  stringify: (pal) => [
+    pal.name,
+    pal.id,
+    String(pal.number),
+    String(pal.number).padStart(3, "0"),
+  ].join(" "),
+});
 
 export default function PalSelect({
   label,
@@ -31,92 +29,83 @@ export default function PalSelect({
   onChange,
   query,
 }: PalSelectProps) {
-  const selected = value ? breedingRepository.getPal(value) : undefined;
-  const [localInputValue, setLocalInputValue] = useState(selected?.name ?? "");
-  const inputValue = query ? query.value || selected?.name || "" : localInputValue;
-  const visiblePals = filterPals(pals, inputValue);
-
-  const updateInputValue = (nextValue: string) => {
-    if (query) query.onChange(nextValue);
-    else setLocalInputValue(nextValue);
-  };
-
-  const handleSelectionChange = (key: Key | null) => {
-    if (typeof key !== "string") {
-      if (!query) onChange(undefined);
-      return;
-    }
-    const nextPal = breedingRepository.getPal(key);
-    if (!query) setLocalInputValue(nextPal?.name ?? "");
-    onChange(key);
-  };
+  const selected = value ? breedingRepository.getPal(value) ?? null : null;
+  const inputValue = query?.value || selected?.name || "";
 
   return (
-    <ComboBox<Pal>
-      className="catalog-pal-select pal-select-field"
-      items={visiblePals}
-      selectedKey={value ?? null}
+    <Autocomplete<Pal, false, false, false>
+      className="pal-autocomplete pal-select-field"
+      options={pals}
+      value={selected}
       inputValue={inputValue}
-      onInputChange={updateInputValue}
-      onSelectionChange={handleSelectionChange}
-      menuTrigger="focus"
-      allowsEmptyCollection
-    >
-      <Label>{label}</Label>
-      <Group className="catalog-pal-select-control">
-        <span className="catalog-pal-select-media" aria-hidden="true">
-          {selected ? <img src={selected.image} alt="" /> : <SearchIcon />}
+      onChange={(_, pal) => onChange(pal?.id)}
+      onInputChange={(_, nextValue, reason) => {
+        if (reason === "input" || reason === "clear") query?.onChange(nextValue);
+      }}
+      getOptionLabel={(pal) => pal.name}
+      getOptionKey={(pal) => pal.id}
+      isOptionEqualToValue={(pal, selectedPal) => pal.id === selectedPal.id}
+      filterOptions={filterPals}
+      blurOnSelect
+      openOnFocus
+      autoHighlight
+      noOptionsText={(
+        <span className="autocomplete-empty">
+          <strong>No matching Pal</strong>
+          <small>Try a different name, variant, or Pal number.</small>
         </span>
-        <span className="catalog-pal-select-input">
-          <small>{selected ? formatPalNumber(selected.number) : "Search catalog"}</small>
-          <Input placeholder="Choose a Pal" autoComplete="off" />
-        </span>
-        <Button className="catalog-pal-select-toggle" aria-label="Show options">
-          <ChevronIcon />
-        </Button>
-      </Group>
-      <Popover className="catalog-pal-select-popover" placement="bottom start">
-        <ListBox<Pal>
-          className="catalog-pal-select-options"
-          renderEmptyState={() => (
-            <div className="catalog-pal-select-empty">
-              <strong>No matching Pal</strong>
-              <span>Try a different name, variant, or Pal number.</span>
-            </div>
-          )}
-        >
-          {(pal) => (
-            <ListBoxItem
-              id={pal.id}
-              textValue={pal.name}
-              aria-label={`${formatPalNumber(pal.number)} ${pal.name} ${formatPalMeta(pal.id)}`}
-              className="catalog-pal-select-option"
-            >
-              {({ isSelected }) => (
-                <>
-                  <span className="catalog-pal-option-media"><img src={pal.image} alt="" loading="lazy" /></span>
-                  <span className="catalog-pal-option-copy">
-                    <small>{formatPalNumber(pal.number)}</small>
-                    <strong>{pal.name}</strong>
-                    <span>{formatPalMeta(pal.id)}</span>
-                  </span>
-                  <span className={`catalog-pal-option-check${isSelected ? " is-visible" : ""}`} aria-hidden="true"><CheckIcon /></span>
-                </>
-              )}
-            </ListBoxItem>
-          )}
-        </ListBox>
-      </Popover>
-    </ComboBox>
+      )}
+      slotProps={{
+        popper: { className: "pal-autocomplete-popper" },
+        paper: { className: "autocomplete-paper" },
+        listbox: { className: "pal-autocomplete-listbox" },
+      }}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label={label}
+          placeholder="Search name or number"
+          helperText={selected
+            ? `${formatPalNumber(selected.number)} / ${formatPalMeta(selected.id)}`
+            : "Search the complete Pal catalog"}
+          slotProps={{
+            ...params.slotProps,
+            htmlInput: {
+              ...params.slotProps?.htmlInput,
+              autoComplete: "off",
+              enterKeyHint: "search",
+            },
+          }}
+        />
+      )}
+      renderOption={(props, pal, { selected: isSelected }) => {
+        const { key, ...optionProps } = props;
+        return (
+          <li {...optionProps} key={key} className={`${optionProps.className ?? ""} pal-autocomplete-option`}>
+            <span className="pal-autocomplete-media" aria-hidden="true">
+              <img src={pal.image} alt="" loading="lazy" />
+            </span>
+            <span className="pal-autocomplete-copy">
+              <small>{formatPalNumber(pal.number)}</small>
+              <strong>{pal.name}</strong>
+              <span>{formatPalMeta(pal.id)}</span>
+            </span>
+            <span className={`autocomplete-check${isSelected ? " is-visible" : ""}`} aria-hidden="true">
+              <CheckIcon />
+            </span>
+          </li>
+        );
+      }}
+    />
   );
 }
 
-function SearchIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>;
+function formatPalNumber(number: number) {
+  return `No. ${String(number).padStart(3, "0")}`;
 }
 
-function ChevronIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5" /></svg>;
+function formatPalMeta(palId: string) {
+  return palId.split("-").join(" / ").toLocaleUpperCase();
 }
 
 function CheckIcon() {

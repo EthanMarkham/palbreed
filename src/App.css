@@ -301,281 +301,6 @@
   cursor: not-allowed;
 }
 
-/* Shared catalog and inventory Pal selectors */
-.catalog-pal-select {
-  min-width: 0;
-  display: grid;
-  gap: 0.48rem;
-}
-
-.catalog-pal-select > .react-aria-Label {
-  color: var(--ink-soft);
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.075em;
-  text-transform: uppercase;
-}
-
-.catalog-pal-select-control {
-  min-width: 0;
-  min-height: 64px;
-  padding: 7px;
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: 16px;
-  background:
-    radial-gradient(circle at top right, rgba(216, 242, 154, 0.22), transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 242, 232, 0.92));
-  box-shadow: 0 10px 24px rgba(18, 25, 22, 0.055), inset 0 1px 0 rgba(255, 255, 255, 0.78);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
-}
-
-.catalog-pal-select-control:hover,
-.catalog-pal-select[data-open] .catalog-pal-select-control {
-  border-color: rgba(35, 133, 109, 0.3);
-}
-
-.catalog-pal-select-control:focus-within,
-.catalog-pal-select[data-open] .catalog-pal-select-control {
-  border-color: rgba(35, 133, 109, 0.46);
-  box-shadow: 0 0 0 4px rgba(35, 133, 109, 0.1), 0 14px 28px rgba(18, 25, 22, 0.08);
-  transform: translateY(-1px);
-}
-
-.catalog-pal-select-media {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(35, 133, 109, 0.1);
-  border-radius: 13px;
-  color: var(--teal-dark);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(226, 241, 235, 0.9));
-  box-shadow: 0 7px 16px rgba(18, 25, 22, 0.07);
-}
-
-.catalog-pal-select-media img {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-
-.catalog-pal-select-media svg,
-.catalog-pal-option-media svg {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.catalog-pal-select-input {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.catalog-pal-select-input small {
-  overflow: hidden;
-  color: var(--teal-dark);
-  font: 800 0.5rem/1 "Space Grotesk", sans-serif;
-  letter-spacing: 0.11em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.catalog-pal-select-input .react-aria-Input {
-  width: 100%;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  color: var(--ink);
-  background: transparent;
-  font: 700 0.78rem/1.3 "Space Grotesk", sans-serif;
-}
-
-.catalog-pal-select-input .react-aria-Input::placeholder {
-  color: var(--text-subtle);
-  font-weight: 650;
-}
-
-.catalog-pal-select-toggle {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(171, 201, 191, 0.18);
-  border-radius: 10px;
-  color: #dce9e3;
-  background: linear-gradient(180deg, #24372e, #15221c);
-  box-shadow: 0 8px 16px rgba(10, 17, 13, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  cursor: pointer;
-}
-
-.catalog-pal-select-toggle svg,
-.catalog-pal-option-check svg {
-  width: 16px;
-  height: 16px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.catalog-pal-select[data-open] .catalog-pal-select-toggle svg {
-  transform: rotate(180deg);
-}
-
-.catalog-pal-select-popover {
-  width: max(var(--trigger-width), 330px);
-  max-width: calc(100vw - 24px);
-  z-index: 70;
-  overflow: hidden;
-  border: 1px solid rgba(20, 32, 27, 0.12);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at top right, rgba(216, 242, 154, 0.2), transparent 30%),
-    linear-gradient(180deg, rgba(252, 250, 244, 0.99), rgba(244, 239, 228, 0.99));
-  box-shadow: 0 24px 54px rgba(12, 21, 17, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.76);
-  transform-origin: var(--trigger-anchor-point);
-}
-
-.catalog-pal-select-popover[data-entering] {
-  animation: picker-popover-in 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.catalog-pal-select-options {
-  max-height: min(420px, 52svh);
-  padding: 8px;
-  display: grid;
-  gap: 6px;
-  overflow-y: auto;
-  outline: 0;
-  scroll-padding: 8px;
-  scrollbar-color: rgba(35, 133, 109, 0.28) transparent;
-}
-
-.catalog-pal-select-option {
-  min-width: 0;
-  min-height: 66px;
-  padding: 8px;
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 26px;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid transparent;
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.54);
-  outline: 0;
-  cursor: pointer;
-  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
-}
-
-.catalog-pal-select-option[data-hovered],
-.catalog-pal-select-option[data-focused] {
-  border-color: rgba(35, 133, 109, 0.16);
-  background: rgba(226, 241, 235, 0.72);
-  box-shadow: 0 10px 20px rgba(18, 25, 22, 0.05);
-  transform: translateY(-1px);
-}
-
-.catalog-pal-select-option[data-focus-visible] {
-  box-shadow: 0 0 0 3px rgba(35, 133, 109, 0.14);
-}
-
-.catalog-pal-select-option[data-selected] {
-  border-color: rgba(138, 168, 67, 0.24);
-  background: linear-gradient(180deg, rgba(247, 250, 235, 0.96), rgba(226, 241, 235, 0.88));
-}
-
-.catalog-pal-option-media {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  color: var(--teal-dark);
-  background: rgba(255, 255, 255, 0.82);
-}
-
-.catalog-pal-option-media img {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-
-.catalog-pal-option-copy {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.catalog-pal-option-copy small {
-  color: var(--teal-dark);
-  font: 800 0.5rem/1 "Space Grotesk", sans-serif;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.catalog-pal-option-copy strong {
-  overflow: hidden;
-  color: var(--ink);
-  font: 700 0.74rem/1.15 "Space Grotesk", sans-serif;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.catalog-pal-option-copy > span {
-  overflow: hidden;
-  color: var(--text-muted);
-  font-size: 0.57rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.catalog-pal-option-check {
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: #173327;
-  background: var(--lime);
-  opacity: 0;
-  transform: scale(0.78);
-  transition: opacity 0.16s ease, transform 0.16s ease;
-}
-
-.catalog-pal-option-check.is-visible {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.catalog-pal-select-empty {
-  min-height: 110px;
-  display: grid;
-  place-content: center;
-  gap: 3px;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.catalog-pal-select-empty strong { color: var(--ink); font-size: 0.75rem; }
-.catalog-pal-select-empty span { font-size: 0.62rem; }
-
-@keyframes picker-popover-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
 .primary-button,
 .secondary-button {
   min-height: 44px;
@@ -972,7 +697,12 @@
   font-size: 1.2rem !important;
 }
 
-/* Searchable passive selection */
+@keyframes picker-popover-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* MUI-powered searchable pickers */
 .passive-selector {
   min-width: 0;
   margin: 18px 0;
@@ -990,215 +720,327 @@
   color: var(--text-subtle);
 }
 
-.passive-tags {
-  min-height: 38px;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  outline: 0;
+.pal-autocomplete,
+.passive-autocomplete {
+  min-width: 0;
+  font-family: "Inter", sans-serif;
 }
 
-.passive-tag {
-  padding: 0.38rem 0.42rem 0.38rem 0.58rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 1px solid rgba(35, 133, 109, 0.14);
-  border-radius: 999px;
+.pal-autocomplete {
+  margin-bottom: 6px;
+}
+
+.pal-autocomplete .MuiFormLabel-root,
+.passive-autocomplete .MuiFormLabel-root {
+  color: var(--ink-soft);
+  font: 800 0.66rem/1 "Inter", sans-serif;
+  letter-spacing: 0.075em;
+}
+
+.pal-autocomplete .MuiFormLabel-root.Mui-focused,
+.passive-autocomplete .MuiFormLabel-root.Mui-focused {
   color: var(--teal-dark);
-  background: var(--teal-soft);
-  font-size: 0.62rem;
-  font-weight: 800;
 }
 
-.passive-tag.is-any {
-  border-color: rgba(138, 168, 67, 0.24);
-  color: #536b1c;
-  background: rgba(216, 242, 154, 0.42);
+.pal-autocomplete .MuiOutlinedInput-root {
+  min-height: 64px;
+  padding: 8px 52px 8px 14px;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(216, 242, 154, 0.22), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 242, 232, 0.92));
+  box-shadow: 0 10px 24px rgba(18, 25, 22, 0.055), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
 }
 
-.passive-tag button {
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  color: currentColor;
-  background: transparent;
-  cursor: pointer;
+.pal-autocomplete .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.passive-autocomplete .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(35, 133, 109, 0.3);
 }
 
-.passive-tag button:hover,
-.passive-tag button[data-focus-visible] {
-  background: rgba(20, 32, 27, 0.09);
-  outline: 0;
+.pal-autocomplete .MuiOutlinedInput-root.Mui-focused,
+.passive-autocomplete .MuiOutlinedInput-root.Mui-focused {
+  box-shadow: 0 0 0 4px rgba(35, 133, 109, 0.1), 0 14px 28px rgba(18, 25, 22, 0.08);
+  transform: translateY(-1px);
 }
 
-.passive-tag button svg {
-  width: 13px;
-  height: 13px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-
-.passive-empty {
-  color: var(--text-subtle);
-  font-size: 0.68rem;
-}
-
-.passive-combobox {
-  min-width: 0;
-}
-
-.passive-combobox-control {
-  min-width: 0;
-  min-height: 48px;
-  padding: 0 6px 0 13px;
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) 34px;
-  align-items: center;
-  gap: 9px;
-  border: 1px solid var(--line-strong);
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.74);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.passive-combobox-control:focus-within,
-.passive-combobox[data-open] .passive-combobox-control {
+.pal-autocomplete .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.passive-autocomplete .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-width: 1px;
   border-color: rgba(35, 133, 109, 0.5);
-  box-shadow: 0 0 0 4px rgba(35, 133, 109, 0.1);
 }
 
-.passive-combobox-control > svg,
-.passive-combobox-toggle svg {
-  width: 17px;
-  height: 17px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.passive-combobox-control > svg {
-  color: var(--teal-dark);
-}
-
-.passive-combobox-control .react-aria-Input {
-  width: 100%;
+.pal-autocomplete .MuiAutocomplete-inputRoot .MuiAutocomplete-input {
   min-width: 0;
-  height: 46px;
-  padding: 0;
-  border: 0;
-  outline: 0;
+  padding: 11px 0 5px;
   color: var(--ink);
-  background: transparent;
-  font-size: 0.72rem;
-  font-weight: 650;
+  font: 700 0.78rem/1.3 "Space Grotesk", sans-serif;
 }
 
-.passive-combobox-control .react-aria-Input::placeholder {
+.pal-autocomplete .MuiAutocomplete-input::placeholder,
+.passive-autocomplete .MuiAutocomplete-input::placeholder {
   color: var(--text-subtle);
+  opacity: 1;
 }
 
-.passive-combobox-toggle {
+.pal-autocomplete .MuiFormHelperText-root {
+  min-height: 1em;
+  margin: 4px 1px 0;
+  overflow: hidden;
+  color: var(--teal-dark);
+  font: 800 0.5rem/1.2 "Space Grotesk", sans-serif;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pal-autocomplete .MuiAutocomplete-endAdornment,
+.passive-autocomplete .MuiAutocomplete-endAdornment {
+  right: 8px;
+}
+
+.pal-autocomplete .MuiAutocomplete-popupIndicator,
+.passive-autocomplete .MuiAutocomplete-popupIndicator {
   width: 34px;
   height: 34px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(171, 201, 191, 0.18);
-  border-radius: 9px;
   color: #dce9e3;
   background: linear-gradient(180deg, #24372e, #15221c);
-  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(10, 17, 13, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-.passive-combobox[data-open] .passive-combobox-toggle svg {
-  transform: rotate(180deg);
+.pal-autocomplete .MuiAutocomplete-popupIndicator:hover,
+.passive-autocomplete .MuiAutocomplete-popupIndicator:hover {
+  background: linear-gradient(180deg, #2e463a, #1b2b23);
 }
 
-.passive-combobox-popover {
-  width: max(var(--trigger-width), 360px);
-  max-width: calc(100vw - 24px);
+.pal-autocomplete .MuiAutocomplete-clearIndicator,
+.passive-autocomplete .MuiAutocomplete-clearIndicator {
+  color: var(--text-muted);
+}
+
+.pal-autocomplete-popper,
+.passive-autocomplete-popper {
   z-index: 70;
+}
+
+.autocomplete-paper.MuiAutocomplete-paper {
   overflow: hidden;
   border: 1px solid rgba(20, 32, 27, 0.12);
   border-radius: 16px;
+  color: var(--ink);
   background:
     radial-gradient(circle at top right, rgba(216, 242, 154, 0.2), transparent 30%),
-    linear-gradient(180deg, rgba(252, 250, 244, 0.99), rgba(244, 239, 228, 0.99));
-  box-shadow: 0 24px 54px rgba(12, 21, 17, 0.2);
-  transform-origin: var(--trigger-anchor-point);
+    linear-gradient(180deg, rgba(252, 250, 244, 0.995), rgba(244, 239, 228, 0.995));
+  box-shadow: 0 24px 54px rgba(12, 21, 17, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.76);
 }
 
-.passive-combobox-popover[data-entering] {
-  animation: picker-popover-in 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.passive-combobox-options {
-  max-height: min(390px, 52svh);
-  padding: 7px;
-  display: grid;
-  gap: 4px;
-  overflow-y: auto;
-  outline: 0;
+.pal-autocomplete-listbox.MuiAutocomplete-listbox,
+.passive-autocomplete-listbox.MuiAutocomplete-listbox {
+  max-height: min(420px, 52svh);
+  padding: 8px;
   scrollbar-color: rgba(35, 133, 109, 0.28) transparent;
 }
 
-.passive-combobox-option {
-  min-width: 0;
-  min-height: 58px;
-  padding: 0.58rem 0.65rem;
+.pal-autocomplete-listbox.MuiAutocomplete-listbox .pal-autocomplete-option {
+  min-height: 66px;
+  margin-bottom: 6px;
+  padding: 8px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 22px;
+  grid-template-columns: 48px minmax(0, 1fr) 26px;
   align-items: center;
-  gap: 0.65rem;
+  gap: 10px;
   border: 1px solid transparent;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.5);
-  outline: 0;
-  cursor: pointer;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.54);
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
 }
 
-.passive-combobox-option[data-hovered],
-.passive-combobox-option[data-focused] {
-  border-color: rgba(35, 133, 109, 0.15);
+.pal-autocomplete-listbox.MuiAutocomplete-listbox .pal-autocomplete-option:last-child,
+.passive-autocomplete-listbox.MuiAutocomplete-listbox .passive-autocomplete-option:last-child {
+  margin-bottom: 0;
+}
+
+.pal-autocomplete-listbox.MuiAutocomplete-listbox .pal-autocomplete-option.Mui-focused,
+.pal-autocomplete-listbox.MuiAutocomplete-listbox .pal-autocomplete-option:hover {
+  border-color: rgba(35, 133, 109, 0.16);
   background: rgba(226, 241, 235, 0.72);
+  box-shadow: 0 10px 20px rgba(18, 25, 22, 0.05);
+  transform: translateY(-1px);
 }
 
-.passive-combobox-option[data-focus-visible] {
-  box-shadow: 0 0 0 3px rgba(35, 133, 109, 0.13);
+.pal-autocomplete-listbox.MuiAutocomplete-listbox .pal-autocomplete-option[aria-selected="true"] {
+  border-color: rgba(138, 168, 67, 0.24);
+  background: linear-gradient(180deg, rgba(247, 250, 235, 0.96), rgba(226, 241, 235, 0.88));
 }
 
-.passive-combobox-option[data-disabled] {
-  opacity: 0.48;
-  cursor: default;
+.pal-autocomplete-media {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
 }
 
-.passive-combobox-option.is-any {
-  border-color: rgba(138, 168, 67, 0.12);
-  background: rgba(216, 242, 154, 0.18);
+.pal-autocomplete-media img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
-.passive-option-copy {
+.pal-autocomplete-copy {
   min-width: 0;
   display: grid;
   gap: 2px;
 }
 
-.passive-option-copy strong {
-  color: var(--ink);
-  font-size: 0.68rem;
+.pal-autocomplete-copy small {
+  color: var(--teal-dark);
+  font: 800 0.5rem/1 "Space Grotesk", sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.passive-option-copy small {
+.pal-autocomplete-copy strong,
+.pal-autocomplete-copy > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pal-autocomplete-copy strong {
+  color: var(--ink);
+  font: 700 0.74rem/1.15 "Space Grotesk", sans-serif;
+}
+
+.pal-autocomplete-copy > span {
+  color: var(--text-muted);
+  font-size: 0.57rem;
+}
+
+.autocomplete-check {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #173327;
+  background: var(--lime);
+  opacity: 0;
+  transform: scale(0.78);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.autocomplete-check.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.autocomplete-check svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.autocomplete-empty {
+  min-height: 104px;
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.autocomplete-empty strong {
+  color: var(--ink);
+  font: 700 0.75rem/1.2 "Space Grotesk", sans-serif;
+}
+
+.autocomplete-empty small {
+  font-size: 0.62rem;
+}
+
+.passive-autocomplete .MuiOutlinedInput-root {
+  min-height: 52px;
+  padding: 8px 86px 8px 10px;
+  align-items: center;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.passive-autocomplete .MuiAutocomplete-inputRoot .MuiAutocomplete-input {
+  min-width: 120px;
+  padding: 8px 4px 4px;
+  color: var(--ink);
+  font: 650 0.72rem/1.3 "Inter", sans-serif;
+}
+
+.passive-autocomplete .MuiChip-root {
+  height: 30px;
+  border: 1px solid rgba(35, 133, 109, 0.14);
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+  font: 800 0.62rem/1 "Inter", sans-serif;
+}
+
+.passive-autocomplete .MuiChip-root.is-any {
+  border-color: rgba(138, 168, 67, 0.24);
+  color: #536b1c;
+  background: rgba(216, 242, 154, 0.42);
+}
+
+.passive-autocomplete .MuiChip-deleteIcon {
+  color: currentColor;
+  opacity: 0.72;
+}
+
+.passive-autocomplete-listbox.MuiAutocomplete-listbox .passive-autocomplete-option {
+  min-height: 58px;
+  margin-bottom: 4px;
+  padding: 0.58rem 0.65rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.passive-autocomplete-listbox.MuiAutocomplete-listbox .passive-autocomplete-option.Mui-focused,
+.passive-autocomplete-listbox.MuiAutocomplete-listbox .passive-autocomplete-option:hover {
+  border-color: rgba(35, 133, 109, 0.15);
+  background: rgba(226, 241, 235, 0.72);
+}
+
+.passive-autocomplete-listbox.MuiAutocomplete-listbox .passive-autocomplete-option.Mui-disabled {
+  opacity: 0.48;
+}
+
+.passive-autocomplete-listbox.MuiAutocomplete-listbox .passive-autocomplete-option.is-any {
+  border-color: rgba(138, 168, 67, 0.12);
+  background: rgba(216, 242, 154, 0.18);
+}
+
+.passive-autocomplete-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.passive-autocomplete-copy strong {
+  color: var(--ink);
+  font: 700 0.68rem/1.2 "Inter", sans-serif;
+}
+
+.passive-autocomplete-copy small {
   overflow: hidden;
   color: var(--text-muted);
   font-size: 0.57rem;
@@ -1206,7 +1048,7 @@
   white-space: nowrap;
 }
 
-.passive-combobox-option em,
+.passive-autocomplete-option em,
 .passive-any-badge {
   color: var(--teal-dark);
   font: 800 0.56rem/1 "Space Grotesk", sans-serif;
@@ -1221,48 +1063,30 @@
   text-transform: uppercase;
 }
 
-.passive-option-check {
-  width: 20px;
-  height: 20px;
-  display: grid;
-  place-items: center;
-  border-radius: 7px;
-  color: var(--teal-dark);
-  background: rgba(35, 133, 109, 0.08);
-  opacity: 0;
-}
+@media (max-width: 620px) {
+  .pal-autocomplete .MuiOutlinedInput-root {
+    min-height: 58px;
+  }
 
-.passive-option-check.is-visible {
-  opacity: 1;
-}
+  .pal-autocomplete-listbox.MuiAutocomplete-listbox,
+  .passive-autocomplete-listbox.MuiAutocomplete-listbox {
+    max-height: min(330px, 42svh);
+  }
 
-.passive-option-check svg {
-  width: 13px;
-  height: 13px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
+  .pal-autocomplete-listbox.MuiAutocomplete-listbox .pal-autocomplete-option {
+    min-height: 62px;
+    grid-template-columns: 44px minmax(0, 1fr) 24px;
+  }
 
-.passive-no-results {
-  min-height: 112px;
-  display: grid;
-  place-content: center;
-  gap: 0.25rem;
-  padding: 1rem;
-  color: var(--text-muted);
-  text-align: center;
-}
+  .pal-autocomplete-media {
+    width: 44px;
+    height: 44px;
+  }
 
-.passive-no-results strong {
-  color: var(--ink);
-  font-size: 0.72rem;
-}
-
-.passive-no-results span {
-  font-size: 0.62rem;
+  .pal-autocomplete-media img {
+    width: 37px;
+    height: 37px;
+  }
 }
 
 /* Inventory browser and import */
@@ -2628,10 +2452,6 @@
   .path-labels span:last-child { grid-column: 1 / -1; }
   .copy-box { grid-template-columns: 1fr; padding: 0.55rem; }
   .copy-box button { width: 100%; }
-  .catalog-pal-select-popover,
-  .passive-combobox-popover { width: calc(100vw - 24px); }
-  .catalog-pal-select-media { width: 42px; height: 42px; }
-  .catalog-pal-select-media img { width: 35px; height: 35px; }
   .world-row { grid-template-columns: minmax(0, 1fr) auto; }
   .world-row .compact-button { grid-column: 1 / -1; }
   .builder-settings { grid-template-columns: 1fr; }
