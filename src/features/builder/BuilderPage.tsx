@@ -137,23 +137,29 @@ export default function BuilderPage({
           <div className="builder-settings">
             <label className="form-field">
               <span>Prioritize</span>
-              <select value={objective} onChange={(event) => onObjectiveChange(event.target.value as BuilderObjective)}>
-                <option value="recommended">Balanced route</option>
-                <option value="fewest">Fewer breedings</option>
-                <option value="cleanest">Better hatch odds</option>
-              </select>
+              <span className="select-control">
+                <select value={objective} onChange={(event) => onObjectiveChange(event.target.value as BuilderObjective)}>
+                  <option value="recommended">Balanced route</option>
+                  <option value="fewest">Fewer breedings</option>
+                  <option value="cleanest">Better hatch odds</option>
+                </select>
+                <SelectChevron />
+              </span>
             </label>
             <label className="form-field">
               <span>Other passives allowed</span>
-              <select
-                value={allowedExtras}
-                disabled={passiveGoal?.kind === "any"}
-                onChange={(event) => onExtrasChange(Number(event.target.value) as 0 | 1 | 2)}
-              >
-                <option value={0}>No others</option>
-                <option value={1}>Up to 1 other</option>
-                <option value={2}>Up to 2 others</option>
-              </select>
+              <span className="select-control">
+                <select
+                  value={allowedExtras}
+                  disabled={passiveGoal?.kind === "any"}
+                  onChange={(event) => onExtrasChange(Number(event.target.value) as 0 | 1 | 2)}
+                >
+                  <option value={0}>No others</option>
+                  <option value={1}>Up to 1 other</option>
+                  <option value={2}>Up to 2 others</option>
+                </select>
+                <SelectChevron />
+              </span>
             </label>
           </div>
           <button
@@ -297,4 +303,8 @@ function SparkIcon() {
 
 function StopIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5" /></svg>;
+}
+
+function SelectChevron() {
+  return <span className="select-indicator" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4" /></svg></span>;
 }
