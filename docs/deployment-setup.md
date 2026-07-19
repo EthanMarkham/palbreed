@@ -26,13 +26,28 @@ a `VITE_` variable; every `VITE_` value is public browser configuration.
    including invite query strings. Examples:
    `https://your-domain.example/account*` and
    `http://localhost:5173/account*`.
-3. Enable one OAuth provider. Discord is the default; Google and GitHub are also
-   supported through `VITE_SUPABASE_OAUTH_PROVIDER`.
+3. Enable email magic links for the initial launch. They are the default and
+   avoid a third-party OAuth dependency. Google, GitHub, and Discord can be
+   selected later through `VITE_SUPABASE_AUTH_METHOD`.
 4. In the selected provider's developer console, use Supabase's callback URL:
    `https://<project-ref>.supabase.co/auth/v1/callback`.
 5. Put the provider client ID and secret only in Supabase's provider settings.
 6. Leave anonymous sign-ins disabled. Leave email/password sign-in disabled
    until custom SMTP, recovery, and abuse controls are intentionally added.
+
+### Switch from email magic links to Google OAuth
+
+1. In Google Cloud Console, configure the OAuth consent screen and create a Web
+   application OAuth client.
+2. Add the production site origin and `http://localhost:5173` as authorized
+   JavaScript origins.
+3. Add `https://<project-ref>.supabase.co/auth/v1/callback` as the authorized
+   redirect URI. This is the Supabase callback, not the Vercel account URL.
+4. In Supabase Dashboard > Authentication > Sign In / Providers > Google, enable
+   Google and store the Google client ID and secret there. Never put the secret
+   in Vercel or a `VITE_` variable.
+5. Set `VITE_SUPABASE_AUTH_METHOD=google` in Vercel Production and Preview,
+   redeploy, then test sign-in and an invitation-return URL.
 
 ### 3. Configure deployment variables
 
@@ -41,7 +56,8 @@ Copy `.env.example` into the host's environment settings and set:
 - `VITE_SUPABASE_URL`: Project URL from Project Settings > API.
 - `VITE_SUPABASE_PUBLISHABLE_KEY`: the publishable key. A legacy anon key also
   works, but use the current publishable key for a new project.
-- `VITE_SUPABASE_OAUTH_PROVIDER`: `discord`, `google`, or `github`.
+- `VITE_SUPABASE_AUTH_METHOD`: `email` (the default; `google`, `discord`, and
+  `github` remain supported).
 - `VITE_LEGAL_CONTACT_EMAIL`: monitored privacy/deletion contact.
 - `VITE_SOURCE_URL`: HTTPS URL for the exact deployed corresponding-source
   release, including application source, WASM interface code, build scripts,

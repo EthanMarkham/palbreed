@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import StatusBanner from "../../components/StatusBanner";
+import { runtimeConfig } from "../../config/runtimeConfig";
 import type { WorkspaceRole } from "../../domain/account";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
@@ -17,9 +18,11 @@ export default function AccountPage({ inviteToken, onInviteAccepted }: AccountPa
   const account = useAccount();
   const inventory = useInventory();
   const [operation, setOperation] = useState<Operation>({ busy: false });
+  const [email, setEmail] = useState("");
   const acceptedToken = useRef<string>();
   const activeWorkspace = account.workspaces.find(({ id }) => id === account.activeWorkspaceId);
-  const provider = import.meta.env.VITE_SUPABASE_OAUTH_PROVIDER ?? "discord";
+  const signInMethod = runtimeConfig.supabase?.signInMethod ?? "email";
+  const usesEmail = signInMethod === "email";
 
   const run = async (task: () => Promise<unknown>, message?: string) => {
     setOperation({ busy: true });
@@ -79,13 +82,31 @@ export default function AccountPage({ inviteToken, onInviteAccepted }: AccountPa
             <p>Signing in syncs extracted world snapshots. Raw save files, parsing, and breeding calculations stay on your device.</p>
           </div>
           {inviteToken ? <p className="account-invite-note">Sign in to accept the workspace invitation.</p> : null}
+          {usesEmail ? (
+            <label className="account-email-field">
+              <span>Email address</span>
+              <input
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                disabled={operation.busy}
+              />
+            </label>
+          ) : null}
           <button
             className="primary-button"
             disabled={operation.busy}
-            onClick={() => void run(() => accountService.signIn())}
+            onClick={() => void run(
+              () => accountService.signIn(email),
+              usesEmail ? "Check your inbox for your secure sign-in link." : undefined,
+            )}
           >
-            Continue with {capitalize(provider)}
+            {usesEmail ? "Email me a sign-in link" : `Continue with ${capitalize(signInMethod)}`}
           </button>
+          {operation.message ? <StatusBanner kind="working" message={operation.message} /> : null}
           {operation.error ? <StatusBanner kind="error" message={operation.error} /> : null}
         </section>
       </AccountShell>

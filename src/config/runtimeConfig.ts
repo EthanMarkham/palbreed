@@ -1,4 +1,4 @@
-export type SupportedOAuthProvider = "discord" | "github" | "google";
+export type SupportedSignInMethod = "discord" | "email" | "github" | "google";
 
 export type RuntimeConfig = {
   legalContactEmail?: string;
@@ -6,7 +6,7 @@ export type RuntimeConfig = {
   supabase?: {
     url: string;
     publishableKey: string;
-    oauthProvider: SupportedOAuthProvider;
+    signInMethod: SupportedSignInMethod;
   };
   adsense?: {
     publisherId: string;
@@ -20,7 +20,7 @@ type Environment = Record<string, string | boolean | undefined>;
 
 const PUBLISHER_ID = /^ca-pub-\d{16}$/;
 const AD_SLOT_ID = /^\d{6,20}$/;
-const OAUTH_PROVIDERS = new Set<SupportedOAuthProvider>(["discord", "github", "google"]);
+const SIGN_IN_METHODS = new Set<SupportedSignInMethod>(["discord", "email", "github", "google"]);
 
 export function createRuntimeConfig(environment: Environment): RuntimeConfig {
   const errors: string[] = [];
@@ -34,7 +34,7 @@ export function createRuntimeConfig(environment: Environment): RuntimeConfig {
   }
   const supabaseUrl = readString(environment.VITE_SUPABASE_URL);
   const supabaseKey = readString(environment.VITE_SUPABASE_PUBLISHABLE_KEY);
-  const configuredProvider = readString(environment.VITE_SUPABASE_OAUTH_PROVIDER) || "discord";
+  const configuredSignInMethod = readString(environment.VITE_SUPABASE_AUTH_METHOD) || "email";
   let supabase: RuntimeConfig["supabase"];
 
   if (supabaseUrl || supabaseKey) {
@@ -42,13 +42,13 @@ export function createRuntimeConfig(environment: Environment): RuntimeConfig {
       errors.push("Supabase requires both VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.");
     } else if (!isHttpsUrl(supabaseUrl)) {
       errors.push("VITE_SUPABASE_URL must be a valid HTTPS URL.");
-    } else if (!OAUTH_PROVIDERS.has(configuredProvider as SupportedOAuthProvider)) {
-      errors.push("VITE_SUPABASE_OAUTH_PROVIDER must be discord, github, or google.");
+    } else if (!SIGN_IN_METHODS.has(configuredSignInMethod as SupportedSignInMethod)) {
+      errors.push("VITE_SUPABASE_AUTH_METHOD must be email, discord, github, or google.");
     } else {
       supabase = {
         url: supabaseUrl,
         publishableKey: supabaseKey,
-        oauthProvider: configuredProvider as SupportedOAuthProvider,
+        signInMethod: configuredSignInMethod as SupportedSignInMethod,
       };
     }
   }

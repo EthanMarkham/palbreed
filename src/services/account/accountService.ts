@@ -108,12 +108,25 @@ export class AccountService {
     );
   }
 
-  async signIn() {
+  async signIn(email?: string) {
     if (!this.client || !runtimeConfig.supabase) {
       throw new Error("Account sync is not configured for this deployment.");
     }
+    if (runtimeConfig.supabase.signInMethod === "email") {
+      const normalizedEmail = email?.trim();
+      if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        throw new Error("Enter a valid email address.");
+      }
+      const { error } = await this.client.auth.signInWithOtp({
+        email: normalizedEmail,
+        options: { emailRedirectTo: window.location.href },
+      });
+      if (error) throw new Error(`We couldn't send the sign-in link. ${error.message}`);
+      return;
+    }
+
     const { error } = await this.client.auth.signInWithOAuth({
-      provider: runtimeConfig.supabase.oauthProvider,
+      provider: runtimeConfig.supabase.signInMethod,
       options: { redirectTo: window.location.href },
     });
     if (error) throw new Error(`We couldn't start sign-in. ${error.message}`);

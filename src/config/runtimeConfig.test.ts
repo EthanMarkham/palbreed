@@ -14,12 +14,20 @@ describe("runtime configuration", () => {
     expect(createRuntimeConfig({
       VITE_SUPABASE_URL: "https://project.supabase.co",
       VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
-      VITE_SUPABASE_OAUTH_PROVIDER: "google",
+      VITE_SUPABASE_AUTH_METHOD: "google",
       VITE_LEGAL_CONTACT_EMAIL: "privacy@example.com",
     })).toMatchObject({
       errors: [],
-      supabase: { oauthProvider: "google" },
+      supabase: { signInMethod: "google" },
     });
+  });
+
+  it("uses email magic links when no sign-in method is specified", () => {
+    expect(createRuntimeConfig({
+      VITE_SUPABASE_URL: "https://project.supabase.co",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      VITE_LEGAL_CONTACT_EMAIL: "privacy@example.com",
+    }).supabase?.signInMethod).toBe("email");
   });
 
   it("does not partially enable Supabase or AdSense", () => {

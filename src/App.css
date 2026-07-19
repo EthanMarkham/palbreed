@@ -2644,6 +2644,35 @@
   justify-self: center;
 }
 
+.account-email-field {
+  width: min(100%, 360px);
+  justify-self: center;
+  display: grid;
+  gap: 6px;
+  color: var(--text-muted);
+  font: 700 0.58rem/1 "Space Grotesk", sans-serif;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.account-email-field input {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.8);
+  font: 600 0.82rem/1.2 "Space Grotesk", sans-serif;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.account-email-field input:focus-visible {
+  outline: 3px solid rgba(35, 133, 109, 0.22);
+  outline-offset: 2px;
+}
+
 .account-state-mark,
 .sync-state,
 .account-world-row > span,
