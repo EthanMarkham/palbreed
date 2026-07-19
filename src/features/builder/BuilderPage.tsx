@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useMemo } from "react";
 import PalSelect from "../../components/PalSelect";
 import PassiveSelector from "../../components/PassiveSelector";
@@ -19,7 +18,6 @@ import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
 import BuilderHistoryMenu from "./BuilderHistoryMenu";
 import BuilderParentPreview from "./BuilderParentPreview";
-import BuilderSolveAnimation from "./BuilderSolveAnimation";
 import type { BuilderHistoryEntry } from "./builderHistory";
 import {
   getBuilderExtras,
@@ -72,7 +70,6 @@ export default function BuilderPage({
   );
   const allowedExtras = getBuilderExtras(search);
   const objective = getBuilderObjective(search);
-  const reduceMotion = useReducedMotion();
   const solveInput = useMemo<BuilderInput | undefined>(() => {
     if (!search.run || !targetId || !passiveGoal || inventorySnapshot.status === "loading") return undefined;
     return {
@@ -93,6 +90,7 @@ export default function BuilderPage({
   const isSolving = solve.status === "solving";
   const result = solve.status === "complete" ? solve.result : undefined;
   const solveError = solve.status === "error" ? solve.message : undefined;
+  const displayedResult = result ?? (solve.status === "solving" ? solve.previousResult : undefined);
   const submitBuild = () => {
     if (!targetId || !passiveGoal || isSolving) return;
     if (search.run) solve.restart();
@@ -167,36 +165,26 @@ export default function BuilderPage({
             type={isSolving ? "button" : "submit"}
             disabled={inventorySnapshot.status === "loading" || !targetId || !passiveGoal}
             onClick={isSolving ? solve.cancel : undefined}
+            aria-label={isSolving ? "Finding a breeding route. Activate to cancel." : undefined}
+            title={isSolving ? "Cancel search" : undefined}
           >
-            {isSolving ? <StopIcon /> : <SparkIcon />}
-            {isSolving ? "Cancel search" : "Find a breeding route"}
+            {isSolving ? <span className="builder-busy-spinner" aria-hidden="true" /> : <SparkIcon />}
+            {isSolving ? "Finding route…" : "Find a breeding route"}
+            {isSolving ? <span className="sr-only" role="status">Finding a breeding route. Activate to cancel.</span> : null}
           </button>
           <p className="model-note">Each step pairs a Pal from the route with one from your selected world. Intermediate Pals may have extra passives when that lowers the average Cake cost. Estimates use regular Cake and don't include sex or lucky random matches.</p>
         </form>
 
         <div className="feature-card builder-result-card" aria-live="polite">
           <div className="card-heading"><span>Your route</span><small>{inventory.length} Pals in the selected world</small></div>
-          <AnimatePresence initial={false} mode="wait">
-            {isSolving ? (
-              <BuilderSolveAnimation key="solving" />
-            ) : (
-              <motion.div
-                key={search.run ? `result-${targetId ?? "unknown"}-${search.passives ?? "none"}` : "ready"}
-                className="builder-result-content"
-                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, filter: "blur(5px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -8, filter: "blur(4px)" }}
-                transition={{ duration: reduceMotion ? 0.01 : 0.34, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <BuilderResultView
-                  result={result}
-                  solveError={solveError}
-                  targetId={targetId}
-                  passiveGoal={passiveGoal}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="builder-result-content" aria-busy={isSolving}>
+            <BuilderResultView
+              result={displayedResult}
+              solveError={solveError}
+              targetId={targetId}
+              passiveGoal={passiveGoal}
+            />
+          </div>
         </div>
       </section>
     </main>
@@ -299,10 +287,6 @@ function getResultPassiveSummary(passives: BuilderParentPassives) {
 
 function SparkIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7z" /><path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z" /></svg>;
-}
-
-function StopIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5" /></svg>;
 }
 
 function SelectChevron() {

@@ -7,7 +7,7 @@ import type {
 
 export type BuilderSolveState =
   | { status: "idle" }
-  | { status: "solving" }
+  | { status: "solving"; previousResult?: BuilderResult }
   | { status: "complete"; result: BuilderResult }
   | { status: "error"; message: string };
 
@@ -89,7 +89,10 @@ export function usePalBuilder(input: BuilderInput | undefined): BuilderSolveStat
 
   if (!input || cancelledInput === input) return { status: "idle", cancel, restart };
   if (settled?.input !== input || settled.attempt !== attempt) {
-    return { status: "solving", cancel, restart };
+    const previousResult = settled?.input === input && settled.response.status === "complete"
+      ? settled.response.result
+      : undefined;
+    return { status: "solving", previousResult, cancel, restart };
   }
   if (settled.response.status === "error") {
     return { status: "error", message: settled.response.message, cancel, restart };

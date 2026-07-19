@@ -2262,8 +2262,17 @@
   stroke: none;
 }
 
-.builder-form-card[aria-busy="true"] .builder-run svg {
-  animation: builder-spark-breathe 1.2s ease-in-out infinite;
+.builder-busy-spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 2px solid rgba(255, 255, 255, 0.34);
+  border-right-color: currentColor;
+  border-radius: 999px;
+  opacity: 0;
+  animation:
+    builder-busy-spin 0.7s linear 0.18s infinite,
+    builder-busy-reveal 0.01s linear 0.18s forwards;
 }
 
 .builder-result-card {
@@ -2274,145 +2283,12 @@
   min-height: 410px;
 }
 
-.builder-solving {
-  min-height: 410px;
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  padding: 36px clamp(18px, 4vw, 34px) 24px;
-  display: grid;
-  align-content: center;
-  border: 1px solid rgba(35, 133, 109, 0.16);
-  border-radius: 16px;
-  color: var(--ink);
-  background:
-    radial-gradient(circle at 78% 22%, rgba(216, 242, 154, 0.3), transparent 32%),
-    radial-gradient(circle at 20% 76%, rgba(74, 164, 141, 0.1), transparent 36%),
-    linear-gradient(145deg, rgba(251, 249, 241, 0.98), rgba(235, 243, 235, 0.96));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 16px 38px rgba(16, 28, 22, 0.08);
+@keyframes builder-busy-spin {
+  to { transform: rotate(360deg); }
 }
 
-.builder-solving::before,
-.builder-solving::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  border-radius: 999px;
-  pointer-events: none;
-}
-
-.builder-solving::before {
-  width: 250px;
-  height: 250px;
-  top: -185px;
-  right: -42px;
-  border: 1px solid rgba(35, 133, 109, 0.08);
-  box-shadow: 0 0 0 36px rgba(35, 133, 109, 0.018), 0 0 0 72px rgba(35, 133, 109, 0.012);
-}
-
-.builder-solving::after {
-  width: 170px;
-  height: 170px;
-  left: -112px;
-  bottom: -108px;
-  border: 1px solid rgba(35, 133, 109, 0.08);
-  box-shadow: 0 0 0 30px rgba(93, 184, 160, 0.018);
-}
-
-.builder-solving-copy {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  justify-items: center;
-  text-align: center;
-}
-
-.builder-solving-copy > span {
-  color: var(--teal-dark);
-  font: 800 0.49rem/1 "Space Grotesk", sans-serif;
-  letter-spacing: 0.15em;
-}
-
-.builder-solving-copy h2 {
-  margin: 0.5rem 0 0;
-  color: var(--ink);
-  font: 700 clamp(1.12rem, 3vw, 1.48rem)/1.1 "Space Grotesk", sans-serif;
-  letter-spacing: -0.035em;
-}
-
-.builder-solving-copy p {
-  margin: 0.5rem 0 0;
-  color: var(--text-muted);
-  font-size: 0.62rem;
-}
-
-.builder-solve-map {
-  width: min(100%, 540px);
-  height: auto;
-  margin: -4px auto -8px;
-  overflow: visible;
-}
-
-.builder-solve-path-ghost,
-.builder-solve-path {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.builder-solve-path-ghost {
-  stroke: rgba(35, 133, 109, 0.14);
-  stroke-width: 2;
-  stroke-dasharray: 3 9;
-}
-
-.builder-solve-path {
-  stroke: url(#solve-path-gradient);
-  stroke-width: 2.4;
-  filter: drop-shadow(0 0 6px rgba(35, 133, 109, 0.18));
-}
-
-.builder-solve-node-ring {
-  fill: none;
-  stroke: rgba(35, 133, 109, 0.5);
-  stroke-width: 1.2;
-}
-
-.builder-solve-node {
-  fill: var(--paper-strong);
-  stroke: var(--teal);
-  stroke-width: 2.5;
-  filter: drop-shadow(0 2px 5px rgba(35, 133, 109, 0.2));
-}
-
-.builder-solve-tracer {
-  fill: var(--teal-dark);
-}
-
-.builder-solving-progress {
-  width: min(62%, 260px);
-  height: 2px;
-  margin: 0 auto;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(35, 133, 109, 0.1);
-}
-
-.builder-solving-progress span {
-  width: 100%;
-  height: 100%;
-  display: block;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--teal), var(--lime-strong) 72%, #db7a53);
-  box-shadow: 0 0 8px rgba(35, 133, 109, 0.14);
-  transform-origin: left;
-}
-
-@keyframes builder-spark-breathe {
-  0%, 100% { opacity: 0.58; transform: scale(0.9) rotate(-4deg); }
-  50% { opacity: 1; transform: scale(1.08) rotate(3deg); }
+@keyframes builder-busy-reveal {
+  to { opacity: 1; }
 }
 
 .builder-empty {
@@ -2741,10 +2617,7 @@
   .world-row { grid-template-columns: minmax(0, 1fr) auto; }
   .world-row .compact-button { grid-column: 1 / -1; }
   .builder-settings { grid-template-columns: 1fr; }
-  .builder-result-content,
-  .builder-solving { min-height: 360px; }
-  .builder-solving { padding-inline: 14px; }
-  .builder-solve-map { margin-block: 4px 0; }
+  .builder-result-content { min-height: 360px; }
   .build-summary { grid-template-columns: 60px minmax(0, 1fr); }
   .build-summary > img { width: 60px; height: 60px; }
   .build-metrics { grid-column: 1 / -1; }
