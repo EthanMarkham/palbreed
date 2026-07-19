@@ -730,15 +730,13 @@
   margin-bottom: 6px;
 }
 
-.pal-autocomplete .MuiFormLabel-root,
-.passive-autocomplete .MuiFormLabel-root {
+.pal-autocomplete .MuiFormLabel-root {
   color: var(--ink-soft);
   font: 800 0.66rem/1 "Inter", sans-serif;
   letter-spacing: 0.075em;
 }
 
-.pal-autocomplete .MuiFormLabel-root.Mui-focused,
-.passive-autocomplete .MuiFormLabel-root.Mui-focused {
+.pal-autocomplete .MuiFormLabel-root.Mui-focused {
   color: var(--teal-dark);
 }
 

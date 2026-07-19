@@ -1,6 +1,6 @@
 import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { passiveRepository } from "../data/passiveRepository";
 import type { PassiveDefinition, PassiveId } from "../domain/passive";
 
@@ -15,17 +15,15 @@ type PassiveSelectorBaseProps = {
   selected: readonly PassiveId[];
   onChange: (selected: readonly PassiveId[]) => void;
   max?: number;
+  query: string;
+  onQueryChange: (query: string) => void;
 };
-
-type PassiveSelectorQueryProps =
-  | { query: string; onQueryChange: (query: string) => void }
-  | { query?: never; onQueryChange?: never };
 
 type PassiveSelectorAnyProps =
   | { allowAny: true; anySelected: boolean; onAnyChange: (selected: boolean) => void }
   | { allowAny?: false; anySelected?: never; onAnyChange?: never };
 
-type PassiveSelectorProps = PassiveSelectorBaseProps & PassiveSelectorQueryProps & PassiveSelectorAnyProps;
+type PassiveSelectorProps = PassiveSelectorBaseProps & PassiveSelectorAnyProps;
 
 const allPassives = passiveRepository.all();
 const anyPassive: PassiveOption = {
@@ -44,14 +42,12 @@ export default function PassiveSelector({
   selected,
   onChange,
   max = 4,
-  query: controlledQuery,
+  query,
   onQueryChange,
   allowAny = false,
   anySelected = false,
   onAnyChange,
 }: PassiveSelectorProps) {
-  const [localQuery, setLocalQuery] = useState("");
-  const query = controlledQuery ?? localQuery;
   const options = useMemo<readonly PassiveOption[]>(
     () => allowAny ? [anyPassive, ...allPassives] : allPassives,
     [allowAny],
@@ -64,11 +60,6 @@ export default function PassiveSelector({
     });
   }, [anySelected, selected]);
 
-  const updateQuery = (value: string) => {
-    if (onQueryChange) onQueryChange(value);
-    else setLocalQuery(value);
-  };
-
   return (
     <fieldset className="passive-selector">
       <legend>{label} <span>{anySelected ? "Any" : `${selected.length}/${max}`}</span></legend>
@@ -79,7 +70,7 @@ export default function PassiveSelector({
         value={selectedOptions}
         inputValue={query}
         onInputChange={(_, nextValue, reason) => {
-          if (reason === "input" || reason === "clear") updateQuery(nextValue);
+          if (reason === "input" || reason === "clear") onQueryChange(nextValue);
         }}
         onChange={(_, nextOptions, reason, details) => {
           const changedOption = details?.option;

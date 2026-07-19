@@ -7,7 +7,7 @@ type PalSelectProps = {
   label: string;
   value?: PalId;
   onChange: (value: PalId | undefined) => void;
-  query?: {
+  query: {
     value: string;
     onChange: (value: string) => void;
   };
@@ -30,7 +30,7 @@ export default function PalSelect({
   query,
 }: PalSelectProps) {
   const selected = value ? breedingRepository.getPal(value) ?? null : null;
-  const inputValue = query?.value || selected?.name || "";
+  const inputValue = query.value || selected?.name || "";
 
   return (
     <Autocomplete<Pal, false, false, false>
@@ -40,7 +40,7 @@ export default function PalSelect({
       inputValue={inputValue}
       onChange={(_, pal) => onChange(pal?.id)}
       onInputChange={(_, nextValue, reason) => {
-        if (reason === "input" || reason === "clear") query?.onChange(nextValue);
+        if (reason === "input" || reason === "clear") query.onChange(nextValue);
       }}
       getOptionLabel={(pal) => pal.name}
       getOptionKey={(pal) => pal.id}
