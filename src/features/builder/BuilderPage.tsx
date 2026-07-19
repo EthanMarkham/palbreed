@@ -134,7 +134,7 @@ export default function BuilderPage({
           <button className="primary-button builder-run" type="button" disabled={inventorySnapshot.status === "loading" || !targetId || !passiveGoal} onClick={onRun}>
             <SparkIcon />Build the optimal route
           </button>
-          <p className="model-note">The species/passive search is exhaustive for a continuous carrier bred with imported partners. Any accepts every passive combination, including none. Final hatches use your extra-passive tolerance; intermediate carriers may accept up to one extra when that produces a better route. Hatch odds are estimates from reverse-engineered inheritance distributions and exclude gender selection and lucky random additions.</p>
+          <p className="model-note">The search is exhaustive for a continuous carrier bred with imported partners. Any accepts all passive outcomes. Intermediate hatches may include one unrequested passive when it improves the route. Odds exclude gender selection and lucky random additions.</p>
         </div>
 
         <div className="feature-card builder-result-card" aria-live="polite">
@@ -233,8 +233,9 @@ function getResultPassiveSummary(passives: BuilderParentPassives) {
   if (passives.kind === "any") return "Any passive outcome accepted";
   const required = passives.ids.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ");
   if (passives.kind === "bounded") {
-    const extras = `up to ${passives.maxExtras} extra passive${passives.maxExtras === 1 ? "" : "s"}`;
-    return required ? `${required} / ${extras}` : `${extras} accepted`;
+    return required
+      ? `${required} + 0–${passives.maxExtras} others`
+      : `0–${passives.maxExtras} passives accepted`;
   }
   return required || "No passives";
 }

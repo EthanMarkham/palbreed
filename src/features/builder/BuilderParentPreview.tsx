@@ -45,11 +45,11 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
               <>
                 <ul>{passiveNames.map((passive) => <li key={passive}>{passive}</li>)}</ul>
                 {parent.passives.kind === "bounded"
-                  ? <p>Up to {formatExtraCount(parent.passives.maxExtras)} also accepted</p>
+                  ? <p>May have 0–{parent.passives.maxExtras} other passives</p>
                   : null}
               </>
             ) : parent.passives.kind === "bounded" ? (
-              <p>Up to {formatExtraCount(parent.passives.maxExtras)} accepted</p>
+              <p>Any result with 0–{parent.passives.maxExtras} passives</p>
             ) : (
               <p>None</p>
             )}
@@ -72,15 +72,13 @@ function getPassiveSummary(parent: BuilderParent, passiveNames: readonly string[
       : passiveNames.length === 1
         ? `${passiveNames[0]} · `
         : `${passiveNames[0]} +${passiveNames.length - 1} · `;
-    return `${required}up to ${formatExtraCount(parent.passives.maxExtras)}`;
+    return required
+      ? `${required}0–${parent.passives.maxExtras} others`
+      : `0–${parent.passives.maxExtras} passives`;
   }
   if (passiveNames.length === 0) return "No passives";
   if (passiveNames.length === 1) return passiveNames[0];
   return `${passiveNames[0]} +${passiveNames.length - 1}`;
-}
-
-function formatExtraCount(count: number) {
-  return `${count} extra passive${count === 1 ? "" : "s"}`;
 }
 
 function InfoIcon() {
