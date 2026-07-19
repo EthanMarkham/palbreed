@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import InventoryPage from "../features/inventory/InventoryPage";
 import {
   parseInventorySearch,
-  setInventoryPlatform,
+  setInventoryQuery,
+  setInventoryWorld,
 } from "../features/inventory/inventorySearch";
 import { shouldReplaceSearch, type SearchUpdateMode } from "../routing/searchParams";
 
@@ -21,7 +22,8 @@ function InventoryRoute() {
   return (
     <InventoryPage
       search={search}
-      onPlatformChange={(value) => updateSearch(setInventoryPlatform(search, value), "push")}
+      onWorldChange={(value, mode = "push") => updateSearch(setInventoryWorld(search, value), mode)}
+      onQueryChange={(value) => updateSearch(setInventoryQuery(search, value))}
     />
   );
 }

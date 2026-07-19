@@ -1,33 +1,40 @@
 import { z } from "zod";
-import type { SavePlatform } from "../../domain/saveImport";
 import {
   compactSearch,
+  normalizeSearchQuery,
+  normalizeStringParam,
   optionalStringSearchParam,
 } from "../../routing/searchParams";
 
 const rawInventorySearchSchema = z.object({
-  platform: optionalStringSearchParam,
+  world: optionalStringSearchParam,
+  q: optionalStringSearchParam,
 });
 
 export type InventorySearchState = {
-  platform?: "steam";
+  world?: string;
+  q?: string;
 };
 
 export function parseInventorySearch(search: Record<string, unknown>): InventorySearchState {
   const raw = rawInventorySearchSchema.parse(search);
 
   return compactSearch({
-    platform: raw.platform === "steam" ? "steam" as const : undefined,
+    world: normalizeStringParam(raw.world),
+    q: normalizeSearchQuery(raw.q),
   });
 }
 
-export function getInventoryPlatform(search: InventorySearchState): SavePlatform {
-  return search.platform ?? "xbox";
+export function setInventoryWorld(
+  search: InventorySearchState,
+  world: string | undefined,
+): InventorySearchState {
+  return compactSearch({ ...search, world: normalizeStringParam(world) });
 }
 
-export function setInventoryPlatform(
+export function setInventoryQuery(
   search: InventorySearchState,
-  platform: SavePlatform,
+  query: string,
 ): InventorySearchState {
-  return compactSearch({ ...search, platform: platform === "steam" ? "steam" : undefined });
+  return compactSearch({ ...search, q: normalizeSearchQuery(query) });
 }

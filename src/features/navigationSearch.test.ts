@@ -9,7 +9,8 @@ import {
 import { getBuilderPassiveIds, parseBuilderSearch } from "./builder/builderSearch";
 import {
   parseInventorySearch,
-  setInventoryPlatform,
+  setInventoryQuery,
+  setInventoryWorld,
 } from "./inventory/inventorySearch";
 import {
   parseToolsSearch,
@@ -93,10 +94,18 @@ describe("route-backed search state", () => {
     });
   });
 
-  it("normalizes Inventory platform state for browser history", () => {
-    expect(parseInventorySearch({ platform: "steam", target: "missing" })).toEqual({ platform: "steam" });
-
-    expect(setInventoryPlatform({}, "steam")).toEqual({ platform: "steam" });
-    expect(setInventoryPlatform({ platform: "steam" }, "xbox")).toEqual({});
+  it("keeps Inventory world selection and filtering in browser history", () => {
+    expect(parseInventorySearch({ world: " world-1 ", q: "Lamball " })).toEqual({
+      world: "world-1",
+      q: "Lamball ",
+    });
+    expect(parseInventorySearch({ world: 12, q: "   " })).toEqual({});
+    expect(setInventoryWorld({ q: "swift" }, "world-2")).toEqual({
+      world: "world-2",
+      q: "swift",
+    });
+    expect(setInventoryQuery({ world: "world-2", q: "old" }, "")).toEqual({
+      world: "world-2",
+    });
   });
 });
