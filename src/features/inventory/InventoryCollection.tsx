@@ -40,16 +40,13 @@ export default function InventoryCollection({
         onRemove={onRemove}
       />
       {visiblePals.length ? (
-        <div className="inventory-collection" role="list" aria-label={`${profile.name} Pals`}>
-          <div className="inventory-list-labels" aria-hidden="true">
-            <span>Pal</span>
-            <span>Level</span>
-            <span>Sex</span>
-            <span>Location</span>
-            <span>Passives</span>
-          </div>
-          {visiblePals.map((pal) => <InventoryPalRow key={pal.id} pal={pal} />)}
-        </div>
+        <ul className="inventory-collection" aria-label={`${profile.name} Pals`}>
+          {visiblePals.map((pal) => (
+            <li key={pal.id}>
+              <InventoryPalCard pal={pal} />
+            </li>
+          ))}
+        </ul>
       ) : profile.pals.length ? (
         <div className="empty-state inventory-empty">
           <SearchIcon />
@@ -98,36 +95,46 @@ function CollectionHeader({
   );
 }
 
-function InventoryPalRow({ pal }: { pal: OwnedPal }) {
+function InventoryPalCard({ pal }: { pal: OwnedPal }) {
   const species = breedingRepository.getPal(pal.speciesId);
   const displayName = getInventoryPalName(pal);
   const speciesName = getInventoryPalSpeciesName(pal);
   const passives = passiveRepository.resolve(pal.passiveIds);
 
   return (
-    <article className="inventory-pal-row" role="listitem">
-      <div className="inventory-pal-identity">
+    <article className="inventory-pal-card">
+      <header className="inventory-pal-identity">
         <span className="inventory-pal-image">
           {species ? <img src={species.image} alt="" /> : null}
         </span>
-        <span>
+        <div>
           <strong>{displayName}</strong>
           <small>{displayName === speciesName ? `No. ${species?.number ?? "--"}` : speciesName}</small>
-        </span>
-      </div>
-      <div className="inventory-pal-cell" data-label="Level">
-        <strong>{pal.level ?? "--"}</strong>
-      </div>
-      <div className="inventory-pal-cell" data-label="Sex">
-        <GenderBadge gender={pal.gender} />
-      </div>
-      <div className="inventory-pal-cell inventory-location" data-label="Location">
-        {formatLocation(pal.location)}
-      </div>
-      <div className="inventory-pal-cell inventory-passives" data-label="Passives">
-        {passives.length ? passives.map((passive) => (
-          <span key={passive.id}>{passive.name}</span>
-        )) : <em>None recorded</em>}
+        </div>
+      </header>
+
+      <dl className="inventory-pal-facts">
+        <div>
+          <dt>Level</dt>
+          <dd><strong>{pal.level ?? "--"}</strong></dd>
+        </div>
+        <div>
+          <dt>Sex</dt>
+          <dd><GenderBadge gender={pal.gender} /></dd>
+        </div>
+        <div>
+          <dt>Location</dt>
+          <dd>{formatLocation(pal.location)}</dd>
+        </div>
+      </dl>
+
+      <div className="inventory-passives">
+        <span className="inventory-card-label">Passives</span>
+        {passives.length ? (
+          <ul aria-label="Passive skills">
+            {passives.map((passive) => <li key={passive.id}>{passive.name}</li>)}
+          </ul>
+        ) : <span className="inventory-passives-empty">None recorded</span>}
       </div>
     </article>
   );

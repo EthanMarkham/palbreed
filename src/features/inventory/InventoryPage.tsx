@@ -60,7 +60,7 @@ export default function InventoryPage({
 
   if (snapshot.status === "loading") {
     return (
-      <main className="workspace feature-workspace" aria-busy="true">
+      <main className="workspace feature-workspace inventory-workspace" aria-busy="true">
         <InventoryHero />
         <section className="feature-card loading-card">
           <StatusBanner kind="working" message="Opening your saved inventories..." />
@@ -70,7 +70,7 @@ export default function InventoryPage({
   }
 
   return (
-    <main className="workspace feature-workspace">
+    <main className="workspace feature-workspace inventory-workspace">
       <InventoryHero />
 
       {snapshot.status === "error" ? (
@@ -112,21 +112,23 @@ export default function InventoryPage({
           />
         </div>
 
-        {profile ? (
-          <InventoryCollection
-            profile={profile}
-            visiblePals={visiblePals}
-            query={search.q}
-            onQueryClear={() => onQueryChange("")}
-            onRemove={() => removeWorld(profile)}
-          />
-        ) : (
-          <div className="empty-state inventory-empty inventory-no-world">
-            <WorldOutlineIcon />
-            <strong>Your Pal collection starts with a world</strong>
-            <span>Import a Palworld 1.0 save to browse every Pal and power Builder routes.</span>
-          </div>
-        )}
+        <div className="inventory-browser-content">
+          {profile ? (
+            <InventoryCollection
+              profile={profile}
+              visiblePals={visiblePals}
+              query={search.q}
+              onQueryClear={() => onQueryChange("")}
+              onRemove={() => removeWorld(profile)}
+            />
+          ) : (
+            <div className="empty-state inventory-empty inventory-no-world">
+              <WorldOutlineIcon />
+              <strong>Your Pal collection starts with a world</strong>
+              <span>Import a Palworld 1.0 save to browse every Pal and power Builder routes.</span>
+            </div>
+          )}
+        </div>
       </section>
     </main>
   );
