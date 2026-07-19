@@ -3,6 +3,7 @@ import TextField from "@mui/material/TextField";
 import { useId } from "react";
 import { breedingRepository } from "../data/breedingRepository";
 import type { Pal, PalId } from "../domain/pal";
+import PalAvatar from "./PalAvatar";
 
 type PalSelectProps = {
   label: string;
@@ -91,7 +92,7 @@ export default function PalSelect({
           return (
             <li {...optionProps} key={key} className={`${optionProps.className ?? ""} pal-autocomplete-option`}>
               <span className="pal-autocomplete-media" aria-hidden="true">
-                <img src={pal.image} alt="" loading="lazy" />
+                <PalAvatar pal={pal} />
               </span>
               <span className="pal-autocomplete-copy">
                 <small>{formatPalNumber(pal.number)}</small>

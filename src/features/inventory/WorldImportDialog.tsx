@@ -14,6 +14,7 @@ import {
   type SavePlatform,
 } from "../../domain/saveImport";
 import StatusBanner from "../../components/StatusBanner";
+import { useAccount } from "../../services/account/useAccount";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { extractPalsFromSlot } from "../../services/saveImport/palSaveParser";
 import { scanSaveSelection } from "../../services/saveImport/saveScanner";
@@ -34,6 +35,9 @@ type WorldImportDialogProps = {
 };
 
 export default function WorldImportDialog({ onImported }: WorldImportDialogProps) {
+  const account = useAccount();
+  const activeWorkspace = account.workspaces.find(({ id }) => id === account.activeWorkspaceId);
+  const syncsImport = account.status === "ready" && activeWorkspace?.role !== "viewer";
   const [isOpen, setIsOpen] = useState(false);
   const [platform, setPlatform] = useState<SavePlatform>("xbox");
   const [manifest, setManifest] = useState<SaveManifest>();
@@ -179,7 +183,9 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
               </FileTrigger>
               <p className="privacy-note">
                 <LockIcon />
-                Your save stays on this device. Palpath reads it without changing any files.
+                {syncsImport
+                  ? "Your raw save stays on this device. The extracted world snapshot syncs to your active workspace."
+                  : "Your save stays on this device. Palpath reads it without changing any files."}
               </p>
 
               {status.kind !== "idle" && status.message ? (

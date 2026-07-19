@@ -10,36 +10,39 @@ imports IndexedDB directly.
 This is intentional preparation for accounts. Replacing the gateway with a
 Supabase adapter must not change Parent Finder, Pal Builder, or the save parser.
 
-## Suggested Supabase model
+## Planned Supabase model
 
 | Table | Important columns |
 | --- | --- |
-| `inventory_profiles` | `id`, `owner_id`, `name`, `game_version`, `platform`, `account_id`, `world_id`, `slot_id`, player identity/level, `revision`, timestamps |
-| `pal_instances` | `id`, `profile_id`, `source_instance_id`, `species_id`, `gender`, `passive_ids`, `location`, nickname/level |
-| `import_runs` | `id`, `profile_id`, `slot_id`, parser version, counts, warnings, timestamp |
-| `builder_sessions` | `id`, `profile_id`, target, required passives, objective, current plan, timestamp |
+| `user_profiles` | `user_id`, display name/avatar, timestamps |
+| `workspaces` | `id`, personal/team kind, name, creator, timestamps |
+| `workspace_members` | `workspace_id`, `user_id`, owner/editor/viewer role, timestamps |
+| `world_snapshots` | `id`, `workspace_id`, stable identity key, world/player metadata, schema/game version, `revision`, JSONB payload, audit timestamps |
 
-Use client-generated UUIDs already present in the local records. Match imported
-profiles by platform plus stable world identity, then replace their Pals by
-`source_instance_id`. This makes re-importing a world idempotent and removes
-stale save-derived instances without accumulating duplicate world profiles.
-Use the profile `revision` for optimistic concurrency and return a
-conflict rather than silently overwriting a newer device.
+The current product replaces an imported world as one snapshot and does not
+independently edit Pals. Store the validated world payload as one JSONB value
+until individual Pal edits, cross-world SQL search, or incremental Pal sync is
+an actual product requirement. Use a stable world identity to make re-import
+idempotent. Use `revision` for optimistic concurrency and return a conflict
+rather than silently overwriting a newer device.
 
-RLS should require `owner_id = auth.uid()` through the profile relationship for
-every read/write. The browser must use only the public anon key; service-role
-credentials never belong in this app.
+RLS should require authenticated workspace membership for every read/write and
+enforce owner/editor/viewer permissions. The browser must use only the public
+publishable key; service-role credentials never belong in this app.
 
 ## Anonymous-to-account claim
 
 1. Keep the device owner ID and local profile IDs after sign-in.
-2. In one server transaction, insert or merge profiles for `auth.uid()`.
-3. Upsert save-derived instances by `source_instance_id` within each world.
-4. Return the authoritative document and revision.
-5. Replace the local cache only after the transaction succeeds.
+2. Create the account's personal workspace.
+3. Upload each imported world independently and idempotently by stable identity.
+4. Return the authoritative snapshot and revision.
+5. Replace the local cache only after that world's upload succeeds.
 
 The `schemaVersion` on the document is independent from the Palworld game
 version and enables deterministic local migrations before sync.
+
+See `scale-accounts-ads-plan.md` for implementation phases, cost controls,
+licensing gates, and the ad-supported launch checklist.
 
 ## Save parser contract
 

@@ -8,6 +8,7 @@ import {
 import StatusBanner from "../../components/StatusBanner";
 import type { InventoryProfile } from "../../domain/inventory";
 import type { SearchUpdateMode } from "../../routing/searchParams";
+import { accountService } from "../../services/account/accountService";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
 import InventoryCollection from "./InventoryCollection";
@@ -28,7 +29,7 @@ export default function InventoryPage({
   onQueryChange,
 }: InventoryPageProps) {
   const snapshot = useInventory();
-  const [notice, setNotice] = useState<string>();
+  const [notice, setNotice] = useState<{ message: string; kind: "success" | "error" }>();
   const profiles = snapshot.document.profiles;
   const profile = profiles.find(({ id }) => id === search.world)
     ?? inventoryService.getActiveProfile();
@@ -52,11 +53,18 @@ export default function InventoryPage({
     onWorldChange(profileId);
   };
 
-  const removeWorld = (removed: InventoryProfile) => {
-    inventoryService.removeProfile(removed.id);
-    const nextProfile = inventoryService.getActiveProfile();
-    setNotice(`Removed ${removed.name} from Palpath.`);
-    onWorldChange(nextProfile?.id);
+  const removeWorld = async (removed: InventoryProfile) => {
+    try {
+      await accountService.removeInventoryProfile(removed);
+      const nextProfile = inventoryService.getActiveProfile();
+      setNotice({ message: `Removed ${removed.name} from Palpath.`, kind: "success" });
+      onWorldChange(nextProfile?.id);
+    } catch (error) {
+      setNotice({
+        message: error instanceof Error ? error.message : "We couldn't remove that world.",
+        kind: "error",
+      });
+    }
   };
 
   if (snapshot.status === "loading") {
@@ -77,7 +85,7 @@ export default function InventoryPage({
       {snapshot.status === "error" ? (
         <StatusBanner kind="error" message={snapshot.error ?? "We couldn't open your saved worlds."} />
       ) : null}
-      {notice ? <InventoryNotice message={notice} onDismiss={() => setNotice(undefined)} /> : null}
+      {notice ? <InventoryNotice {...notice} onDismiss={() => setNotice(undefined)} /> : null}
 
       <section className="feature-card inventory-browser">
         <div className="inventory-browser-toolbar">
@@ -107,7 +115,7 @@ export default function InventoryPage({
 
           <WorldImportDialog
             onImported={(profileId, message) => {
-              setNotice(message);
+              setNotice({ message, kind: "success" });
               onWorldChange(profileId);
             }}
           />
@@ -120,7 +128,7 @@ export default function InventoryPage({
               visiblePals={visiblePals}
               query={search.q}
               onQueryClear={() => onQueryChange("")}
-              onRemove={() => removeWorld(profile)}
+              onRemove={() => void removeWorld(profile)}
             />
           ) : (
             <div className="empty-state inventory-empty inventory-no-world">
@@ -163,10 +171,18 @@ function EmptyWorldControl() {
   );
 }
 
-function InventoryNotice({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+function InventoryNotice({
+  message,
+  kind,
+  onDismiss,
+}: {
+  message: string;
+  kind: "success" | "error";
+  onDismiss: () => void;
+}) {
   return (
-    <div className="inventory-notice" role="status">
-      <span>OK</span>
+    <div className={`inventory-notice is-${kind}`} role={kind === "error" ? "alert" : "status"}>
+      <span>{kind === "error" ? "!" : "OK"}</span>
       <p>{message}</p>
       <AriaButton aria-label="Dismiss message" onPress={onDismiss}><CloseIcon /></AriaButton>
     </div>

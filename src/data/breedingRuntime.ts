@@ -15,7 +15,6 @@ export const runtimeMetadata = runtimeData.metadata;
 export const runtimePals: readonly Pal[] = runtimeData.pals.map((pal, index) => ({
   ...pal,
   number: index + 1,
-  image: `${runtimeMetadata.imageBaseUrl}${pal.id}.webp`,
 }));
 const runtimePalIndexById = new Map(runtimePals.map((pal, index) => [pal.id, index]));
 

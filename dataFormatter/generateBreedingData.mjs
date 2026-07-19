@@ -3,7 +3,6 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const DEFAULT_SOURCE_PAGE = "https://palbreeder.com/";
-const ICON_BASE_URL = new URL("/pal-icons/", DEFAULT_SOURCE_PAGE).href;
 const OUTPUT_PATH = new URL("../src/data/breeding-1.0.json", import.meta.url);
 const RUNTIME_OUTPUT_PATH = new URL("../src/data/breeding-runtime-1.0.json", import.meta.url);
 const BASE36 = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -120,7 +119,6 @@ function buildArtifact(raw, sourceUrl, sourceText) {
         rarity: pal.r,
         breedingPower: pal.pw,
         sortOrder: pal.pr,
-        image: `${ICON_BASE_URL}${pal.s}.webp`,
         elements: [],
         breedable: true,
       },
@@ -195,7 +193,6 @@ function buildArtifact(raw, sourceUrl, sourceText) {
       gameVersion: raw.version,
       sourceUrl,
       sourceAttribution: raw.source,
-      imageBaseUrl: ICON_BASE_URL,
       sourceUpdatedAt: raw.updated,
       retrievedAt: new Date().toISOString().slice(0, 10),
       license: "palcalc db v26 (MIT); Palworld data belongs to Pocketpair",
@@ -219,7 +216,6 @@ function buildRuntimeArtifact(raw, artifact) {
   return {
     metadata: {
       gameVersion: artifact.metadata.gameVersion,
-      imageBaseUrl: artifact.metadata.imageBaseUrl,
       palCount: artifact.metadata.palCount,
       parentPairCount: artifact.metadata.parentPairCount,
     },

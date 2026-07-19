@@ -24,3 +24,12 @@ tools/save-parser/target
 *.njsproj
 *.sln
 *.sw?
+
+.env
+
+.vercel
+.env*
+
+# Local Codex setup artifacts.
+.agents/
+skills-lock.json

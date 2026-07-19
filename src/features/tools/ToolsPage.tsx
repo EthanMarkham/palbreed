@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import AdSlot from "../ads/AdSlot";
+import PalAvatar from "../../components/PalAvatar";
 import PalSelect from "../../components/PalSelect";
 import { breedingRepository } from "../../data/breedingRepository";
 import type { LineageResult, PalGender, PalId } from "../../domain/pal";
@@ -89,6 +91,7 @@ export default function ToolsPage({
           <ParentResult first={search.first} second={search.second} outcomes={outcomes} />
         </div>
       </section>
+      <AdSlot placement="tools" />
     </main>
   );
 }
@@ -131,7 +134,7 @@ function FinderPal({ palId, gender, featured = false }: { palId: PalId; gender?:
   if (!pal) return null;
   return (
     <span className={`finder-pal${featured ? " is-featured" : ""}`}>
-      <img src={pal.image} alt="" />
+      <PalAvatar pal={pal} className="finder-pal-avatar" />
       <span><strong>{pal.name}</strong>{gender ? <small>{gender === "F" ? "Female" : "Male"}</small> : null}</span>
     </span>
   );
@@ -157,7 +160,7 @@ function ParentResult({ first, second, outcomes }: {
         const genders = breedingRepository.getGenderRequirement(first, second, outcome.childId);
         return (
           <article className="parent-result" key={`${outcome.childId}-${genders?.firstGender ?? "any"}-${genders?.secondGender ?? "any"}`}>
-            <span className="parent-result-media"><img src={child.image} alt="" /></span>
+            <span className="parent-result-media"><PalAvatar pal={child} /></span>
             <span>
               <small>OFFSPRING</small>
               <strong>{child.name}</strong>

@@ -24,7 +24,7 @@ Run `npm run data:generate` to refresh the versioned breeding artifacts from the
 
 The browser imports only `src/data/breeding-runtime-1.0.json`. The larger `breeding-1.0.json` is retained as the auditable release artifact, including source attribution, checksums, and reverse indexes used to validate a generated release.
 
-See `docs/architecture.md`, `docs/data-contract.md`, and `docs/inventory-architecture.md` for the runtime, account/Supabase migration seam, save-parser boundary, solver guarantees, and release constraints.
+See `docs/architecture.md`, `docs/data-contract.md`, `docs/inventory-architecture.md`, `docs/scale-accounts-ads-plan.md`, and `docs/deployment-setup.md` for the runtime, account/Supabase implementation, save-parser boundary, solver guarantees, cost controls, licensing gates, and exact production setup.
 
 ## Save-decoder licensing
 

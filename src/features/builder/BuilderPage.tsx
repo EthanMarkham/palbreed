@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
+import AdSlot from "../ads/AdSlot";
+import PalAvatar from "../../components/PalAvatar";
 import PalSelect from "../../components/PalSelect";
 import PassiveSelector from "../../components/PassiveSelector";
 import { breedingRepository } from "../../data/breedingRepository";
@@ -187,6 +189,7 @@ export default function BuilderPage({
           </div>
         </div>
       </section>
+      <AdSlot placement="builder" />
     </main>
   );
 }
@@ -235,7 +238,7 @@ function BuilderResultView({
   return (
     <div className="build-result">
       <div className="build-summary">
-        {target ? <img src={target.image} alt="" /> : null}
+        {target ? <PalAvatar pal={target} className="build-summary-avatar" /> : null}
         <div><span className="result-eyebrow">BREEDING ROUTE</span><h2>{target?.name}</h2><p>{passiveSummary}</p></div>
         <div className="build-metrics"><span><strong>{result.steps.length}</strong>breedings</span><span><strong>{formatCakes(result.expectedCakes)}</strong>eggs on average</span></div>
       </div>
@@ -280,7 +283,11 @@ function getResultPassiveSummary(passives: BuilderParentPassives) {
   const required = passives.ids.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ");
   if (passives.kind === "bounded") {
     const others = `up to ${passives.maxExtras} other passive${passives.maxExtras === 1 ? "" : "s"}`;
-    return required ? `${required} + ${others}` : `Up to ${passives.maxExtras} passives`;
+    return required
+      ? `${required} + ${others}`
+      : passives.maxExtras === 1
+        ? "Any single passive"
+        : `Any combination of up to ${passives.maxExtras} passives`;
   }
   return required || "No passives";
 }

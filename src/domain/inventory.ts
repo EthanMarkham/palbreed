@@ -8,6 +8,14 @@ export type InventoryOwner =
   | { kind: "anonymous"; id: string }
   | { kind: "account"; id: string };
 
+export type InventoryCloudBinding = {
+  workspaceId: string;
+  snapshotId: string;
+  remoteRevision: number;
+  localRevisionAtSync: number;
+  syncedAt: string;
+};
+
 export type OwnedPal = {
   id: string;
   sourceInstanceId: string;
@@ -37,6 +45,7 @@ export type InventoryProfile = {
   createdAt: string;
   updatedAt: string;
   revision: number;
+  cloudBindings?: readonly InventoryCloudBinding[];
   pals: readonly OwnedPal[];
 };
 

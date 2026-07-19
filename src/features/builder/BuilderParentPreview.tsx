@@ -49,7 +49,7 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
                   : null}
               </>
             ) : parent.passives.kind === "bounded" ? (
-              <p>Up to {parent.passives.maxExtras} passives are fine</p>
+              <p>{formatAnyBoundedPassives(parent.passives.maxExtras)} {parent.passives.maxExtras === 1 ? "is" : "are"} fine</p>
             ) : (
               <p>None</p>
             )}
@@ -74,7 +74,7 @@ function getPassiveSummary(parent: BuilderParent, passiveNames: readonly string[
         : `${passiveNames[0]} +${passiveNames.length - 1} · `;
     return required
       ? `${required}up to ${formatOtherPassives(parent.passives.maxExtras)}`
-      : `Up to ${parent.passives.maxExtras} passives`;
+      : formatAnyBoundedPassives(parent.passives.maxExtras);
   }
   if (passiveNames.length === 0) return "No passives";
   if (passiveNames.length === 1) return passiveNames[0];
@@ -83,6 +83,10 @@ function getPassiveSummary(parent: BuilderParent, passiveNames: readonly string[
 
 function formatOtherPassives(count: number) {
   return `${count} other passive${count === 1 ? "" : "s"}`;
+}
+
+function formatAnyBoundedPassives(count: number) {
+  return count === 1 ? "Any single passive" : `Any combination of up to ${count} passives`;
 }
 
 function InfoIcon() {

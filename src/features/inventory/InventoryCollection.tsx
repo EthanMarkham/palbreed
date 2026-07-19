@@ -6,6 +6,7 @@ import {
   Popover,
 } from "react-aria-components";
 import GenderBadge from "../../components/GenderBadge";
+import PalAvatar from "../../components/PalAvatar";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { InventoryProfile, OwnedPal } from "../../domain/inventory";
@@ -105,7 +106,7 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
     <article className="inventory-pal-card">
       <header className="inventory-pal-identity">
         <span className="inventory-pal-image">
-          {species ? <img src={species.image} alt="" /> : null}
+          {species ? <PalAvatar pal={species} /> : null}
         </span>
         <div>
           <strong>{displayName}</strong>

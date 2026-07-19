@@ -5,6 +5,7 @@ import {
   Heading,
   Popover,
 } from "react-aria-components";
+import PalAvatar from "../../components/PalAvatar";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import {
@@ -95,7 +96,7 @@ function HistoryRow({
   return (
     <li>
       <Button slot="close" className="builder-history-entry" onPress={() => onSelect(entry)}>
-        <span className="builder-history-pal">{target ? <img src={target.image} alt="" /> : null}</span>
+        <span className="builder-history-pal">{target ? <PalAvatar pal={target} /> : null}</span>
         <span className="builder-history-copy">
           <strong>{target?.name ?? entry.targetId}</strong>
           <span>{passiveSummary}</span>

@@ -29,11 +29,18 @@ function RootLayout() {
           <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "is-active" }}>Inventory</Link>
           <Link to="/builder" activeProps={{ className: "is-active" }}>Builder</Link>
           <Link to="/tools" activeProps={{ className: "is-active" }}>Tools</Link>
+          <Link to="/account" activeProps={{ className: "is-active" }}>Account</Link>
         </nav>
         <span className="version-label">v{metadata.gameVersion}</span>
       </header>
 
       <Outlet />
+
+      <footer className="site-footer">
+        <span>Unofficial Palworld utility</span>
+        <Link to="/privacy">Privacy</Link>
+        <Link to="/legal">Legal</Link>
+      </footer>
 
       {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}
     </div>
