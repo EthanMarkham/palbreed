@@ -7,7 +7,9 @@ export type PassiveOutcomeRequirement =
   | { kind: "specific"; desiredCount: number; allowedExtras: number };
 
 /**
- * Estimated chance that an offspring satisfies a passive requirement.
+ * Estimated chance that an offspring made with regular Cake satisfies a
+ * passive requirement. Cake effects that override passive inheritance are not
+ * included in this model.
  *
  * Parent passives are deduplicated before this function is called. Randomly
  * added passives are conservatively treated as extras; the estimate does not

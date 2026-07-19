@@ -17,7 +17,7 @@ function RootLayout() {
       <div className="ambient ambient-two" aria-hidden="true" />
 
       <header className="site-header">
-        <Link className="brand" to="/" aria-label="Palpath inventory">
+        <Link className="brand" to="/" aria-label="Palpath home">
           <span className="brand-mark">PP</span>
           <span className="brand-name">PALPATH</span>
         </Link>
@@ -40,8 +40,8 @@ function NotFoundPage() {
   return (
     <main className="workspace feature-workspace">
       <section className="feature-card empty-state">
-        <strong>Page not found</strong>
-        <span>The route you requested does not exist.</span>
+        <strong>We couldn't find that page</strong>
+        <span>Use the navigation above to head back to Palpath.</span>
       </section>
     </main>
   );

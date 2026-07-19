@@ -33,8 +33,8 @@ export default function BuilderHistoryMenu({ onSelect }: BuilderHistoryMenuProps
       <Button
         className="builder-history-trigger"
         aria-label={entries.length
-          ? `Open search history, ${entries.length} saved`
-          : "Open search history"}
+          ? `Open recent builds, ${entries.length} saved`
+          : "Open recent builds"}
       >
         <HistoryIcon />
         {entries.length ? <span aria-hidden="true">{entries.length}</span> : null}
@@ -43,7 +43,7 @@ export default function BuilderHistoryMenu({ onSelect }: BuilderHistoryMenuProps
         <Dialog className="builder-history-dialog">
           <header className="builder-history-header">
             <div>
-              <span>LOCAL TO THIS BROWSER</span>
+              <span>SAVED ON THIS DEVICE</span>
               <Heading slot="title">Recent builds</Heading>
             </div>
             {entries.length ? (
@@ -67,12 +67,12 @@ export default function BuilderHistoryMenu({ onSelect }: BuilderHistoryMenuProps
             <div className="builder-history-empty">
               <HistoryIcon />
               <strong>No recent builds</strong>
-              <span>Completed searches will appear here for quick reuse.</span>
+              <span>Routes you find will appear here.</span>
             </div>
           )}
 
           <p className="builder-history-note">
-            Saved on this device only. The eight most recent unique builds are kept.
+            Up to eight recent builds are saved on this device.
           </p>
         </Dialog>
       </Popover>
@@ -89,7 +89,7 @@ function HistoryRow({
 }) {
   const target = breedingRepository.getPal(entry.targetId);
   const passiveSummary = entry.passives === "any"
-    ? "Any passives, including none"
+    ? "Passives don't matter"
     : entry.passives.map((id) => passiveRepository.get(id)?.name ?? id).join(" · ");
 
   return (
@@ -116,12 +116,12 @@ function HistoryRow({
 
 function formatSettings(entry: BuilderHistoryEntry) {
   const objective = entry.objective === "fewest"
-    ? "Fewest breedings"
+    ? "Fewer breedings"
     : entry.objective === "cleanest"
-      ? "Best hatch odds"
-      : "Recommended";
+      ? "Better hatch odds"
+      : "Balanced route";
   if (entry.passives === "any" || entry.allowedExtras === 0) return objective;
-  const extras = entry.allowedExtras === 1 ? "+1 extra allowed" : "+2 extras allowed";
+  const extras = entry.allowedExtras === 1 ? "1 other passive allowed" : "2 other passives allowed";
   return `${objective} · ${extras}`;
 }
 

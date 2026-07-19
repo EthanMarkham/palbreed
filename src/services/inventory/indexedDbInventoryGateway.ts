@@ -40,21 +40,21 @@ function openDatabase(): Promise<IDBDatabase> {
       }
     };
     opening.onsuccess = () => resolve(opening.result);
-    opening.onerror = () => reject(opening.error ?? new Error("Could not open inventory storage."));
+    opening.onerror = () => reject(opening.error ?? new Error("We couldn't open your saved worlds."));
   });
 }
 
 function request<T>(value: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     value.onsuccess = () => resolve(value.result);
-    value.onerror = () => reject(value.error ?? new Error("Inventory storage request failed."));
+    value.onerror = () => reject(value.error ?? new Error("We couldn't read your saved worlds."));
   });
 }
 
 function transactionDone(transaction: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
     transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("Inventory storage failed."));
-    transaction.onabort = () => reject(transaction.error ?? new Error("Inventory storage was cancelled."));
+    transaction.onerror = () => reject(transaction.error ?? new Error("We couldn't save your latest changes."));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Saving was cancelled."));
   });
 }

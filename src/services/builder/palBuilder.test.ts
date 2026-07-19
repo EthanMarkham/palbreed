@@ -200,4 +200,59 @@ describe("Pal Builder", () => {
       expect(result.steps[0].expectedCakes).toBeCloseTo(6.25);
     }
   });
+
+  it.each([
+    { allowedFinalExtras: 0 as const, expectedBridgeExtras: 1, expectedBridgeOdds: 0.16, expectedCakes: 18.75 },
+    { allowedFinalExtras: 1 as const, expectedBridgeExtras: 2, expectedBridgeOdds: 0.4, expectedCakes: 8.269230769 },
+  ])(
+    "chooses the globally cheaper bridge when the final build allows $allowedFinalExtras extras",
+    ({ allowedFinalExtras, expectedBridgeExtras, expectedBridgeOdds, expectedCakes }) => {
+      const result = buildPal({
+        inventory: [
+          {
+            id: "relaxaurus-lux-1",
+            sourceInstanceId: "relaxaurus-lux-1",
+            speciesId: "relaxaurus-lux",
+            gender: "F",
+            passiveIds: ["unwanted-a", "unwanted-b"],
+            location: "palbox",
+          },
+          {
+            id: "blazamut-1",
+            sourceInstanceId: "blazamut-1",
+            speciesId: "blazamut",
+            gender: "M",
+            passiveIds: ["unwanted-c", "unwanted-d"],
+            location: "palbox",
+          },
+          {
+            id: "selyne-1",
+            sourceInstanceId: "selyne-1",
+            speciesId: "selyne",
+            gender: "F",
+            passiveIds: ["desired-passive"],
+            location: "palbox",
+          },
+        ],
+        targetId: "anubis",
+        passiveGoal: {
+          kind: "specific",
+          requiredIds: ["desired-passive"],
+          allowedExtras: allowedFinalExtras,
+        },
+        objective: "cleanest",
+      });
+
+      expect(result.status).toBe("found");
+      if (result.status === "found") {
+        expect(result.steps).toHaveLength(2);
+        expect(result.steps[0]).toMatchObject({
+          result: "jormuntide",
+          resultPassives: { kind: "bounded", ids: [], maxExtras: expectedBridgeExtras },
+        });
+        expect(result.steps[0].odds).toBeCloseTo(expectedBridgeOdds);
+        expect(result.expectedCakes).toBeCloseTo(expectedCakes);
+      }
+    },
+  );
 });

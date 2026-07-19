@@ -35,17 +35,17 @@ export default function ToolsPage({
     <main className="workspace feature-workspace tools-workspace">
       <section className="feature-hero">
         <div>
-          <span className="section-kicker">BREEDING TOOLS</span>
-          <h1>Trace a path. Check a pairing.</h1>
-          <p>Use the complete Palworld 1.0 breeding table for quick species-only lookups. Inventory-aware planning stays in the Builder.</p>
+          <span className="section-kicker">TOOLS</span>
+          <h1>Check a breeding path or pairing</h1>
+          <p>These tools use Palworld 1.0 breeding data. They don't use the Pals in your imported world.</p>
         </div>
         <span className="hero-index">03</span>
       </section>
 
       <section className="feature-card finder-card path-finder-card" aria-labelledby="path-finder-title">
         <div className="card-heading">
-          <span id="path-finder-title">Path Finder</span>
-          <small>Shortest species path</small>
+          <span id="path-finder-title">Breeding path</span>
+          <small>Find the shortest route between two Pals</small>
         </div>
         <div className="finder-controls">
           <PalSelect
@@ -56,7 +56,7 @@ export default function ToolsPage({
           />
           <SwapButton label="Swap starting and target Pals" onClick={onSwapPath} disabled={!search.from && !search.to} />
           <PalSelect
-            label="Target Pal"
+            label="Pal you want"
             value={search.to}
             onChange={(value) => onSelectionChange("to", value)}
             query={{ value: search.toQuery ?? "", onChange: (value) => onInputChange("to", value) }}
@@ -67,20 +67,20 @@ export default function ToolsPage({
 
       <section className="feature-card finder-card" aria-labelledby="parent-finder-title">
         <div className="card-heading">
-          <span id="parent-finder-title">Parent Finder</span>
-          <small>Parent pair → Offspring</small>
+          <span id="parent-finder-title">Pair result</span>
+          <small>See what two Pals produce</small>
         </div>
         <div className="parent-finder-layout">
           <div className="finder-controls parent-finder-controls">
             <PalSelect
-              label="Parent A"
+              label="Parent 1"
               value={search.first}
               onChange={(value) => onSelectionChange("first", value)}
               query={{ value: search.firstQuery ?? "", onChange: (value) => onInputChange("first", value) }}
             />
             <SwapButton label="Swap parents" onClick={onSwapParents} disabled={!search.first && !search.second} />
             <PalSelect
-              label="Parent B"
+              label="Parent 2"
               value={search.second}
               onChange={(value) => onSelectionChange("second", value)}
               query={{ value: search.secondQuery ?? "", onChange: (value) => onInputChange("second", value) }}
@@ -95,10 +95,10 @@ export default function ToolsPage({
 
 function PathResult({ result }: { result: LineageResult | null }) {
   if (!result) {
-    return <FinderPlaceholder title="Choose two Pals" copy="Select a starting Pal and a target to calculate the shortest breeding chain." />;
+    return <FinderPlaceholder title="Choose a starting Pal and a target" copy="We'll show the shortest breeding path between them." />;
   }
   if (result.status === "same-pal") {
-    return <FinderStatus kind="success" title="Already there" copy="The starting and target Pal are the same. No breeding is required." />;
+    return <FinderStatus kind="success" title="No breeding needed" copy="You chose the same Pal for both." />;
   }
   if (result.status !== "found") {
     return <FinderStatus kind="error" title="No path found" copy={result.reason} />;
@@ -108,7 +108,7 @@ function PathResult({ result }: { result: LineageResult | null }) {
     <div className="finder-result" aria-live="polite">
       <div className="finder-summary">
         <strong>{result.steps.length}</strong>
-        <span>{result.steps.length === 1 ? "pairing" : "pairings"}<small>Shortest complete-table path</small></span>
+        <span>{result.steps.length === 1 ? "pairing" : "pairings"}<small>Shortest path in the Palworld 1.0 table</small></span>
       </div>
       <div className="finder-step-list">
         {result.steps.map((step, index) => (
@@ -143,10 +143,10 @@ function ParentResult({ first, second, outcomes }: {
   outcomes: ReturnType<typeof breedingRepository.getOutcomes>;
 }) {
   if (!first || !second) {
-    return <FinderPlaceholder title="Choose both parents" copy="The exact offspring and any gender requirement will appear here." />;
+    return <FinderPlaceholder title="Choose two parents" copy="We'll show their offspring and any sex requirement." />;
   }
   if (!outcomes.length) {
-    return <FinderStatus kind="error" title="No offspring found" copy="This pair is unavailable in the loaded Palworld 1.0 data." />;
+    return <FinderStatus kind="error" title="No offspring found" copy="This pairing isn't in the Palworld 1.0 data." />;
   }
 
   return (
@@ -159,10 +159,10 @@ function ParentResult({ first, second, outcomes }: {
           <article className="parent-result" key={`${outcome.childId}-${genders?.firstGender ?? "any"}-${genders?.secondGender ?? "any"}`}>
             <span className="parent-result-media"><img src={child.image} alt="" /></span>
             <span>
-              <small>BREEDING RESULT</small>
+              <small>OFFSPRING</small>
               <strong>{child.name}</strong>
               <em>{genders
-                ? `Parent A ${formatGender(genders.firstGender)} · Parent B ${formatGender(genders.secondGender)}`
+                ? `Parent 1: ${formatGender(genders.firstGender)} · Parent 2: ${formatGender(genders.secondGender)}`
                 : "Use one female and one male"}</em>
             </span>
           </article>

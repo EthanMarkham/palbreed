@@ -38,7 +38,7 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
     } catch (error) {
       throw new SaveImportError(
         "CORRUPT_SAVE",
-        `Could not parse ${path}. ${error instanceof Error ? error.message : "The save data is invalid."}`,
+        `We couldn't read ${path}. ${error instanceof Error ? error.message : "The save data is invalid."}`,
       );
     }
     const playerId = playerIdFromPath(path);
@@ -114,7 +114,7 @@ function playerIdFromPath(path: string) {
 
 async function parseSave(file: File): Promise<unknown> {
   if (file.size > MAX_COMPRESSED_SAVE_BYTES) {
-    throw new Error(`Save file is too large to decode safely (${formatMegabytes(file.size)} MB).`);
+    throw new Error(`This save is too large to read safely (${formatMegabytes(file.size)} MB).`);
   }
   parserReady ??= import("../../vendor/palpath-save-parser/palpath_save_parser").then(async (module) => {
     await module.default();
@@ -129,16 +129,16 @@ async function decompressOodleIfNeeded(data: Uint8Array) {
   const header = readCompressionHeader(data);
   if (!header || header.magic !== "PlM") return data;
   if (header.uncompressedLength <= 0 || header.uncompressedLength > MAX_DECOMPRESSED_SAVE_BYTES) {
-    throw new Error(`Oodle output length is outside the safe limit (${formatMegabytes(header.uncompressedLength)} MB).`);
+    throw new Error(`This compressed save is too large to read safely (${formatMegabytes(header.uncompressedLength)} MB).`);
   }
   if (header.compressedLength <= 0 || header.dataOffset + header.compressedLength > data.length) {
-    throw new Error("The Oodle compression header has an invalid payload length.");
+    throw new Error("This save looks incomplete or corrupted.");
   }
   const { decompress } = await import("ooz-wasm");
   const payload = data.slice(header.dataOffset, header.dataOffset + header.compressedLength);
   const decompressed = decompress(payload, header.uncompressedLength);
   if (decompressed.length !== header.uncompressedLength) {
-    throw new Error(`Oodle length mismatch: ${decompressed.length} != ${header.uncompressedLength}.`);
+    throw new Error("This save could not be decompressed. It may be incomplete or corrupted.");
   }
   return new Uint8Array(decompressed);
 }

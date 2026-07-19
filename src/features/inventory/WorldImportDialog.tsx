@@ -13,6 +13,7 @@ import {
   type SaveManifest,
   type SavePlatform,
 } from "../../domain/saveImport";
+import StatusBanner from "../../components/StatusBanner";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { extractPalsFromSlot } from "../../services/saveImport/palSaveParser";
 import { scanSaveSelection } from "../../services/saveImport/saveScanner";
@@ -56,7 +57,7 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
     const selection = [...(files ?? [])];
     if (!selection.length) return;
     setManifest(undefined);
-    setStatus({ kind: "working", message: "Reading save index and discovering worlds..." });
+    setStatus({ kind: "working", message: "Looking for worlds..." });
     try {
       setManifest(await scanSaveSelection(selection, platform));
       setStatus({ kind: "idle" });
@@ -68,7 +69,7 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
   const importSlot = async (slotId: string) => {
     const slot = activeManifest?.slots.find(({ id }) => id === slotId);
     if (!slot || !activeManifest) return;
-    setStatus({ kind: "working", message: `Decoding ${slot.label} locally...` });
+    setStatus({ kind: "working", message: `Importing ${slot.label}...` });
     try {
       const preview = await extractPalsFromSlot(slot);
       const world = describeImportedWorld(slot.label, preview.players);
@@ -84,12 +85,12 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
         pals: preview.pals,
       });
       const profile = inventoryService.getActiveProfile();
-      if (!profile) throw new Error("The imported world could not be selected.");
+      if (!profile) throw new Error("We imported the world, but couldn't open it.");
       const skipped = preview.unknownPalIds.length + preview.unknownPassiveIds.length;
       const action = result === "updated" ? "Updated" : "Imported";
-      const message = `${action} ${preview.pals.length.toLocaleString()} Pals${skipped
-        ? `; ${skipped} unknown 1.0 identifiers were safely skipped`
-        : ""}.`;
+      const message = `${action} ${preview.pals.length.toLocaleString()} Pals.${skipped
+        ? ` Skipped ${skipped} ${skipped === 1 ? "entry" : "entries"} that Palpath doesn't recognize yet.`
+        : ""}`;
       onImported(profile.id, message);
       setIsOpen(false);
       resetSelection();
@@ -122,14 +123,14 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
           <Dialog className="inventory-import-dialog">
             <header className="inventory-import-header">
               <div>
-                <span className="section-kicker">LOCAL IMPORT</span>
-                <Heading slot="title">Add or refresh a world</Heading>
-                <p>Choose the save root and Palpath will discover every compatible world inside it.</p>
+                <span className="section-kicker">WORLD IMPORT</span>
+                <Heading slot="title">Import or refresh a world</Heading>
+                <p>Choose your Palworld save folder. We'll show the worlds inside so you can pick one.</p>
               </div>
               <Button
                 slot="close"
                 className="inventory-modal-close"
-                aria-label="Close importer"
+                aria-label="Close world import"
                 isDisabled={status.kind === "working"}
               >
                 <CloseIcon />
@@ -165,7 +166,7 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
                 <div className="copy-box">
                   <code>{SAVE_PATHS[platform]}</code>
                   <Button aria-live="polite" onPress={() => void copyCurrentPath()}>
-                    {copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Copy failed" : "Copy path"}
+                    {copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Couldn't copy" : "Copy path"}
                   </Button>
                 </div>
               </div>
@@ -173,12 +174,12 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
               <FileTrigger acceptDirectory allowsMultiple onSelect={(files) => void scanFolder(files)}>
                 <Button className="primary-button import-button" isDisabled={status.kind === "working"}>
                   <FolderIcon />
-                  <span>{status.kind === "working" ? "Working locally..." : "Choose save folder"}</span>
+                  <span>{status.kind === "working" ? "Please wait..." : "Choose save folder"}</span>
                 </Button>
               </FileTrigger>
               <p className="privacy-note">
                 <LockIcon />
-                Save bytes never leave this browser. Palpath reads only and never modifies game files.
+                Your save stays on this device. Palpath reads it without changing any files.
               </p>
 
               {status.kind !== "idle" && status.message ? (
@@ -188,8 +189,8 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
               {activeManifest ? (
                 <div className="world-list">
                   <div className="subheading">
-                    <strong>Discovered worlds</strong>
-                    <span>{activeManifest.slots.length} found</span>
+                    <strong>Choose a world</strong>
+                    <span>{activeManifest.slots.length} {activeManifest.slots.length === 1 ? "world" : "worlds"} found</span>
                   </div>
                   {activeManifest.slots.map((slot) => {
                     const supported = slot.format === "palworld-1.0";
@@ -197,18 +198,18 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
                       <article className="world-row" key={slot.id}>
                         <div>
                           <strong>{slot.label}</strong>
-                          <span>{slot.updatedAt ? new Date(slot.updatedAt).toLocaleString() : "Date unavailable"}</span>
+                          <span>{slot.updatedAt ? new Date(slot.updatedAt).toLocaleString() : "Date not available"}</span>
                         </div>
                         <span className={`format-badge is-${supported ? "supported" : "unsupported"}`}>
-                          {supported ? "1.0 ready" : slot.format === "pre-1.0" ? "Pre-1.0" : "Unknown"}
+                          {supported ? "Palworld 1.0" : slot.format === "pre-1.0" ? "Older save" : "Not supported"}
                         </span>
                         <Button
                           className="secondary-button compact-button"
                           isDisabled={!supported || status.kind === "working"}
-                          aria-label={supported ? `Import ${slot.label}` : `${slot.label} is not a 1.0 world`}
+                          aria-label={supported ? `Import ${slot.label}` : `${slot.label} requires Palworld 1.0`}
                           onPress={() => void importSlot(slot.id)}
                         >
-                          {supported ? "Import" : "1.0 only"}
+                          {supported ? "Import" : "Needs 1.0"}
                         </Button>
                       </article>
                     );
@@ -223,18 +224,14 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
   );
 }
 
-function StatusBanner({ kind, message }: { kind: "working" | "error"; message: string }) {
-  return (
-    <div className={`status-banner is-${kind}`} role={kind === "error" ? "alert" : "status"}>
-      {kind === "working" ? <span className="status-spinner" /> : <span>!</span>}
-      <p>{message}</p>
-    </div>
-  );
-}
-
 function importMessage(error: unknown) {
-  if (error instanceof SaveImportError) return `${error.message} [${error.code}]`;
-  return error instanceof Error ? error.message : "The save could not be imported.";
+  if (error instanceof SaveImportError) {
+    if (error.code === "CORRUPT_SAVE") {
+      return "We couldn't read this world. Palworld may have been saving when you chose the folder. Wait a few seconds, then try choosing the save folder again.";
+    }
+    return error.message;
+  }
+  return error instanceof Error ? error.message : "We couldn't import this world.";
 }
 
 async function copyPath(path: string) {

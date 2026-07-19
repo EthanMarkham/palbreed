@@ -35,7 +35,7 @@ describe("Path Finder", () => {
   it("rejects unknown Pal identifiers", () => {
     expect(findLineage("not-a-pal", "lamball")).toEqual({
       status: "invalid-input",
-      reason: "Choose a valid source and target Pal.",
+      reason: "Choose a starting Pal and a target Pal.",
     });
   });
 });

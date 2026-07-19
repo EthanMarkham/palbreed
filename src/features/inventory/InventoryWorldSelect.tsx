@@ -74,7 +74,7 @@ export default function InventoryWorldSelect({
 }
 
 function formatWorldMeta(profile: InventoryProfile) {
-  return `${profile.pals.length.toLocaleString()} Pals / ${profile.platform === "xbox" ? "Xbox" : "Steam"}`;
+  return `${profile.pals.length.toLocaleString()} Pals · ${profile.platform === "xbox" ? "Xbox" : "Steam"}`;
 }
 
 function WorldIcon() {

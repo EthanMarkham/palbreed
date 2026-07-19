@@ -29,8 +29,8 @@ export async function scanSaveSelection(
     throw new SaveImportError(
       "NO_WORLDS",
       platform === "xbox"
-        ? "No Palworld worlds were found. Choose the wgs folder that contains containers.index."
-        : "No Palworld worlds were found. Choose the SaveGames folder that contains world folders.",
+        ? "We couldn't find any Palworld worlds there. Choose the wgs folder that contains containers.index."
+        : "We couldn't find any Palworld worlds there. Choose the SaveGames folder that contains your world folders.",
     );
   }
 
@@ -38,12 +38,12 @@ export async function scanSaveSelection(
     if (slots.some(({ format }) => format === "pre-1.0")) {
       throw new SaveImportError(
         "UNSUPPORTED_PRE_1_0",
-        "This world uses the pre-1.0 monolithic save format. Palpath only imports Palworld 1.0 worlds.",
+        "This is an older Palworld save. Palpath currently imports Palworld 1.0 worlds only.",
       );
     }
     throw new SaveImportError(
       "UNSUPPORTED_1_0_REVISION",
-      "The folder contains save data, but it does not match the supported Palworld 1.0 world layout.",
+      "We found save data, but it isn't in the Palworld 1.0 format Palpath can import.",
     );
   }
 
@@ -60,13 +60,13 @@ export function assertPalworldOnePointZero(slot: SaveSlotCandidate) {
   if (slot.format === "pre-1.0") {
     throw new SaveImportError(
       "UNSUPPORTED_PRE_1_0",
-      `${slot.label} is a pre-1.0 world. Only Palworld 1.0 worlds can be imported.`,
+      `${slot.label} is an older save. Palpath currently imports Palworld 1.0 worlds only.`,
     );
   }
   if (slot.format !== "palworld-1.0") {
     throw new SaveImportError(
       "UNSUPPORTED_1_0_REVISION",
-      `${slot.label} does not have the Palworld 1.0 LevelMeta.sav + Level/01.sav layout.`,
+      `${slot.label} isn't in the Palworld 1.0 format Palpath can import.`,
     );
   }
 }
@@ -90,7 +90,7 @@ async function extractXboxLogicalFiles(files: readonly File[]): Promise<LogicalS
   if (!indexFiles.length) {
     throw new SaveImportError(
       "WRONG_FOLDER",
-      "Xbox imports start at the wgs folder. The selected folder does not contain containers.index.",
+      "Choose the Xbox wgs folder. This folder doesn't contain containers.index.",
     );
   }
 
@@ -139,7 +139,7 @@ async function extractXboxLogicalFiles(files: readonly File[]): Promise<LogicalS
   if (!logical.length && missing.length) {
     throw new SaveImportError(
       "INCOMPLETE_CLOUD_SYNC",
-      "Xbox listed save containers whose data blobs are missing. Let cloud sync finish, close Palworld, and choose the folder again.",
+      "Some Xbox save files are still missing. Let cloud sync finish, close Palworld, and choose the folder again.",
     );
   }
   return logical;

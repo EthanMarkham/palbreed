@@ -51,8 +51,8 @@ export default function PalSelect({
       autoHighlight
       noOptionsText={(
         <span className="autocomplete-empty">
-          <strong>No matching Pal</strong>
-          <small>Try a different name, variant, or Pal number.</small>
+          <strong>No Pal found</strong>
+          <small>Try another name or Pal number.</small>
         </span>
       )}
       slotProps={{
@@ -64,10 +64,10 @@ export default function PalSelect({
         <TextField
           {...params}
           label={label}
-          placeholder="Search name or number"
+          placeholder="Search Pals by name or number"
           helperText={selected
-            ? `${formatPalNumber(selected.number)} / ${formatPalMeta(selected.id)}`
-            : "Search the complete Pal catalog"}
+            ? formatPalNumber(selected.number)
+            : "Palworld 1.0 Paldex"}
           slotProps={{
             ...params.slotProps,
             htmlInput: {
@@ -88,7 +88,6 @@ export default function PalSelect({
             <span className="pal-autocomplete-copy">
               <small>{formatPalNumber(pal.number)}</small>
               <strong>{pal.name}</strong>
-              <span>{formatPalMeta(pal.id)}</span>
             </span>
             <span className={`autocomplete-check${isSelected ? " is-visible" : ""}`} aria-hidden="true">
               <CheckIcon />
@@ -102,10 +101,6 @@ export default function PalSelect({
 
 function formatPalNumber(number: number) {
   return `No. ${String(number).padStart(3, "0")}`;
-}
-
-function formatPalMeta(palId: string) {
-  return palId.split("-").join(" / ").toLocaleUpperCase();
 }
 
 function CheckIcon() {

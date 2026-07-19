@@ -51,7 +51,7 @@ export default function InventoryCollection({
         <div className="empty-state inventory-empty">
           <SearchIcon />
           <strong>No Pals match “{query?.trim()}”</strong>
-          <span>Search by nickname, species, passive, level, sex, or storage location.</span>
+          <span>Try a nickname, Pal name, passive, level, sex, or location.</span>
           <Button className="secondary-button compact-button" onPress={onQueryClear}>
             Clear search
           </Button>
@@ -59,7 +59,7 @@ export default function InventoryCollection({
       ) : (
         <div className="empty-state inventory-empty">
           <strong>No Pals found in this world</strong>
-          <span>Refresh the import after Palworld finishes writing its save.</span>
+          <span>If Palworld was still saving, wait a moment and import the world again.</span>
         </div>
       )}
     </>
@@ -80,7 +80,7 @@ function CollectionHeader({
   return (
     <header className="inventory-collection-header">
       <div>
-        <span>PAL COLLECTION</span>
+        <span>PALS IN THIS WORLD</span>
         <h2>{profile.name}</h2>
         <p>{formatProfileDetails(profile)}</p>
       </div>
@@ -134,7 +134,7 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
           <ul aria-label="Passive skills">
             {passives.map((passive) => <li key={passive.id}>{passive.name}</li>)}
           </ul>
-        ) : <span className="inventory-passives-empty">None recorded</span>}
+        ) : <span className="inventory-passives-empty">None</span>}
       </div>
     </article>
   );
@@ -149,13 +149,13 @@ function RemoveWorldButton({
 }) {
   return (
     <DialogTrigger>
-      <Button className="inventory-world-menu" aria-label={`Manage ${profile.name}`}>
+      <Button className="inventory-world-menu" aria-label={`More options for ${profile.name}`}>
         <MoreIcon />
       </Button>
       <Popover className="world-remove-popover" placement="bottom end">
         <Dialog className="world-remove-dialog">
           <Heading slot="title">Remove {profile.name}?</Heading>
-          <p>This removes the imported world from Palpath only. Your Palworld save files are never changed.</p>
+          <p>This only removes the imported copy from Palpath. It won't change your Palworld save.</p>
           <div>
             <Button slot="close" className="secondary-button compact-button">Cancel</Button>
             <Button
@@ -177,7 +177,7 @@ function formatProfileDetails(profile: InventoryProfile) {
   if (profile.playerName && profile.playerName !== profile.name) parts.push(profile.playerName);
   if (profile.playerLevel) parts.push(`Player level ${profile.playerLevel}`);
   if (profile.importedAt) parts.push(`Updated ${new Date(profile.importedAt).toLocaleDateString()}`);
-  return parts.join(" / ");
+  return parts.join(" · ");
 }
 
 function formatLocation(location: OwnedPal["location"]) {

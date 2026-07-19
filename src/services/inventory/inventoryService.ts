@@ -113,7 +113,7 @@ export class InventoryService {
       this.snapshot = {
         ...this.snapshot,
         status: "error",
-        error: error instanceof Error ? error.message : "Inventory storage could not be loaded.",
+        error: error instanceof Error ? error.message : "We couldn't open your saved worlds.",
       };
     }
     this.emit();
@@ -128,7 +128,7 @@ export class InventoryService {
         this.snapshot = {
           ...this.snapshot,
           status: "error",
-          error: error instanceof Error ? error.message : "Inventory changes could not be saved.",
+          error: error instanceof Error ? error.message : "We couldn't save your latest changes.",
         };
         this.emit();
       });

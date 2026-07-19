@@ -49,7 +49,7 @@ function BuilderRoute() {
       }}
       onRun={() => {
         builderHistoryService.record(search);
-        return navigateToSearch(runBuilderSearch(search), "push");
+        void navigateToSearch(runBuilderSearch(search), "push");
       }}
     />
   );

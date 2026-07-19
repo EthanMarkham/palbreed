@@ -48,4 +48,17 @@ describe("passive probability estimate", () => {
     expect(cleanParentsAtMostOne - cleanParentsAtMostZero).toBeCloseTo(0.3);
     expect(dirtyParentsAtMostOne - dirtyParentsAtMostZero).toBeCloseTo(0.16);
   });
+
+  it("prices one, two, three, or four total passives from four unique parent passives", () => {
+    const atMost = (allowedExtras: number) => estimatePassiveOdds(
+      4,
+      { kind: "specific", desiredCount: 0, allowedExtras },
+    );
+
+    expect(atMost(1)).toBeCloseTo(0.16);
+    expect(atMost(2) - atMost(1)).toBeCloseTo(0.24);
+    expect(atMost(2)).toBeCloseTo(0.4);
+    expect(atMost(3)).toBeCloseTo(0.65);
+    expect(atMost(4)).toBeCloseTo(1);
+  });
 });

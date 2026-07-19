@@ -29,7 +29,7 @@ const allPassives = passiveRepository.all();
 const anyPassive: PassiveOption = {
   id: ANY_PASSIVE_ID,
   name: "Any",
-  description: "Accept any passive combination, including no passives.",
+  description: "Choose this if you're flexible about passives.",
   rank: 0,
   isAny: true,
 };
@@ -104,8 +104,8 @@ export default function PassiveSelector({
         autoHighlight
         noOptionsText={(
           <span className="autocomplete-empty">
-            <strong>No matching passives</strong>
-            <small>Try a name, effect, or identifier.</small>
+            <strong>No passives found</strong>
+            <small>Try another name or effect.</small>
           </span>
         )}
         slotProps={{
@@ -120,7 +120,7 @@ export default function PassiveSelector({
         renderInput={(params) => (
           <TextField
             {...params}
-            placeholder={selectedOptions.length ? "Search for another" : "Search by name or effect"}
+            placeholder={selectedOptions.length ? "Add another passive" : "Search passive names or effects"}
             slotProps={{
               ...params.slotProps,
               htmlInput: {
@@ -145,7 +145,7 @@ export default function PassiveSelector({
                 <small>{passive.description}</small>
               </span>
               {passive.isAny
-                ? <span className="passive-any-badge">Wildcard</span>
+                ? <span className="passive-any-badge">No preference</span>
                 : <em>{passive.rank > 0 ? `+${passive.rank}` : passive.rank}</em>}
             </li>
           );

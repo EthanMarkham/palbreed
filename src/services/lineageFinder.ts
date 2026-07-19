@@ -4,7 +4,7 @@ import { breedingRepository } from "../data/breedingRepository";
 /** Finds the shortest route, assuming each listed partner is available. */
 export function findLineage(startId: PalId, targetId: PalId): LineageResult {
   if (!breedingRepository.getPal(startId) || !breedingRepository.getPal(targetId)) {
-    return { status: "invalid-input", reason: "Choose a valid source and target Pal." };
+    return { status: "invalid-input", reason: "Choose a starting Pal and a target Pal." };
   }
   if (startId === targetId) return { status: "same-pal" };
 
@@ -30,7 +30,7 @@ export function findLineage(startId: PalId, targetId: PalId): LineageResult {
       }
     }
   }
-  return { status: "no-route", reason: "No breeding path was found in the loaded data." };
+  return { status: "no-route", reason: "We couldn't find a breeding path between those Pals in the Palworld 1.0 data." };
 }
 
 type PreviousEdge = {
@@ -45,7 +45,7 @@ function reconstruct(startId: PalId, targetId: PalId, previous: Map<PalId, Previ
   let current = startId;
   while (current !== targetId) {
     const edge = previous.get(current);
-    if (!edge) return { status: "no-route", reason: "The breeding path could not be reconstructed." };
+    if (!edge) return { status: "no-route", reason: "Something went wrong while building that path. Try choosing the Pals again." };
     steps.push({
       from: current,
       partner: edge.partner,

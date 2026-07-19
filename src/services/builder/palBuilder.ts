@@ -43,6 +43,13 @@ export type BuilderResult =
     }
   | { status: "no-route"; reason: string };
 
+export type BuilderInput = {
+  inventory: readonly OwnedPal[];
+  targetId: PalId;
+  passiveGoal: PassiveGoal;
+  objective: BuilderObjective;
+};
+
 type State = {
   key: string;
   speciesId: PalId;
@@ -63,14 +70,8 @@ type State = {
 type Previous = { key: string; step: BuilderStep };
 
 const MAX_PASSIVES = 4;
-const MAX_INTERMEDIATE_EXTRAS = 1;
 
-export function buildPal(input: {
-  inventory: readonly OwnedPal[];
-  targetId: PalId;
-  passiveGoal: PassiveGoal;
-  objective: BuilderObjective;
-}): BuilderResult {
+export function buildPal(input: BuilderInput): BuilderResult {
   const inventory = input.inventory;
   const acceptsAnyPassives = input.passiveGoal.kind === "any";
   const required: PassiveId[] = input.passiveGoal.kind === "any"
@@ -83,7 +84,7 @@ export function buildPal(input: {
     return {
       status: "missing-passives",
       missingPassiveIds: missing,
-      reason: "The inventory does not contain every requested passive yet. Add one carrier for each missing passive, then re-run the build.",
+      reason: "This world doesn't have every passive you chose yet. Add a Pal with each missing passive, then try again.",
     };
   }
   if (!inventory.length) return { status: "no-route", reason: "Import a world before building." };
@@ -195,7 +196,7 @@ export function buildPal(input: {
 
   return {
     status: "no-route",
-    reason: "No continuous carrier build can reach that species and passive set with the imported Pals and gender constraints.",
+    reason: "We couldn't find a route to that Pal with the Pals and sexes available in this world.",
   };
 }
 
@@ -260,9 +261,10 @@ function getPassiveCandidates(input: {
     }];
   }
 
+  const availableExtraSlots = MAX_PASSIVES - input.desiredIds.length;
   const maxExtras = input.isFinalHatch
-    ? input.allowedFinalExtras
-    : Math.min(MAX_INTERMEDIATE_EXTRAS, MAX_PASSIVES - input.desiredIds.length);
+    ? Math.min(input.allowedFinalExtras, availableExtraSlots)
+    : availableExtraSlots;
   const extraLimits = input.isFinalHatch
     ? [maxExtras]
     : Array.from({ length: maxExtras + 1 }, (_, index) => index);

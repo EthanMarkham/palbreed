@@ -16,7 +16,7 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
 
   return (
     <DialogTrigger>
-      <Button className="builder-parent-trigger" aria-label={`Open breeding details for ${name}`}>
+      <Button className="builder-parent-trigger" aria-label={`View details for ${name}`}>
         <span className="builder-parent-name"><strong>{name}</strong><InfoIcon /></span>
         <small>
           <span>{parent.level === undefined ? "Lv —" : `Lv ${parent.level}`}</span>
@@ -30,7 +30,7 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
         </OverlayArrow>
         <Dialog className="builder-parent-dialog" aria-labelledby={titleId}>
           <span className="builder-parent-popover-eyebrow">
-            {parent.origin === "inventory" ? "INVENTORY PAL" : "PLANNED HATCH"}
+            {parent.origin === "inventory" ? "FROM YOUR WORLD" : "BRED IN THIS ROUTE"}
           </span>
           <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
           <dl className="builder-parent-popover-facts">
@@ -40,16 +40,16 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
           <div className="builder-parent-popover-passives">
             <span>Passives</span>
             {parent.passives.kind === "any" ? (
-              <p>Any combination accepted</p>
+              <p>Any passives are fine</p>
             ) : passiveNames.length ? (
               <>
                 <ul>{passiveNames.map((passive) => <li key={passive}>{passive}</li>)}</ul>
                 {parent.passives.kind === "bounded"
-                  ? <p>May have 0–{parent.passives.maxExtras} other passives</p>
+                  ? <p>Up to {formatOtherPassives(parent.passives.maxExtras)} are fine</p>
                   : null}
               </>
             ) : parent.passives.kind === "bounded" ? (
-              <p>Any result with 0–{parent.passives.maxExtras} passives</p>
+              <p>Up to {parent.passives.maxExtras} passives are fine</p>
             ) : (
               <p>None</p>
             )}
@@ -73,12 +73,16 @@ function getPassiveSummary(parent: BuilderParent, passiveNames: readonly string[
         ? `${passiveNames[0]} · `
         : `${passiveNames[0]} +${passiveNames.length - 1} · `;
     return required
-      ? `${required}0–${parent.passives.maxExtras} others`
-      : `0–${parent.passives.maxExtras} passives`;
+      ? `${required}up to ${formatOtherPassives(parent.passives.maxExtras)}`
+      : `Up to ${parent.passives.maxExtras} passives`;
   }
   if (passiveNames.length === 0) return "No passives";
   if (passiveNames.length === 1) return passiveNames[0];
   return `${passiveNames[0]} +${passiveNames.length - 1}`;
+}
+
+function formatOtherPassives(count: number) {
+  return `${count} other passive${count === 1 ? "" : "s"}`;
 }
 
 function InfoIcon() {

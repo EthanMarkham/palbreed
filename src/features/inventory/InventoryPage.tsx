@@ -5,6 +5,7 @@ import {
   Label,
   SearchField,
 } from "react-aria-components";
+import StatusBanner from "../../components/StatusBanner";
 import type { InventoryProfile } from "../../domain/inventory";
 import type { SearchUpdateMode } from "../../routing/searchParams";
 import { inventoryService } from "../../services/inventory/inventoryService";
@@ -54,7 +55,7 @@ export default function InventoryPage({
   const removeWorld = (removed: InventoryProfile) => {
     inventoryService.removeProfile(removed.id);
     const nextProfile = inventoryService.getActiveProfile();
-    setNotice(`${removed.name} was removed from Palpath.`);
+    setNotice(`Removed ${removed.name} from Palpath.`);
     onWorldChange(nextProfile?.id);
   };
 
@@ -63,7 +64,7 @@ export default function InventoryPage({
       <main className="workspace feature-workspace inventory-workspace" aria-busy="true">
         <InventoryHero />
         <section className="feature-card loading-card">
-          <StatusBanner kind="working" message="Opening your saved inventories..." />
+          <StatusBanner kind="working" message="Loading your saved worlds..." />
         </section>
       </main>
     );
@@ -74,7 +75,7 @@ export default function InventoryPage({
       <InventoryHero />
 
       {snapshot.status === "error" ? (
-        <StatusBanner kind="error" message={snapshot.error ?? "Inventory storage failed."} />
+        <StatusBanner kind="error" message={snapshot.error ?? "We couldn't open your saved worlds."} />
       ) : null}
       {notice ? <InventoryNotice message={notice} onDismiss={() => setNotice(undefined)} /> : null}
 
@@ -96,9 +97,9 @@ export default function InventoryPage({
             onChange={onQueryChange}
             isDisabled={!profile}
           >
-            <Label className="sr-only">Search your Pals</Label>
+            <Label className="sr-only">Search Pals</Label>
             <SearchIcon />
-            <Input placeholder="Search names, passives, level, sex..." />
+            <Input placeholder="Search by name, passive, level, sex, or location" />
             <AriaButton slot="clear" className="inventory-search-clear" aria-label="Clear search">
               <CloseIcon />
             </AriaButton>
@@ -124,8 +125,8 @@ export default function InventoryPage({
           ) : (
             <div className="empty-state inventory-empty inventory-no-world">
               <WorldOutlineIcon />
-              <strong>Your Pal collection starts with a world</strong>
-              <span>Import a Palworld 1.0 save to browse every Pal and power Builder routes.</span>
+              <strong>Import a world to get started</strong>
+              <span>Once it's imported, you can browse your Pals here and use them in the Builder.</span>
             </div>
           )}
         </div>
@@ -139,8 +140,8 @@ function InventoryHero() {
     <section className="feature-hero">
       <div>
         <span className="section-kicker">INVENTORY</span>
-        <h1>Your imported Pals</h1>
-        <p>Search your collection or switch between worlds. The Builder will use whichever roster is selected here.</p>
+        <h1>Your Pals</h1>
+        <p>Browse the Pals in your selected world, or switch worlds to use a different collection in the Builder.</p>
       </div>
       <span className="hero-index">01</span>
     </section>
@@ -155,7 +156,7 @@ function EmptyWorldControl() {
         <WorldOutlineIcon />
         <span className="inventory-world-value">
           <strong>No world imported</strong>
-          <small>Import one to begin</small>
+          <small>Import a world to get started</small>
         </span>
       </div>
     </div>
@@ -168,15 +169,6 @@ function InventoryNotice({ message, onDismiss }: { message: string; onDismiss: (
       <span>OK</span>
       <p>{message}</p>
       <AriaButton aria-label="Dismiss message" onPress={onDismiss}><CloseIcon /></AriaButton>
-    </div>
-  );
-}
-
-function StatusBanner({ kind, message }: { kind: "working" | "error"; message: string }) {
-  return (
-    <div className={`status-banner is-${kind}`} role={kind === "error" ? "alert" : "status"}>
-      {kind === "working" ? <span className="status-spinner" /> : <span>!</span>}
-      <p>{message}</p>
     </div>
   );
 }
