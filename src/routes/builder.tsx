@@ -1,6 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import BuilderPage from "../features/builder/BuilderPage";
 import {
+  builderHistoryEntryToSearch,
+  builderHistoryService,
+} from "../features/builder/builderHistory";
+import {
   runBuilderSearch,
   setBuilderAnyPassives,
   setBuilderExtras,
@@ -35,7 +39,15 @@ function BuilderRoute() {
       onPassiveQueryChange={(value) => updateSearch(setBuilderPassiveQuery(search, value))}
       onObjectiveChange={(value) => updateSearch(setBuilderObjective(search, value), "push")}
       onExtrasChange={(value) => updateSearch(setBuilderExtras(search, value), "push")}
-      onRun={() => updateSearch(runBuilderSearch(search), "push")}
+      onHistorySelect={(entry) => {
+        const restoredSearch = builderHistoryEntryToSearch(entry);
+        builderHistoryService.record(restoredSearch);
+        updateSearch(restoredSearch, "push");
+      }}
+      onRun={() => {
+        builderHistoryService.record(search);
+        updateSearch(runBuilderSearch(search), "push");
+      }}
     />
   );
 }

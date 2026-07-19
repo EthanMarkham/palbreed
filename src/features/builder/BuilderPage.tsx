@@ -10,7 +10,9 @@ import type { PassiveGoal, PassiveId } from "../../domain/passive";
 import { buildPal, type BuilderObjective, type BuilderResult } from "../../services/builder/palBuilder";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
+import BuilderHistoryMenu from "./BuilderHistoryMenu";
 import BuilderParentPreview from "./BuilderParentPreview";
+import type { BuilderHistoryEntry } from "./builderHistory";
 import {
   getBuilderExtras,
   getBuilderObjective,
@@ -28,6 +30,7 @@ type BuilderPageProps = {
   onPassiveQueryChange: (value: string) => void;
   onObjectiveChange: (value: BuilderObjective) => void;
   onExtrasChange: (value: 0 | 1 | 2) => void;
+  onHistorySelect: (entry: BuilderHistoryEntry) => void;
   onRun: () => void;
 };
 
@@ -42,6 +45,7 @@ export default function BuilderPage({
   onPassiveQueryChange,
   onObjectiveChange,
   onExtrasChange,
+  onHistorySelect,
   onRun,
 }: BuilderPageProps) {
   const inventorySnapshot = useInventory();
@@ -82,7 +86,7 @@ export default function BuilderPage({
 
       <section className="builder-layout">
         <div className="feature-card builder-form-card">
-          <div className="card-heading"><span>Build specification</span><small>Up to four passives</small></div>
+          <div className="card-heading"><span>Build specification</span><BuilderHistoryMenu onSelect={onHistorySelect} /></div>
           <PalSelect
             label="Final Pal"
             value={targetId}
