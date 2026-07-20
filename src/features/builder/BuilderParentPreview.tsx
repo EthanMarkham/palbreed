@@ -32,7 +32,10 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
           <span className="builder-parent-popover-eyebrow">
             {parent.origin === "inventory" ? "FROM YOUR WORLD" : "BRED IN THIS ROUTE"}
           </span>
-          <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
+          <div className="builder-parent-popover-title">
+            <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
+            {species ? <span className="builder-parent-popover-number">No. {String(species.number).padStart(3, "0")}</span> : null}
+          </div>
           <dl className="builder-parent-popover-facts">
             <div><dt>Level</dt><dd>{parent.level ?? "Unknown"}</dd></div>
             <div><dt>Sex</dt><dd>{genderLabel}</dd></div>
