@@ -29,13 +29,13 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
           <svg viewBox="0 0 8 8" aria-hidden="true"><path d="M0 0 L4 4 L8 0" /></svg>
         </OverlayArrow>
         <Dialog className="builder-parent-dialog" aria-labelledby={titleId}>
-          <span className="builder-parent-popover-eyebrow">
-            {parent.origin === "inventory" ? "FROM YOUR WORLD" : "BRED IN THIS ROUTE"}
-          </span>
-          <div className="builder-parent-popover-title">
-            <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
+          <div className="builder-parent-popover-meta">
+            <span className="builder-parent-popover-eyebrow">
+              {parent.origin === "inventory" ? "FROM YOUR WORLD" : "BRED IN THIS ROUTE"}
+            </span>
             {species ? <span className="builder-parent-popover-number">No. {String(species.number).padStart(3, "0")}</span> : null}
           </div>
+          <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
           <dl className="builder-parent-popover-facts">
             <div><dt>Level</dt><dd>{parent.level ?? "Unknown"}</dd></div>
             <div><dt>Sex</dt><dd>{genderLabel}</dd></div>

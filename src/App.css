@@ -2585,9 +2585,9 @@
   font: 700 0.95rem/1.15 "Space Grotesk", sans-serif;
 }
 
-.builder-parent-popover-title {
+.builder-parent-popover-meta {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
 }
@@ -2595,8 +2595,8 @@
 .builder-parent-popover-number {
   flex: none;
   color: #a9c4b8;
-  font: 700 0.52rem/1 "Space Grotesk", sans-serif;
-  letter-spacing: 0.06em;
+  font: 700 0.48rem/1 "Space Grotesk", sans-serif;
+  letter-spacing: 0.1em;
 }
 
 .builder-parent-popover-facts {
