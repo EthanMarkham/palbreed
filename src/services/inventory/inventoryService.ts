@@ -19,6 +19,8 @@ export class InventoryService {
   private snapshot: InventorySnapshot;
   private started = false;
   private saveQueue = Promise.resolve();
+  private syncGateway?: InventoryGateway;
+  private syncOwnerId?: string;
 
   constructor(
     private readonly gateway: InventoryGateway,
@@ -78,12 +80,14 @@ export class InventoryService {
   }
 
   removeProfile(profileId: string) {
+    const removed = this.snapshot.document.profiles.find(({ id }) => id === profileId);
     const profiles = this.snapshot.document.profiles.filter(({ id }) => id !== profileId);
     if (profiles.length === this.snapshot.document.profiles.length) return;
     const activeProfileId = this.snapshot.document.activeProfileId === profileId
       ? profiles[0]?.id
       : this.snapshot.document.activeProfileId;
     this.commit({ ...this.snapshot.document, activeProfileId, profiles });
+    if (removed) void this.deleteSyncedProfile(removed.id);
   }
 
   replaceImportedProfile(input: {
@@ -125,7 +129,25 @@ export class InventoryService {
       ],
     });
     this.mutationListeners.forEach((listener) => listener(profile));
+    void this.saveSyncedProfile(profile);
     return existing ? "updated" as const : "created" as const;
+  }
+
+  async enableAccountSync(gateway: InventoryGateway, ownerId: string) {
+    this.syncGateway = gateway;
+    this.syncOwnerId = ownerId;
+    await this.whenReady();
+    const localDocument = this.snapshot.document;
+    const syncedDocument = await gateway.load(ownerId);
+    const merged = mergeDocuments(localDocument, syncedDocument, ownerId);
+    this.snapshot = { status: "ready", document: merged };
+    this.emit();
+    await gateway.save(ownerId, merged);
+  }
+
+  disableAccountSync() {
+    this.syncGateway = undefined;
+    this.syncOwnerId = undefined;
   }
 
   private async load() {
@@ -158,6 +180,37 @@ export class InventoryService {
         };
         this.emit();
       });
+  }
+
+  private async saveSyncedProfile(profile: InventoryProfile) {
+    if (!this.syncGateway || !this.syncOwnerId) return;
+    const gateway = this.syncGateway as InventoryGateway & { replaceProfile?: (profile: InventoryProfile) => Promise<void> };
+    try {
+      if (gateway.replaceProfile) await gateway.replaceProfile(profile);
+      else await gateway.save(this.syncOwnerId, this.snapshot.document);
+    } catch (error) {
+      this.snapshot = {
+        ...this.snapshot,
+        status: "error",
+        error: error instanceof Error ? error.message : "We couldn't sync your latest world import.",
+      };
+      this.emit();
+    }
+  }
+
+  private async deleteSyncedProfile(profileId: string) {
+    if (!this.syncGateway) return;
+    const gateway = this.syncGateway as InventoryGateway & { deleteProfile?: (profileId: string) => Promise<void> };
+    try {
+      await gateway.deleteProfile?.(profileId);
+    } catch (error) {
+      this.snapshot = {
+        ...this.snapshot,
+        status: "error",
+        error: error instanceof Error ? error.message : "We couldn't delete the synced world.",
+      };
+      this.emit();
+    }
   }
 
   private emit() {
@@ -208,6 +261,33 @@ function sanitizeImportedPal(pal: OwnedPal): OwnedPal | undefined {
     nickname: pal.nickname,
     level: pal.level,
   };
+}
+
+function mergeDocuments(
+  localDocument: InventoryDocument,
+  syncedDocument: InventoryDocument | undefined,
+  accountOwnerId: string,
+): InventoryDocument {
+  const profiles = new Map<string, InventoryProfile>();
+  for (const profile of syncedDocument?.profiles ?? []) profiles.set(profile.id, profile);
+  for (const profile of localDocument.profiles) {
+    const existing = profiles.get(profile.id);
+    const candidate = toAccountProfile(profile, accountOwnerId);
+    if (!existing || Date.parse(candidate.updatedAt) >= Date.parse(existing.updatedAt)) {
+      profiles.set(candidate.id, candidate);
+    }
+  }
+  const mergedProfiles = [...profiles.values()].sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+  const activeProfileId = localDocument.activeProfileId && mergedProfiles.some(({ id }) => id === localDocument.activeProfileId)
+    ? localDocument.activeProfileId
+    : syncedDocument?.activeProfileId && mergedProfiles.some(({ id }) => id === syncedDocument.activeProfileId)
+      ? syncedDocument.activeProfileId
+      : mergedProfiles[0]?.id;
+  return { schemaVersion: 1, activeProfileId, profiles: mergedProfiles };
+}
+
+function toAccountProfile(profile: InventoryProfile, accountOwnerId: string): InventoryProfile {
+  return { ...profile, owner: { kind: "account", id: accountOwnerId } };
 }
 
 function createInitialDocument(): InventoryDocument {

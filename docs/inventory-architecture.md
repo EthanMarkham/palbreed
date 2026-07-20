@@ -7,8 +7,9 @@ Only an `InventoryGateway` knows how records are persisted. The current gateway
 stores one document per anonymous owner in IndexedDB; no component or solver
 imports IndexedDB directly.
 
-Imported worlds deliberately remain local. The browser must not upload save
-bytes, extracted world metadata, or Pal inventory to Supabase.
+Raw save bytes deliberately remain local. When Supabase is configured and a user signs in,
+the browser syncs only normalized world metadata and owned Pal records through RPCs;
+anonymous imports continue to live in IndexedDB until they are claimed by an account.
 
 The `schemaVersion` on the document is independent from the Palworld game
 version and enables deterministic local migrations before sync.

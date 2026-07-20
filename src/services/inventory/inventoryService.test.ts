@@ -157,3 +157,24 @@ function legacyProfile(id: string, platform: string, pals: readonly unknown[]) {
     pals,
   };
 }
+
+it("claims local profiles into an account sync gateway", async () => {
+  const localGateway = new MemoryInventoryGateway();
+  const syncGateway = new MemoryInventoryGateway();
+  const service = new InventoryService(localGateway, "owner-1");
+  service.start();
+  await vi.waitFor(() => expect(service.getSnapshot().status).toBe("ready"));
+
+  service.replaceImportedProfile({
+    name: "Synced world",
+    platform: "steam",
+    worldId: "world-sync",
+    slotId: "world-sync:current",
+    pals: [lamball],
+  });
+
+  await service.enableAccountSync(syncGateway, "account-1");
+
+  expect(service.getActiveProfile()?.owner).toEqual({ kind: "account", id: "account-1" });
+  await vi.waitFor(() => expect(syncGateway.document?.profiles[0]?.owner).toEqual({ kind: "account", id: "account-1" }));
+});
