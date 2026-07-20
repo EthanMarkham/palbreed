@@ -1,4 +1,4 @@
-export type SupportedSignInMethod = "discord" | "email" | "github" | "google";
+export type SupportedSignInMethod = "email" | "google";
 
 export type RuntimeConfig = {
   legalContactEmail?: string;
@@ -13,7 +13,7 @@ export type RuntimeConfig = {
 
 type Environment = Record<string, string | boolean | undefined>;
 
-const SIGN_IN_METHODS = new Set<SupportedSignInMethod>(["discord", "email", "github", "google"]);
+const SIGN_IN_METHODS = new Set<SupportedSignInMethod>(["email", "google"]);
 
 export function createRuntimeConfig(environment: Environment): RuntimeConfig {
   const errors: string[] = [];
@@ -36,7 +36,7 @@ export function createRuntimeConfig(environment: Environment): RuntimeConfig {
     } else if (!isHttpsUrl(supabaseUrl)) {
       errors.push("VITE_SUPABASE_URL must be a valid HTTPS URL.");
     } else if (!SIGN_IN_METHODS.has(configuredSignInMethod as SupportedSignInMethod)) {
-      errors.push("VITE_SUPABASE_AUTH_METHOD must be email, discord, github, or google.");
+      errors.push("VITE_SUPABASE_AUTH_METHOD must be email or google.");
     } else {
       supabase = {
         url: supabaseUrl,

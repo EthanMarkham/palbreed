@@ -30,6 +30,18 @@ describe("runtime configuration", () => {
     }).supabase?.signInMethod).toBe("email");
   });
 
+  it("rejects unsupported sign-in methods", () => {
+    const result = createRuntimeConfig({
+      VITE_SUPABASE_URL: "https://project.supabase.co",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+      VITE_SUPABASE_AUTH_METHOD: "discord",
+      VITE_LEGAL_CONTACT_EMAIL: "privacy@example.com",
+    });
+
+    expect(result.supabase).toBeUndefined();
+    expect(result.errors).toContain("VITE_SUPABASE_AUTH_METHOD must be email or google.");
+  });
+
   it("does not partially enable Supabase", () => {
     const result = createRuntimeConfig({
       VITE_SUPABASE_URL: "http://project.supabase.co",
