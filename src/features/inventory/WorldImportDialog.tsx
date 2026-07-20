@@ -179,7 +179,7 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
               </FileTrigger>
               <p className="privacy-note">
                 <LockIcon />
-                Your save stays on this device. Palpath reads it without changing any files.
+                Palpath never uploads raw save files. Signed-in accounts sync only normalized Pal records.
               </p>
 
               {status.kind !== "idle" && status.message ? (
