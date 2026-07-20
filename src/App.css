@@ -245,15 +245,11 @@
 }
 
 .inventory-workspace {
-  --inventory-top-gutter: 18px;
-
   display: flex;
   flex-direction: column;
   align-content: normal;
   padding-bottom: 20px;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-  scrollbar-gutter: stable;
+  overflow: hidden;
 }
 
 .inventory-workspace > .feature-hero,
@@ -1234,11 +1230,10 @@
 
 /* Inventory browser and import */
 .inventory-browser {
-  flex: 0 0 calc(100% + var(--inventory-top-gutter));
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 1;
   padding: 0;
   display: flex;
@@ -1523,8 +1518,12 @@
   gap: 12px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+  scrollbar-width: none;
   list-style: none;
+}
+
+.inventory-collection::-webkit-scrollbar {
+  display: none;
 }
 
 .inventory-collection > li {
@@ -2665,7 +2664,12 @@
 }
 
 @media (max-width: 620px) {
-  .inventory-workspace { --inventory-top-gutter: 10px; }
+  .inventory-workspace {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: none;
+  }
+  .inventory-workspace::-webkit-scrollbar { display: none; }
   .site-frame { grid-template-rows: 96px minmax(0, 1fr) 28px; }
   .site-header {
     width: min(calc(100% - 1.2rem), 1180px);
