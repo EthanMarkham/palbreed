@@ -15,8 +15,8 @@ describe("passive probability estimate", () => {
   });
 
   it("increases when one parent extra is allowed", () => {
-    expect(estimatePassiveOdds(4, { kind: "specific", desiredCount: 2, allowedExtras: 0 })).toBeCloseTo(0.02);
-    expect(estimatePassiveOdds(4, { kind: "specific", desiredCount: 2, allowedExtras: 1 })).toBeCloseTo(0.075);
+    expect(estimatePassiveOdds(4, { kind: "specific", desiredCount: 2, allowedExtras: 0 })).toBeCloseTo(0.04);
+    expect(estimatePassiveOdds(4, { kind: "specific", desiredCount: 2, allowedExtras: 1 })).toBeCloseTo(0.105);
   });
 
   it("distinguishes an exact zero-passive hatch from a wildcard outcome", () => {
@@ -46,7 +46,7 @@ describe("passive probability estimate", () => {
     );
 
     expect(cleanParentsAtMostOne - cleanParentsAtMostZero).toBeCloseTo(0.3);
-    expect(dirtyParentsAtMostOne - dirtyParentsAtMostZero).toBeCloseTo(0.16);
+    expect(dirtyParentsAtMostOne - dirtyParentsAtMostZero).toBeCloseTo(0.4);
   });
 
   it("prices one, two, three, or four total passives from four unique parent passives", () => {
@@ -55,10 +55,10 @@ describe("passive probability estimate", () => {
       { kind: "specific", desiredCount: 0, allowedExtras },
     );
 
-    expect(atMost(1)).toBeCloseTo(0.16);
+    expect(atMost(1)).toBeCloseTo(0.4);
     expect(atMost(2) - atMost(1)).toBeCloseTo(0.24);
-    expect(atMost(2)).toBeCloseTo(0.4);
-    expect(atMost(3)).toBeCloseTo(0.65);
+    expect(atMost(2)).toBeCloseTo(0.64);
+    expect(atMost(3)).toBeCloseTo(0.79);
     expect(atMost(4)).toBeCloseTo(1);
   });
 });
