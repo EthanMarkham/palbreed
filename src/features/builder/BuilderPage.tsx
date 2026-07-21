@@ -173,7 +173,7 @@ export default function BuilderPage({
             {isSolving ? "Finding route…" : "Find a breeding route"}
             {isSolving ? <span className="sr-only" role="status">Finding a breeding route. Activate to cancel.</span> : null}
           </button>
-          <p className="model-note">Each step pairs a Pal from the route with one from your selected world. Intermediate Pals may have extra passives when that lowers the average Cake cost. Estimates use regular Cake and don't include sex or lucky random matches.</p>
+          <p className="model-note">Each step pairs a Pal from the route with one from your selected world. Intermediate Pals may have extra passives when that lowers the average egg count. Estimates use regular Cake and don't include sex or lucky random matches.</p>
         </form>
 
         <div className="feature-card builder-result-card" aria-live="polite">
@@ -238,7 +238,7 @@ function BuilderResultView({
       <div className="build-summary">
         {target ? <PalAvatar pal={target} className="build-summary-avatar" /> : null}
         <div><span className="result-eyebrow">BREEDING ROUTE</span><h2>{target?.name}</h2><p>{passiveSummary}</p></div>
-        <div className="build-metrics"><span><strong>{result.steps.length}</strong>breedings</span><span><strong>{formatCakes(result.expectedCakes)}</strong>eggs on average</span></div>
+        <div className="build-metrics"><span><strong>{result.steps.length}</strong>breedings</span><span><strong>{formatEggs(result.expectedCakes)}</strong>eggs on average</span></div>
       </div>
 
       {result.steps.length ? (
@@ -257,7 +257,7 @@ function BuilderResultView({
                   <strong className="build-equation-result">{child?.name}</strong>
                 </div>
                 <div className="passive-line">Offspring: {resultPassives}</div>
-                <div className="odds-meter"><span style={{ width: `${Math.max(2, step.odds * 100)}%` }} /><small>{formatOdds(step.odds)} estimated chance · about {formatCakes(step.expectedCakes)} cakes</small></div>
+                <div className="odds-meter"><span style={{ width: `${Math.max(2, step.odds * 100)}%` }} /><small>{formatOdds(step.odds)} estimated chance · about {formatEggs(step.expectedCakes)} eggs</small></div>
               </article>
             );
           })}
@@ -272,7 +272,7 @@ function formatOdds(value: number) {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-function formatCakes(value: number) {
+function formatEggs(value: number) {
   return value < 10 ? value.toFixed(1) : Math.round(value).toString();
 }
 

@@ -149,8 +149,8 @@ describe("Pal Builder", () => {
     expect(result.status).toBe("found");
     if (result.status === "found") {
       expect(result.steps).toHaveLength(1);
-      expect(result.steps[0].odds).toBeCloseTo(0.08);
-      expect(result.expectedCakes).toBeCloseTo(12.5);
+      expect(result.steps[0].odds).toBeCloseTo(0.2);
+      expect(result.expectedCakes).toBeCloseTo(5);
     }
   });
 
@@ -224,14 +224,14 @@ describe("Pal Builder", () => {
     expect(result.status).toBe("found");
     if (result.status === "found") {
       expect(result.steps[0].resultPassives).toEqual({ kind: "bounded", ids: [], maxExtras: 1 });
-      expect(result.steps[0].odds).toBeCloseTo(0.16);
-      expect(result.steps[0].expectedCakes).toBeCloseTo(6.25);
+      expect(result.steps[0].odds).toBeCloseTo(0.4);
+      expect(result.steps[0].expectedCakes).toBeCloseTo(2.5);
     }
   });
 
   it.each([
-    { allowedFinalExtras: 0 as const, expectedBridgeExtras: 1, expectedBridgeOdds: 0.16, expectedCakes: 18.75 },
-    { allowedFinalExtras: 1 as const, expectedBridgeExtras: 2, expectedBridgeOdds: 0.4, expectedCakes: 8.269230769 },
+    { allowedFinalExtras: 0 as const, expectedBridgeExtras: 1, expectedBridgeOdds: 0.4, expectedCakes: 7.5 },
+    { allowedFinalExtras: 1 as const, expectedBridgeExtras: 1, expectedBridgeOdds: 0.4, expectedCakes: 4.772727273 },
   ])(
     "chooses the globally cheaper bridge when the final build allows $allowedFinalExtras extras",
     ({ allowedFinalExtras, expectedBridgeExtras, expectedBridgeOdds, expectedCakes }) => {
