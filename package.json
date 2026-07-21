@@ -25,6 +25,7 @@
     "@mui/material": "^9.2.0",
     "@supabase/supabase-js": "^2.110.7",
     "@tanstack/react-router": "^1.170.18",
+    "@vercel/analytics": "^2.0.1",
     "ooz-wasm": "^2.0.0",
     "react": "^18.2.0",
     "react-aria-components": "^1.19.0",
