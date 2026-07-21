@@ -101,7 +101,12 @@ export default function SyncSignIn() {
 
   return (
     <DialogTrigger>
-      <Button className="sync-sign-in-trigger">{user ? "Sync on" : "Sign in"}</Button>
+      <Button
+        className="sync-sign-in-trigger"
+        aria-label={user ? "Open account settings" : "Sign in to your account"}
+      >
+        <AccountIcon />
+      </Button>
       <ModalOverlay className="sync-sign-in-overlay" isDismissable>
         <Modal className="sync-sign-in-modal">
           <Dialog className="sync-sign-in-dialog">
@@ -155,6 +160,15 @@ export default function SyncSignIn() {
         </Modal>
       </ModalOverlay>
     </DialogTrigger>
+  );
+}
+
+function AccountIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5.5 20c.45-4 2.62-6 6.5-6s6.05 2 6.5 6" />
+    </svg>
   );
 }
 

@@ -93,14 +93,32 @@
 
 .header-actions { justify-self: end; display: flex; align-items: center; gap: 9px; }
 .sync-sign-in-trigger {
-  min-height: 32px;
-  padding: 0.45rem 0.72rem;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: 50%;
   color: var(--ink);
   background: rgba(255, 255, 255, 0.72);
-  font: 700 0.58rem/1 "Space Grotesk", sans-serif;
   cursor: pointer;
+}
+.sync-sign-in-trigger:hover,
+.sync-sign-in-trigger[data-focus-visible] {
+  color: var(--teal-dark);
+  border-color: rgba(35, 133, 109, 0.42);
+  background: var(--paper-strong);
+  outline: none;
+}
+.sync-sign-in-trigger svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .sync-sign-in-overlay {
   position: fixed;
@@ -2703,30 +2721,35 @@
 }
 
 @media (max-width: 620px) {
-  .inventory-workspace {
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    scrollbar-width: none;
+  #root { overflow-y: auto; }
+  .site-frame {
+    height: auto;
+    min-height: 100svh;
+    grid-template-rows: 56px auto 28px;
+    overflow: visible;
   }
-  .inventory-workspace::-webkit-scrollbar { display: none; }
-  .site-frame { grid-template-rows: 96px minmax(0, 1fr) 28px; }
   .site-header {
     width: min(calc(100% - 1.2rem), 1180px);
-    padding: 4px 0 6px;
-    grid-template-columns: 1fr;
-    grid-template-rows: 36px 44px;
-    gap: 4px;
+    min-width: 0;
+    padding: 6px 0;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: 44px;
+    gap: 8px;
   }
   .brand-logo-frame { width: 40px; height: 30px; }
-  .brand-name { font-size: 0.7rem; }
+  .brand { gap: 0; }
+  .brand-name { display: none; }
   .site-nav {
-    width: 100%;
-    justify-self: stretch;
+    width: auto;
+    max-width: 100%;
+    justify-self: center;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0;
   }
-  .site-nav a { min-height: 36px; padding: 0.46rem 0.43rem; font-size: 0.62rem; }
+  .site-nav a { min-height: 34px; padding: 0.42rem clamp(0.38rem, 2.4vw, 0.65rem); font-size: 0.6rem; }
+  .header-actions { gap: 0; }
+  .sync-sign-in-trigger { width: 34px; height: 34px; }
   .feature-workspace { width: min(calc(100% - 1.2rem), 1180px); padding-top: 10px; }
   .site-footer { width: min(calc(100% - 1.2rem), 1180px); }
   .site-footer span { display: none; }
@@ -2735,7 +2758,9 @@
   .feature-hero p { font-size: 0.72rem; }
   .hero-index { right: 12px; font-size: 6.4rem; }
   .feature-card { padding: 15px; border-radius: 16px; }
-  .inventory-browser { padding: 0; }
+  .inventory-workspace { overflow: visible; }
+  .inventory-browser { flex: none; padding: 0; overflow: visible; }
+  .inventory-browser-content { overflow: visible; }
   .inventory-browser-toolbar { grid-template-columns: minmax(0, 1fr) auto; padding: 12px; }
   .inventory-world-select { grid-column: 1 / -1; }
   .inventory-world-select,
@@ -2744,7 +2769,7 @@
   .inventory-collection-header { min-height: 0; padding: 16px 14px; align-items: flex-end; }
   .inventory-collection-header p { white-space: normal; }
   .inventory-result-count { min-width: 0; }
-  .inventory-collection { padding: 10px 10px 12px; }
+  .inventory-collection { padding: 10px 10px 12px; overflow: visible; }
   .inventory-empty { margin: 10px; }
   .inventory-import-overlay { padding: 10px; align-items: end; }
   .inventory-import-modal { max-height: calc(100svh - 20px); border-radius: 18px; }
