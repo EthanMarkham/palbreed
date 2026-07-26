@@ -12,9 +12,8 @@ import {
   builderHistoryService,
   getBuilderHistoryKey,
   type BuilderHistoryEntry,
-  type PopularBuilderSearch,
 } from "./builderHistory";
-import { useBuilderHistory, usePopularBuilderSearches } from "./useBuilderHistory";
+import { useBuilderHistory } from "./useBuilderHistory";
 
 type BuilderHistoryMenuProps = {
   onSelect: (entry: BuilderHistoryEntry) => void;
@@ -29,7 +28,6 @@ const historyDateFormatter = new Intl.DateTimeFormat(undefined, {
 
 export default function BuilderHistoryMenu({ onSelect }: BuilderHistoryMenuProps) {
   const entries = useBuilderHistory();
-  const popularEntries = usePopularBuilderSearches();
 
   return (
     <DialogTrigger>
@@ -74,54 +72,12 @@ export default function BuilderHistoryMenu({ onSelect }: BuilderHistoryMenuProps
             </div>
           )}
 
-          {popularEntries.length ? (
-            <section className="builder-popular">
-              <Heading>Most searched</Heading>
-              <ul className="builder-history-list">
-                {popularEntries.map((entry) => (
-                  <PopularRow
-                    key={getBuilderHistoryKey(entry)}
-                    entry={entry}
-                    onSelect={onSelect}
-                  />
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
           <p className="builder-history-note">
             Up to eight recent builds are synced. Anonymous history moves to your account when you sign in.
           </p>
         </Dialog>
       </Popover>
     </DialogTrigger>
-  );
-}
-
-function PopularRow({
-  entry,
-  onSelect,
-}: {
-  entry: PopularBuilderSearch;
-  onSelect: (entry: BuilderHistoryEntry) => void;
-}) {
-  const target = breedingRepository.getPal(entry.targetId);
-  const passiveSummary = entry.passives === "any"
-    ? "Passives don't matter"
-    : entry.passives.map((id) => passiveRepository.get(id)?.name ?? id).join(" · ");
-
-  return (
-    <li>
-      <Button slot="close" className="builder-history-entry" onPress={() => onSelect(entry)}>
-        <span className="builder-history-pal">{target ? <PalAvatar pal={target} /> : null}</span>
-        <span className="builder-history-copy">
-          <strong>{target?.name ?? entry.targetId}</strong>
-          <span>{passiveSummary}</span>
-          <small>{entry.searchCount.toLocaleString()} searches</small>
-        </span>
-        <ChevronIcon />
-      </Button>
-    </li>
   );
 }
 
