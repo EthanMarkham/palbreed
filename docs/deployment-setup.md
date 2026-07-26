@@ -24,14 +24,18 @@ configuration.
 Email magic links remain available whenever Supabase is configured. To also
 offer Google sign-in:
 
-1. Create a Google OAuth client for a Web application.
-2. Add the production origin and local development origin to Google's
+1. In Supabase Dashboard > Authentication > URL Configuration, set the Site URL
+   to `https://palpath.app` and add `https://palpath.app/**` to Redirect URLs.
+   Add `http://localhost:5173/**` for local development. Do not use the GitHub
+   Pages or Vercel deployment URL as the production Site URL.
+2. Create a Google OAuth client for a Web application.
+3. Add the production origin and local development origin to Google's
    authorized JavaScript origins.
-3. Add `https://<project-ref>.supabase.co/auth/v1/callback` to Google's
+4. Add `https://<project-ref>.supabase.co/auth/v1/callback` to Google's
    authorized redirect URIs.
-4. Enable Google in Supabase Dashboard > Authentication > Sign In / Providers
+5. Enable Google in Supabase Dashboard > Authentication > Sign In / Providers
    and store the client ID and secret there. Do not put the secret in Vercel.
-5. Set `VITE_SUPABASE_AUTH_METHOD=google` and redeploy.
+6. Set `VITE_SUPABASE_AUTH_METHOD=google` and redeploy.
 
 The repository intentionally does not manage hosted Google credentials in
 `supabase/config.toml`; the Supabase Dashboard remains authoritative for that
