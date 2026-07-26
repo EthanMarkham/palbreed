@@ -260,7 +260,16 @@ function sanitizeImportedPal(pal: OwnedPal): OwnedPal | undefined {
     playerId: pal.playerId,
     nickname: pal.nickname,
     level: pal.level,
+    abilityScores: sanitizeAbilityScores(pal.abilityScores),
   };
+}
+
+function sanitizeAbilityScores(scores: OwnedPal["abilityScores"]) {
+  if (!scores) return undefined;
+  const values = [scores.hp, scores.melee, scores.ranged, scores.defense];
+  return values.every((value) => Number.isInteger(value) && value >= 0 && value <= 100)
+    ? scores
+    : undefined;
 }
 
 function mergeDocuments(

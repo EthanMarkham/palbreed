@@ -15,6 +15,12 @@ const ownedPalSchema = z.object({
   playerId: z.string().optional(),
   nickname: z.string().optional(),
   level: z.number().optional(),
+  abilityScores: z.object({
+    hp: z.number().int().min(0).max(100),
+    melee: z.number().int().min(0).max(100),
+    ranged: z.number().int().min(0).max(100),
+    defense: z.number().int().min(0).max(100),
+  }).optional(),
 });
 
 const inventoryProfileSchema = z.object({
@@ -93,6 +99,7 @@ function toPalRecord(pal: OwnedPal) {
     playerId: pal.playerId,
     nickname: pal.nickname,
     level: pal.level,
+    abilityScores: pal.abilityScores,
   };
 }
 

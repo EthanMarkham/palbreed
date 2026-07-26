@@ -5,6 +5,12 @@ export interface RawSavePal {
   instanceId?: string;
   nickname?: string;
   level?: number;
+  abilityScores?: {
+    hp: number;
+    melee: number;
+    ranged: number;
+    defense: number;
+  };
 }
 
 export interface RawSavePlayer {
@@ -28,7 +34,25 @@ export function normalizePalsFromParsedSave(root: unknown): RawSavePal[] {
       stringValue(findNamedValue(parameter, "NickName"))
       ?? stringValue(findNamedValue(parameter, "Nickname")),
     level: numberValue(findNamedValue(parameter, "Level")),
+    abilityScores: readAbilityScores(parameter),
   }));
+}
+
+function readAbilityScores(parameter: unknown): RawSavePal["abilityScores"] {
+  const hp = abilityScore(parameter, "Talent_HP");
+  const melee = abilityScore(parameter, "Talent_Melee");
+  const ranged = abilityScore(parameter, "Talent_Shot");
+  const defense = abilityScore(parameter, "Talent_Defense");
+  return hp === undefined || melee === undefined || ranged === undefined || defense === undefined
+    ? undefined
+    : { hp, melee, ranged, defense };
+}
+
+function abilityScore(parameter: unknown, field: string) {
+  const value = numberValue(findNamedValue(parameter, field));
+  return value !== undefined && Number.isInteger(value) && value >= 0 && value <= 100
+    ? value
+    : undefined;
 }
 
 export function normalizePlayersFromParsedSave(root: unknown): RawSavePlayer[] {

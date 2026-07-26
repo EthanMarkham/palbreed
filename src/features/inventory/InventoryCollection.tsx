@@ -52,7 +52,7 @@ export default function InventoryCollection({
         <div className="empty-state inventory-empty">
           <SearchIcon />
           <strong>No Pals match “{query?.trim()}”</strong>
-          <span>Try a nickname, Pal name, passive, level, sex, or location.</span>
+          <span>Try a nickname, Pal name, passive, ability score, level, sex, or location.</span>
           <Button className="secondary-button compact-button" onPress={onQueryClear}>
             Clear search
           </Button>
@@ -128,6 +128,17 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
           <dd>{formatLocation(pal.location)}</dd>
         </div>
       </dl>
+
+      {pal.abilityScores ? (
+        <div className="inventory-abilities">
+          <span className="inventory-card-label">Ability scores</span>
+          <dl>
+            <div><dt>HP</dt><dd>{pal.abilityScores.hp}</dd></div>
+            <div><dt>Attack</dt><dd>{pal.abilityScores.ranged}</dd></div>
+            <div><dt>Defense</dt><dd>{pal.abilityScores.defense}</dd></div>
+          </dl>
+        </div>
+      ) : null}
 
       <div className="inventory-passives">
         <span className="inventory-card-label">Passives</span>

@@ -91,6 +91,7 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
         playerId,
         nickname: candidate.nickname || undefined,
         level: candidate.level || undefined,
+        abilityScores: candidate.abilityScores,
       };
       const existing = palsByInstance.get(normalizedInstance);
       palsByInstance.set(normalizedInstance, existing && locationPriority(existing.location) > locationPriority(location)

@@ -19,6 +19,10 @@ describe("normalizePalsFromParsedSave", () => {
                         Level_0: 42,
                         NickName_0: "Mochi",
                         PassiveSkillList_0: ["CraftSpeed_up3", "Vampire"],
+                        Talent_HP_0: 100,
+                        Talent_Melee_0: 27,
+                        Talent_Shot_0: 88,
+                        Talent_Defense_0: 61,
                       },
                     },
                   },
@@ -38,6 +42,7 @@ describe("normalizePalsFromParsedSave", () => {
         instanceId: "fa2f9a90-310f-4bd1-beb4-984dc17f8991",
         nickname: "Mochi",
         level: 42,
+        abilityScores: { hp: 100, melee: 27, ranged: 88, defense: 61 },
       },
     ]);
   });

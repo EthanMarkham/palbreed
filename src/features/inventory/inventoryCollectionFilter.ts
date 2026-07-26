@@ -28,6 +28,9 @@ function getSearchText(pal: OwnedPal): string {
     pal.gender === "F" ? "female" : "male",
     pal.level ? `level ${pal.level}` : "",
     pal.location.replace(/-/g, " "),
+    pal.abilityScores
+      ? `hp ${pal.abilityScores.hp} attack ${pal.abilityScores.ranged} defense ${pal.abilityScores.defense}`
+      : "",
     ...passives,
   ].join(" ").toLocaleLowerCase();
 }

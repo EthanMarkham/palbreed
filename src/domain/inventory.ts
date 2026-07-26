@@ -8,6 +8,13 @@ export type InventoryOwner =
   | { kind: "anonymous"; id: string }
   | { kind: "account"; id: string };
 
+export type PalAbilityScores = {
+  hp: number;
+  melee: number;
+  ranged: number;
+  defense: number;
+};
+
 export type OwnedPal = {
   id: string;
   sourceInstanceId: string;
@@ -19,6 +26,7 @@ export type OwnedPal = {
   playerId?: string;
   nickname?: string;
   level?: number;
+  abilityScores?: PalAbilityScores;
 };
 
 export type InventoryProfile = {
