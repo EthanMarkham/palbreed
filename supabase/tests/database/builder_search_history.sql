@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(23);
+select plan(27);
 
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
@@ -176,6 +176,31 @@ select is(
   'clearing removes all account history rows'
 );
 
+select ok(
+  exists (
+    select 1
+    from public.list_popular_builder_searches(8)
+    where target_pal_id = 'lamball'
+      and passive_ids = array['Legend', 'Swift']
+      and search_count = 3
+  ),
+  'cleared recent searches remain in aggregate popularity results'
+);
+
+select lives_ok(
+  $$ select public.record_builder_search(
+    'lamball', '{}'::text[], 'recommended', 0, null
+  ) $$,
+  'searching after a clear creates a fresh recent row'
+);
+
+select results_eq(
+  $$ select target_pal_id, passive_ids
+    from public.list_recent_builder_searches(null, 8) $$,
+  $$ values ('lamball'::text, '{}'::text[]) $$,
+  'recent lookup does not resurrect rows removed before the new search'
+);
+
 select throws_ok(
   $$ select count(*) from public.builder_search_history $$,
   '42501',
@@ -190,6 +215,13 @@ select has_index(
   'builder_search_history',
   'builder_search_history_user_recent_idx',
   'account recent-history reads have a matching ordered index'
+);
+
+select has_index(
+  'public',
+  'builder_search_history',
+  'builder_search_history_session_recent_idx',
+  'anonymous recent-history reads have a matching ordered index'
 );
 
 select has_index(

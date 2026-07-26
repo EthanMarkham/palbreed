@@ -4,6 +4,7 @@ import type { Database } from "../../services/supabase/database.types";
 import type {
   BuilderHistoryBackend,
   BuilderHistoryEntry,
+  PopularBuilderSearch,
 } from "./builderHistory";
 
 const historyRowSchema = z.object({
@@ -11,6 +12,13 @@ const historyRowSchema = z.object({
   passive_ids: z.array(z.string()),
   objective: z.enum(["recommended", "fewest", "cleanest"]),
   allowed_extra_passives: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  searched_at: z.string(),
+});
+
+const popularRowSchema = z.object({
+  target_pal_id: z.string(),
+  passive_ids: z.array(z.string()),
+  search_count: z.number().int().positive(),
   searched_at: z.string(),
 });
 
@@ -37,6 +45,21 @@ export class SupabaseBuilderHistoryBackend implements BuilderHistoryBackend {
     });
     if (error) throw requestError("load recent builds", error);
     return historyRowSchema.array().parse(data).map(toHistoryEntry);
+  }
+
+  async listPopular(): Promise<readonly PopularBuilderSearch[]> {
+    const { data, error } = await this.client.rpc("list_popular_builder_searches", {
+      result_limit: 8,
+    });
+    if (error) throw requestError("load popular builds", error);
+    return popularRowSchema.array().parse(data).map((row) => ({
+      targetId: row.target_pal_id,
+      passives: row.passive_ids.length ? row.passive_ids : "any",
+      objective: "recommended",
+      allowedExtras: 0,
+      searchedAt: row.searched_at,
+      searchCount: row.search_count,
+    }));
   }
 
   async record(entry: BuilderHistoryEntry, anonymousSessionToken?: string) {

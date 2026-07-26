@@ -53,6 +53,15 @@ export type Database = {
           searched_at: string;
         }>;
       };
+      list_popular_builder_searches: {
+        Args: { result_limit?: number };
+        Returns: Array<{
+          target_pal_id: string;
+          passive_ids: string[];
+          search_count: number;
+          searched_at: string;
+        }>;
+      };
       delete_recent_builder_search: {
         Args: {
           search_target_pal_id: string;

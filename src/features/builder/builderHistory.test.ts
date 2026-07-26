@@ -51,6 +51,10 @@ class MemoryBackend implements BuilderHistoryBackend {
     return Promise.resolve(this.authenticated ? this.accountEntries : this.anonymousEntries.get(token ?? "") ?? []);
   }
 
+  listPopular() {
+    return Promise.resolve([]);
+  }
+
   record(entry: BuilderHistoryEntry, token?: string) {
     if (this.authenticated) this.accountEntries = mergeBuilderHistory(this.accountEntries, entry);
     else this.anonymousEntries.set(token ?? "", mergeBuilderHistory(this.anonymousEntries.get(token ?? "") ?? [], entry));

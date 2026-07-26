@@ -21,10 +21,15 @@ export type BuilderHistoryEntry = Readonly<{
   searchedAt: string;
 }>;
 
+export type PopularBuilderSearch = BuilderHistoryEntry & Readonly<{
+  searchCount: number;
+}>;
+
 export type BuilderHistoryBackend = {
   isAuthenticated(): Promise<boolean>;
   subscribeToAuth(listener: (authenticated: boolean) => void): () => void;
   list(anonymousSessionToken?: string): Promise<readonly BuilderHistoryEntry[]>;
+  listPopular(): Promise<readonly PopularBuilderSearch[]>;
   record(entry: BuilderHistoryEntry, anonymousSessionToken?: string): Promise<void>;
   remove(entry: BuilderHistoryEntry, anonymousSessionToken?: string): Promise<void>;
   clear(anonymousSessionToken?: string): Promise<void>;
@@ -43,6 +48,7 @@ type BackendLoader = () => Promise<BuilderHistoryBackend | undefined>;
 export class BuilderHistoryService {
   private readonly listeners = new Set<Listener>();
   private entries: readonly BuilderHistoryEntry[] = [];
+  private popularEntries: readonly PopularBuilderSearch[] = [];
   private backend: BuilderHistoryBackend | undefined;
   private authenticated = false;
   private started = false;
@@ -55,6 +61,7 @@ export class BuilderHistoryService {
   ) {}
 
   getSnapshot = (): readonly BuilderHistoryEntry[] => this.entries;
+  getPopularSnapshot = (): readonly PopularBuilderSearch[] => this.popularEntries;
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -152,7 +159,12 @@ export class BuilderHistoryService {
     const backend = this.backend;
     if (!backend) return;
     const token = this.authenticated ? undefined : this.sessionStore.getOrCreate();
-    this.update(normalizeBuilderHistory(await backend.list(token)));
+    const [entries, popularEntries] = await Promise.all([
+      backend.list(token),
+      backend.listPopular(),
+    ]);
+    this.popularEntries = normalizePopularBuilderSearches(popularEntries);
+    this.update(normalizeBuilderHistory(entries));
   }
 
   private update(entries: readonly BuilderHistoryEntry[]) {
@@ -243,6 +255,16 @@ export function normalizeBuilderHistory(
   }
 
   return normalized;
+}
+
+export function normalizePopularBuilderSearches(
+  entries: readonly PopularBuilderSearch[],
+): readonly PopularBuilderSearch[] {
+  const counts = new Map(entries.map((entry) => [getBuilderHistoryKey(entry), entry.searchCount]));
+  return normalizeBuilderHistory(entries).map((entry) => ({
+    ...entry,
+    searchCount: counts.get(getBuilderHistoryKey(entry)) ?? 1,
+  }));
 }
 
 function normalizePassives(value: "any" | readonly string[]): "any" | readonly PassiveId[] | undefined {
