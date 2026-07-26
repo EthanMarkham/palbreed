@@ -9,6 +9,7 @@ import GenderBadge from "../../components/GenderBadge";
 import PalAvatar from "../../components/PalAvatar";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
+import { getPalCombatStats } from "../../data/palStatsRepository";
 import type { InventoryProfile, OwnedPal } from "../../domain/inventory";
 import {
   getInventoryPalName,
@@ -52,7 +53,7 @@ export default function InventoryCollection({
         <div className="empty-state inventory-empty">
           <SearchIcon />
           <strong>No Pals match “{query?.trim()}”</strong>
-          <span>Try a nickname, Pal name, passive, ability score, level, sex, or location.</span>
+          <span>Try a name, passive, stat, level, sex, or location.</span>
           <Button className="secondary-button compact-button" onPress={onQueryClear}>
             Clear search
           </Button>
@@ -60,7 +61,7 @@ export default function InventoryCollection({
       ) : (
         <div className="empty-state inventory-empty">
           <strong>No Pals found in this world</strong>
-          <span>If Palworld was still saving, wait a moment and import the world again.</span>
+          <span>Try importing this world again after Palworld finishes saving.</span>
         </div>
       )}
     </>
@@ -101,6 +102,7 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
   const displayName = getInventoryPalName(pal);
   const speciesName = getInventoryPalSpeciesName(pal);
   const passives = passiveRepository.resolve(pal.passiveIds);
+  const combatStats = getPalCombatStats(pal);
 
   return (
     <article className="inventory-pal-card">
@@ -129,16 +131,21 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
         </div>
       </dl>
 
-      {pal.abilityScores ? (
-        <div className="inventory-abilities">
-          <span className="inventory-card-label">Ability scores</span>
+      {combatStats ? (
+        <div
+          className="inventory-combat-stats"
+          title={`Core stats at level ${pal.level}, before passive and enhancement bonuses`}
+        >
+          <span className="inventory-card-label">Combat</span>
           <dl>
-            <div><dt>HP</dt><dd>{pal.abilityScores.hp}</dd></div>
-            <div><dt>Attack</dt><dd>{pal.abilityScores.ranged}</dd></div>
-            <div><dt>Defense</dt><dd>{pal.abilityScores.defense}</dd></div>
+            <div><dt>HP</dt><dd>{combatStats.hp.toLocaleString()}</dd></div>
+            <div><dt>Attack</dt><dd>{combatStats.attack.toLocaleString()}</dd></div>
+            <div><dt>Defense</dt><dd>{combatStats.defense.toLocaleString()}</dd></div>
           </dl>
         </div>
       ) : null}
+
+      {pal.abilityScores ? <AbilityScoreStrip scores={pal.abilityScores} /> : null}
 
       <div className="inventory-passives">
         <span className="inventory-card-label">Passives</span>
@@ -150,6 +157,37 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
       </div>
     </article>
   );
+}
+
+function AbilityScoreStrip({ scores }: { scores: NonNullable<OwnedPal["abilityScores"]> }) {
+  const values = [
+    ["HP", scores.hp],
+    ["Attack", scores.ranged],
+    ["Defense", scores.defense],
+    ["Melee", scores.melee],
+  ] as const;
+
+  return (
+    <div className="inventory-potential" title="Hidden stat scores, from 0 to 100">
+      <span className="inventory-card-label">
+        Potential <em>IV</em>
+      </span>
+      <dl>
+        {values.map(([label, value]) => (
+          <div key={label} data-tier={getPotentialTier(value)}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function getPotentialTier(value: number) {
+  if (value >= 90) return "exceptional";
+  if (value >= 70) return "strong";
+  return "standard";
 }
 
 function RemoveWorldButton({

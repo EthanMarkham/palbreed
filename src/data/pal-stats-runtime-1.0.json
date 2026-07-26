@@ -1,0 +1,1504 @@
+{
+  "metadata": {
+    "gameVersion": "1.0",
+    "source": "PalCalc.Model/db.json",
+    "sourceCommit": "be2ec7a95c521dea6591469c051e7cb0f6658065"
+  },
+  "stats": {
+    "aegidron": {
+      "hp": 105,
+      "attack": 125,
+      "defense": 140
+    },
+    "amione": {
+      "hp": 65,
+      "attack": 70,
+      "defense": 65
+    },
+    "anubis": {
+      "hp": 120,
+      "attack": 130,
+      "defense": 100
+    },
+    "arsox": {
+      "hp": 85,
+      "attack": 95,
+      "defense": 95
+    },
+    "astegon": {
+      "hp": 100,
+      "attack": 125,
+      "defense": 125
+    },
+    "azurmane": {
+      "hp": 130,
+      "attack": 120,
+      "defense": 110
+    },
+    "azurobe": {
+      "hp": 110,
+      "attack": 100,
+      "defense": 100
+    },
+    "azurobe-cryst": {
+      "hp": 115,
+      "attack": 105,
+      "defense": 105
+    },
+    "bakemi": {
+      "hp": 70,
+      "attack": 85,
+      "defense": 80
+    },
+    "bastigor": {
+      "hp": 140,
+      "attack": 130,
+      "defense": 120
+    },
+    "beakon": {
+      "hp": 105,
+      "attack": 115,
+      "defense": 80
+    },
+    "beakon-cryst": {
+      "hp": 105,
+      "attack": 115,
+      "defense": 85
+    },
+    "beegarde": {
+      "hp": 80,
+      "attack": 90,
+      "defense": 90
+    },
+    "bellanoir": {
+      "hp": 120,
+      "attack": 150,
+      "defense": 100
+    },
+    "bellanoir-libero": {
+      "hp": 120,
+      "attack": 150,
+      "defense": 100
+    },
+    "blazamut": {
+      "hp": 100,
+      "attack": 125,
+      "defense": 120
+    },
+    "blazamut-ryu": {
+      "hp": 105,
+      "attack": 130,
+      "defense": 125
+    },
+    "blazehowl": {
+      "hp": 105,
+      "attack": 110,
+      "defense": 80
+    },
+    "blazehowl-noct": {
+      "hp": 105,
+      "attack": 115,
+      "defense": 80
+    },
+    "blue-slime": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 80
+    },
+    "braloha": {
+      "hp": 130,
+      "attack": 95,
+      "defense": 120
+    },
+    "bristla": {
+      "hp": 80,
+      "attack": 80,
+      "defense": 80
+    },
+    "broncherry": {
+      "hp": 120,
+      "attack": 90,
+      "defense": 100
+    },
+    "broncherry-aqua": {
+      "hp": 120,
+      "attack": 95,
+      "defense": 100
+    },
+    "bulldosu": {
+      "hp": 115,
+      "attack": 95,
+      "defense": 100
+    },
+    "bushi": {
+      "hp": 80,
+      "attack": 125,
+      "defense": 80
+    },
+    "bushi-noct": {
+      "hp": 80,
+      "attack": 130,
+      "defense": 80
+    },
+    "caprity": {
+      "hp": 100,
+      "attack": 70,
+      "defense": 90
+    },
+    "caprity-noct": {
+      "hp": 100,
+      "attack": 75,
+      "defense": 90
+    },
+    "carnibora": {
+      "hp": 85,
+      "attack": 90,
+      "defense": 85
+    },
+    "cattiva": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 70
+    },
+    "cave-bat": {
+      "hp": 65,
+      "attack": 75,
+      "defense": 80
+    },
+    "cawgnito": {
+      "hp": 75,
+      "attack": 95,
+      "defense": 80
+    },
+    "celaray": {
+      "hp": 80,
+      "attack": 70,
+      "defense": 80
+    },
+    "celaray-lux": {
+      "hp": 80,
+      "attack": 75,
+      "defense": 80
+    },
+    "celesdir": {
+      "hp": 120,
+      "attack": 110,
+      "defense": 100
+    },
+    "celesdir-noct": {
+      "hp": 120,
+      "attack": 115,
+      "defense": 100
+    },
+    "chikipi": {
+      "hp": 60,
+      "attack": 60,
+      "defense": 60
+    },
+    "chillet": {
+      "hp": 90,
+      "attack": 80,
+      "defense": 80
+    },
+    "chillet-ignis": {
+      "hp": 90,
+      "attack": 85,
+      "defense": 80
+    },
+    "cinnamoth": {
+      "hp": 70,
+      "attack": 80,
+      "defense": 80
+    },
+    "clovee": {
+      "hp": 80,
+      "attack": 65,
+      "defense": 65
+    },
+    "cremis": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 75
+    },
+    "croajiro": {
+      "hp": 80,
+      "attack": 100,
+      "defense": 85
+    },
+    "croajiro-noct": {
+      "hp": 85,
+      "attack": 110,
+      "defense": 90
+    },
+    "cryolinx": {
+      "hp": 100,
+      "attack": 100,
+      "defense": 110
+    },
+    "cryolinx-terra": {
+      "hp": 100,
+      "attack": 105,
+      "defense": 110
+    },
+    "daedream": {
+      "hp": 70,
+      "attack": 75,
+      "defense": 60
+    },
+    "dandilord": {
+      "hp": 125,
+      "attack": 135,
+      "defense": 110
+    },
+    "dazemu": {
+      "hp": 95,
+      "attack": 90,
+      "defense": 80
+    },
+    "dazzi": {
+      "hp": 70,
+      "attack": 80,
+      "defense": 70
+    },
+    "dazzi-noct": {
+      "hp": 70,
+      "attack": 80,
+      "defense": 75
+    },
+    "demon-eye": {
+      "hp": 105,
+      "attack": 110,
+      "defense": 95
+    },
+    "depresso": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 70
+    },
+    "digtoise": {
+      "hp": 80,
+      "attack": 95,
+      "defense": 120
+    },
+    "dinossom": {
+      "hp": 110,
+      "attack": 85,
+      "defense": 90
+    },
+    "dinossom-lux": {
+      "hp": 110,
+      "attack": 90,
+      "defense": 90
+    },
+    "direhowl": {
+      "hp": 80,
+      "attack": 90,
+      "defense": 75
+    },
+    "dogen": {
+      "hp": 90,
+      "attack": 100,
+      "defense": 100
+    },
+    "dualith": {
+      "hp": 110,
+      "attack": 105,
+      "defense": 125
+    },
+    "dualith-noct": {
+      "hp": 110,
+      "attack": 110,
+      "defense": 125
+    },
+    "dumud": {
+      "hp": 100,
+      "attack": 70,
+      "defense": 95
+    },
+    "dumud-gild": {
+      "hp": 105,
+      "attack": 75,
+      "defense": 100
+    },
+    "dupin": {
+      "hp": 100,
+      "attack": 110,
+      "defense": 100
+    },
+    "dynamoff": {
+      "hp": 75,
+      "attack": 85,
+      "defense": 80
+    },
+    "eidrolon": {
+      "hp": 115,
+      "attack": 125,
+      "defense": 120
+    },
+    "eidrolon-ignis": {
+      "hp": 115,
+      "attack": 130,
+      "defense": 120
+    },
+    "eikthyrdeer": {
+      "hp": 95,
+      "attack": 80,
+      "defense": 80
+    },
+    "eikthyrdeer-terra": {
+      "hp": 95,
+      "attack": 80,
+      "defense": 80
+    },
+    "elgrove": {
+      "hp": 110,
+      "attack": 105,
+      "defense": 105
+    },
+    "elgrove-cryst": {
+      "hp": 120,
+      "attack": 100,
+      "defense": 105
+    },
+    "elizabee": {
+      "hp": 90,
+      "attack": 105,
+      "defense": 100
+    },
+    "elphidran": {
+      "hp": 110,
+      "attack": 80,
+      "defense": 90
+    },
+    "elphidran-aqua": {
+      "hp": 115,
+      "attack": 80,
+      "defense": 95
+    },
+    "enchanted-sword": {
+      "hp": 95,
+      "attack": 105,
+      "defense": 90
+    },
+    "eye-of-cthulhu": {
+      "hp": 110,
+      "attack": 105,
+      "defense": 95
+    },
+    "faleris": {
+      "hp": 105,
+      "attack": 110,
+      "defense": 115
+    },
+    "faleris-aqua": {
+      "hp": 110,
+      "attack": 110,
+      "defense": 115
+    },
+    "felbat": {
+      "hp": 100,
+      "attack": 105,
+      "defense": 110
+    },
+    "fenglope": {
+      "hp": 110,
+      "attack": 110,
+      "defense": 90
+    },
+    "fenglope-lux": {
+      "hp": 110,
+      "attack": 115,
+      "defense": 90
+    },
+    "finsider": {
+      "hp": 75,
+      "attack": 85,
+      "defense": 80
+    },
+    "finsider-ignis": {
+      "hp": 75,
+      "attack": 90,
+      "defense": 80
+    },
+    "flambelle": {
+      "hp": 60,
+      "attack": 70,
+      "defense": 80
+    },
+    "flaracle": {
+      "hp": 110,
+      "attack": 125,
+      "defense": 105
+    },
+    "flopie": {
+      "hp": 75,
+      "attack": 65,
+      "defense": 70
+    },
+    "foxcicle": {
+      "hp": 90,
+      "attack": 95,
+      "defense": 105
+    },
+    "foxparks": {
+      "hp": 65,
+      "attack": 75,
+      "defense": 70
+    },
+    "foxparks-cryst": {
+      "hp": 65,
+      "attack": 80,
+      "defense": 70
+    },
+    "frostallion": {
+      "hp": 140,
+      "attack": 140,
+      "defense": 120
+    },
+    "frostallion-noct": {
+      "hp": 140,
+      "attack": 140,
+      "defense": 135
+    },
+    "frostplume": {
+      "hp": 110,
+      "attack": 100,
+      "defense": 100
+    },
+    "fuack": {
+      "hp": 60,
+      "attack": 80,
+      "defense": 60
+    },
+    "fuack-ignis": {
+      "hp": 60,
+      "attack": 85,
+      "defense": 60
+    },
+    "fuddler": {
+      "hp": 65,
+      "attack": 80,
+      "defense": 50
+    },
+    "galeclaw": {
+      "hp": 75,
+      "attack": 85,
+      "defense": 60
+    },
+    "ghangler": {
+      "hp": 90,
+      "attack": 125,
+      "defense": 105
+    },
+    "ghangler-ignis": {
+      "hp": 90,
+      "attack": 130,
+      "defense": 105
+    },
+    "gildane": {
+      "hp": 120,
+      "attack": 110,
+      "defense": 110
+    },
+    "gildra": {
+      "hp": 105,
+      "attack": 120,
+      "defense": 105
+    },
+    "gloopie": {
+      "hp": 70,
+      "attack": 85,
+      "defense": 70
+    },
+    "gloopie-primo": {
+      "hp": 75,
+      "attack": 85,
+      "defense": 70
+    },
+    "gobfin": {
+      "hp": 90,
+      "attack": 90,
+      "defense": 75
+    },
+    "gobfin-ignis": {
+      "hp": 90,
+      "attack": 90,
+      "defense": 75
+    },
+    "gorirat": {
+      "hp": 90,
+      "attack": 95,
+      "defense": 90
+    },
+    "gorirat-terra": {
+      "hp": 90,
+      "attack": 100,
+      "defense": 90
+    },
+    "green-slime": {
+      "hp": 65,
+      "attack": 70,
+      "defense": 80
+    },
+    "grintale": {
+      "hp": 110,
+      "attack": 80,
+      "defense": 80
+    },
+    "grizzbolt": {
+      "hp": 120,
+      "attack": 105,
+      "defense": 105
+    },
+    "gumoss": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 70
+    },
+    "gumoss-special": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 70
+    },
+    "hangyu": {
+      "hp": 80,
+      "attack": 70,
+      "defense": 70
+    },
+    "hangyu-cryst": {
+      "hp": 80,
+      "attack": 80,
+      "defense": 70
+    },
+    "hartalis": {
+      "hp": 135,
+      "attack": 130,
+      "defense": 110
+    },
+    "helzephyr": {
+      "hp": 100,
+      "attack": 125,
+      "defense": 100
+    },
+    "helzephyr-lux": {
+      "hp": 105,
+      "attack": 125,
+      "defense": 100
+    },
+    "herbil": {
+      "hp": 80,
+      "attack": 75,
+      "defense": 75
+    },
+    "hoocrates": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 80
+    },
+    "hoodle": {
+      "hp": 70,
+      "attack": 85,
+      "defense": 80
+    },
+    "icelyn": {
+      "hp": 95,
+      "attack": 115,
+      "defense": 105
+    },
+    "illuminant-bat": {
+      "hp": 80,
+      "attack": 80,
+      "defense": 95
+    },
+    "illuminant-slime": {
+      "hp": 80,
+      "attack": 75,
+      "defense": 85
+    },
+    "incineram": {
+      "hp": 95,
+      "attack": 100,
+      "defense": 85
+    },
+    "incineram-noct": {
+      "hp": 95,
+      "attack": 105,
+      "defense": 85
+    },
+    "jelliette": {
+      "hp": 75,
+      "attack": 90,
+      "defense": 70
+    },
+    "jellroy": {
+      "hp": 90,
+      "attack": 75,
+      "defense": 75
+    },
+    "jetragon": {
+      "hp": 115,
+      "attack": 140,
+      "defense": 120
+    },
+    "jolthog": {
+      "hp": 70,
+      "attack": 75,
+      "defense": 70
+    },
+    "jolthog-cryst": {
+      "hp": 70,
+      "attack": 75,
+      "defense": 80
+    },
+    "jormuntide": {
+      "hp": 130,
+      "attack": 120,
+      "defense": 100
+    },
+    "jormuntide-ignis": {
+      "hp": 130,
+      "attack": 130,
+      "defense": 100
+    },
+    "katress": {
+      "hp": 90,
+      "attack": 105,
+      "defense": 90
+    },
+    "katress-ignis": {
+      "hp": 95,
+      "attack": 105,
+      "defense": 90
+    },
+    "kelpsea": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 70
+    },
+    "kelpsea-ignis": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 70
+    },
+    "kikit": {
+      "hp": 75,
+      "attack": 70,
+      "defense": 90
+    },
+    "killamari": {
+      "hp": 60,
+      "attack": 60,
+      "defense": 70
+    },
+    "killamari-primo": {
+      "hp": 70,
+      "attack": 60,
+      "defense": 70
+    },
+    "kingpaca": {
+      "hp": 120,
+      "attack": 85,
+      "defense": 90
+    },
+    "kingpaca-cryst": {
+      "hp": 120,
+      "attack": 85,
+      "defense": 90
+    },
+    "kitsun": {
+      "hp": 100,
+      "attack": 115,
+      "defense": 100
+    },
+    "kitsun-noct": {
+      "hp": 100,
+      "attack": 115,
+      "defense": 105
+    },
+    "knocklem": {
+      "hp": 105,
+      "attack": 110,
+      "defense": 135
+    },
+    "knocklem-ignis": {
+      "hp": 105,
+      "attack": 115,
+      "defense": 135
+    },
+    "lamball": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 70
+    },
+    "lapiron": {
+      "hp": 70,
+      "attack": 75,
+      "defense": 80
+    },
+    "lapure": {
+      "hp": 105,
+      "attack": 100,
+      "defense": 100
+    },
+    "leafan": {
+      "hp": 100,
+      "attack": 115,
+      "defense": 95
+    },
+    "leezpunk": {
+      "hp": 80,
+      "attack": 80,
+      "defense": 50
+    },
+    "leezpunk-ignis": {
+      "hp": 80,
+      "attack": 80,
+      "defense": 50
+    },
+    "lifmunk": {
+      "hp": 75,
+      "attack": 70,
+      "defense": 70
+    },
+    "loomen": {
+      "hp": 90,
+      "attack": 100,
+      "defense": 95
+    },
+    "loupmoon": {
+      "hp": 80,
+      "attack": 100,
+      "defense": 80
+    },
+    "loupmoon-cryst": {
+      "hp": 80,
+      "attack": 105,
+      "defense": 80
+    },
+    "lovander": {
+      "hp": 120,
+      "attack": 70,
+      "defense": 70
+    },
+    "lullu": {
+      "hp": 90,
+      "attack": 90,
+      "defense": 80
+    },
+    "lunaris": {
+      "hp": 90,
+      "attack": 100,
+      "defense": 90
+    },
+    "lyleen": {
+      "hp": 120,
+      "attack": 120,
+      "defense": 110
+    },
+    "lyleen-noct": {
+      "hp": 115,
+      "attack": 120,
+      "defense": 115
+    },
+    "majex": {
+      "hp": 110,
+      "attack": 115,
+      "defense": 90
+    },
+    "mammorest": {
+      "hp": 150,
+      "attack": 85,
+      "defense": 90
+    },
+    "mammorest-cryst": {
+      "hp": 150,
+      "attack": 85,
+      "defense": 90
+    },
+    "maraith": {
+      "hp": 75,
+      "attack": 105,
+      "defense": 80
+    },
+    "mau": {
+      "hp": 70,
+      "attack": 60,
+      "defense": 70
+    },
+    "mau-cryst": {
+      "hp": 70,
+      "attack": 65,
+      "defense": 70
+    },
+    "melpaca": {
+      "hp": 90,
+      "attack": 75,
+      "defense": 90
+    },
+    "menasting": {
+      "hp": 100,
+      "attack": 100,
+      "defense": 130
+    },
+    "menasting-terra": {
+      "hp": 100,
+      "attack": 105,
+      "defense": 130
+    },
+    "mimog": {
+      "hp": 60,
+      "attack": 60,
+      "defense": 130
+    },
+    "moldron": {
+      "hp": 110,
+      "attack": 125,
+      "defense": 115
+    },
+    "moldron-cryst": {
+      "hp": 110,
+      "attack": 125,
+      "defense": 120
+    },
+    "mossanda": {
+      "hp": 100,
+      "attack": 90,
+      "defense": 90
+    },
+    "mossanda-lux": {
+      "hp": 100,
+      "attack": 100,
+      "defense": 100
+    },
+    "mozzarina": {
+      "hp": 90,
+      "attack": 50,
+      "defense": 80
+    },
+    "muffly": {
+      "hp": 60,
+      "attack": 80,
+      "defense": 55
+    },
+    "munchill": {
+      "hp": 75,
+      "attack": 80,
+      "defense": 85
+    },
+    "mycora": {
+      "hp": 105,
+      "attack": 95,
+      "defense": 90
+    },
+    "necromus": {
+      "hp": 130,
+      "attack": 145,
+      "defense": 120
+    },
+    "needoll": {
+      "hp": 75,
+      "attack": 85,
+      "defense": 70
+    },
+    "needoll-noct": {
+      "hp": 75,
+      "attack": 90,
+      "defense": 70
+    },
+    "neptilius": {
+      "hp": 105,
+      "attack": 145,
+      "defense": 125
+    },
+    "nitemary": {
+      "hp": 105,
+      "attack": 95,
+      "defense": 105
+    },
+    "nitemary-botan": {
+      "hp": 110,
+      "attack": 95,
+      "defense": 105
+    },
+    "nitewing": {
+      "hp": 100,
+      "attack": 95,
+      "defense": 80
+    },
+    "nox": {
+      "hp": 75,
+      "attack": 85,
+      "defense": 70
+    },
+    "nyafia": {
+      "hp": 110,
+      "attack": 100,
+      "defense": 100
+    },
+    "omascul": {
+      "hp": 95,
+      "attack": 105,
+      "defense": 100
+    },
+    "ophydia": {
+      "hp": 130,
+      "attack": 115,
+      "defense": 120
+    },
+    "orserk": {
+      "hp": 120,
+      "attack": 130,
+      "defense": 115
+    },
+    "paladius": {
+      "hp": 130,
+      "attack": 120,
+      "defense": 145
+    },
+    "palumba": {
+      "hp": 105,
+      "attack": 110,
+      "defense": 115
+    },
+    "panthalus": {
+      "hp": 180,
+      "attack": 120,
+      "defense": 200
+    },
+    "pengullet": {
+      "hp": 70,
+      "attack": 75,
+      "defense": 70
+    },
+    "pengullet-lux": {
+      "hp": 70,
+      "attack": 80,
+      "defense": 70
+    },
+    "penking": {
+      "hp": 95,
+      "attack": 95,
+      "defense": 95
+    },
+    "penking-lux": {
+      "hp": 100,
+      "attack": 100,
+      "defense": 100
+    },
+    "petallia": {
+      "hp": 100,
+      "attack": 95,
+      "defense": 100
+    },
+    "petallia-ignis": {
+      "hp": 95,
+      "attack": 105,
+      "defense": 100
+    },
+    "pierdon": {
+      "hp": 100,
+      "attack": 105,
+      "defense": 120
+    },
+    "pierdon-cryst": {
+      "hp": 100,
+      "attack": 110,
+      "defense": 120
+    },
+    "polapup": {
+      "hp": 95,
+      "attack": 105,
+      "defense": 105
+    },
+    "polapup-terra": {
+      "hp": 95,
+      "attack": 105,
+      "defense": 110
+    },
+    "prixter": {
+      "hp": 90,
+      "attack": 110,
+      "defense": 90
+    },
+    "prixter-lux": {
+      "hp": 90,
+      "attack": 115,
+      "defense": 90
+    },
+    "prunelia": {
+      "hp": 105,
+      "attack": 95,
+      "defense": 100
+    },
+    "puffolt": {
+      "hp": 75,
+      "attack": 80,
+      "defense": 70
+    },
+    "pupperai": {
+      "hp": 70,
+      "attack": 80,
+      "defense": 70
+    },
+    "purple-slime": {
+      "hp": 75,
+      "attack": 70,
+      "defense": 80
+    },
+    "pyrin": {
+      "hp": 100,
+      "attack": 95,
+      "defense": 90
+    },
+    "pyrin-noct": {
+      "hp": 100,
+      "attack": 95,
+      "defense": 90
+    },
+    "quivern": {
+      "hp": 105,
+      "attack": 100,
+      "defense": 100
+    },
+    "quivern-botan": {
+      "hp": 105,
+      "attack": 105,
+      "defense": 100
+    },
+    "ragnahawk": {
+      "hp": 95,
+      "attack": 105,
+      "defense": 120
+    },
+    "rainbow-slime": {
+      "hp": 105,
+      "attack": 95,
+      "defense": 105
+    },
+    "rayhound": {
+      "hp": 90,
+      "attack": 100,
+      "defense": 80
+    },
+    "rayhound-cryst": {
+      "hp": 90,
+      "attack": 105,
+      "defense": 80
+    },
+    "red-slime": {
+      "hp": 70,
+      "attack": 75,
+      "defense": 85
+    },
+    "reindrix": {
+      "hp": 100,
+      "attack": 85,
+      "defense": 110
+    },
+    "relaxaurus": {
+      "hp": 120,
+      "attack": 115,
+      "defense": 110
+    },
+    "relaxaurus-lux": {
+      "hp": 120,
+      "attack": 120,
+      "defense": 110
+    },
+    "renjishi": {
+      "hp": 105,
+      "attack": 120,
+      "defense": 100
+    },
+    "reptyro": {
+      "hp": 110,
+      "attack": 105,
+      "defense": 120
+    },
+    "reptyro-cryst": {
+      "hp": 110,
+      "attack": 105,
+      "defense": 130
+    },
+    "ribbuny": {
+      "hp": 75,
+      "attack": 65,
+      "defense": 70
+    },
+    "ribbuny-botan": {
+      "hp": 80,
+      "attack": 65,
+      "defense": 70
+    },
+    "robinquill": {
+      "hp": 90,
+      "attack": 105,
+      "defense": 80
+    },
+    "robinquill-terra": {
+      "hp": 90,
+      "attack": 105,
+      "defense": 80
+    },
+    "rooby": {
+      "hp": 75,
+      "attack": 70,
+      "defense": 75
+    },
+    "roujay": {
+      "hp": 110,
+      "attack": 115,
+      "defense": 95
+    },
+    "rushoar": {
+      "hp": 80,
+      "attack": 70,
+      "defense": 70
+    },
+    "sekhmet": {
+      "hp": 110,
+      "attack": 115,
+      "defense": 100
+    },
+    "selyne": {
+      "hp": 130,
+      "attack": 115,
+      "defense": 110
+    },
+    "shadowbeak": {
+      "hp": 120,
+      "attack": 120,
+      "defense": 140
+    },
+    "shaolong": {
+      "hp": 140,
+      "attack": 135,
+      "defense": 120
+    },
+    "shroomer": {
+      "hp": 110,
+      "attack": 80,
+      "defense": 90
+    },
+    "shroomer-noct": {
+      "hp": 110,
+      "attack": 85,
+      "defense": 90
+    },
+    "sibelyx": {
+      "hp": 110,
+      "attack": 90,
+      "defense": 100
+    },
+    "sibelyx-primo": {
+      "hp": 115,
+      "attack": 90,
+      "defense": 100
+    },
+    "silvance": {
+      "hp": 140,
+      "attack": 120,
+      "defense": 110
+    },
+    "silvegis": {
+      "hp": 120,
+      "attack": 110,
+      "defense": 115
+    },
+    "skutlass": {
+      "hp": 70,
+      "attack": 100,
+      "defense": 80
+    },
+    "skutlass-ignis": {
+      "hp": 70,
+      "attack": 105,
+      "defense": 80
+    },
+    "slowatt": {
+      "hp": 80,
+      "attack": 75,
+      "defense": 70
+    },
+    "smokie": {
+      "hp": 85,
+      "attack": 90,
+      "defense": 85
+    },
+    "smokie-cryst": {
+      "hp": 85,
+      "attack": 90,
+      "defense": 90
+    },
+    "snock": {
+      "hp": 65,
+      "attack": 70,
+      "defense": 75
+    },
+    "snock-lux": {
+      "hp": 65,
+      "attack": 70,
+      "defense": 80
+    },
+    "snugloo": {
+      "hp": 80,
+      "attack": 75,
+      "defense": 85
+    },
+    "solenne": {
+      "hp": 110,
+      "attack": 115,
+      "defense": 115
+    },
+    "solmora": {
+      "hp": 90,
+      "attack": 90,
+      "defense": 85
+    },
+    "solmora-lux": {
+      "hp": 90,
+      "attack": 95,
+      "defense": 85
+    },
+    "sootseer": {
+      "hp": 105,
+      "attack": 125,
+      "defense": 90
+    },
+    "souffline": {
+      "hp": 70,
+      "attack": 75,
+      "defense": 60
+    },
+    "sparkit": {
+      "hp": 60,
+      "attack": 75,
+      "defense": 70
+    },
+    "splatterina": {
+      "hp": 95,
+      "attack": 115,
+      "defense": 105
+    },
+    "starryon": {
+      "hp": 110,
+      "attack": 100,
+      "defense": 100
+    },
+    "starryon-primo": {
+      "hp": 110,
+      "attack": 105,
+      "defense": 100
+    },
+    "surfent": {
+      "hp": 90,
+      "attack": 90,
+      "defense": 80
+    },
+    "surfent-terra": {
+      "hp": 90,
+      "attack": 90,
+      "defense": 100
+    },
+    "suzaku": {
+      "hp": 120,
+      "attack": 105,
+      "defense": 105
+    },
+    "suzaku-aqua": {
+      "hp": 125,
+      "attack": 105,
+      "defense": 105
+    },
+    "swee": {
+      "hp": 60,
+      "attack": 60,
+      "defense": 60
+    },
+    "sweepa": {
+      "hp": 100,
+      "attack": 90,
+      "defense": 90
+    },
+    "tanzee": {
+      "hp": 80,
+      "attack": 70,
+      "defense": 70
+    },
+    "tanzee-ignis": {
+      "hp": 80,
+      "attack": 75,
+      "defense": 70
+    },
+    "tarantriss": {
+      "hp": 110,
+      "attack": 100,
+      "defense": 100
+    },
+    "teafant": {
+      "hp": 70,
+      "attack": 60,
+      "defense": 70
+    },
+    "tetroise": {
+      "hp": 95,
+      "attack": 100,
+      "defense": 135
+    },
+    "tetroise-primo": {
+      "hp": 95,
+      "attack": 100,
+      "defense": 140
+    },
+    "tocotoco": {
+      "hp": 60,
+      "attack": 75,
+      "defense": 70
+    },
+    "tombat": {
+      "hp": 95,
+      "attack": 95,
+      "defense": 80
+    },
+    "tropicaw": {
+      "hp": 85,
+      "attack": 85,
+      "defense": 90
+    },
+    "turtacle": {
+      "hp": 75,
+      "attack": 75,
+      "defense": 115
+    },
+    "turtacle-terra": {
+      "hp": 85,
+      "attack": 85,
+      "defense": 125
+    },
+    "univolt": {
+      "hp": 80,
+      "attack": 105,
+      "defense": 105
+    },
+    "univolt-cryst": {
+      "hp": 80,
+      "attack": 105,
+      "defense": 110
+    },
+    "vaelet": {
+      "hp": 100,
+      "attack": 100,
+      "defense": 120
+    },
+    "valentail": {
+      "hp": 75,
+      "attack": 80,
+      "defense": 70
+    },
+    "vanwyrm": {
+      "hp": 90,
+      "attack": 115,
+      "defense": 90
+    },
+    "vanwyrm-cryst": {
+      "hp": 90,
+      "attack": 120,
+      "defense": 95
+    },
+    "venusa": {
+      "hp": 80,
+      "attack": 85,
+      "defense": 90
+    },
+    "verdash": {
+      "hp": 90,
+      "attack": 115,
+      "defense": 90
+    },
+    "vixy": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 70
+    },
+    "warsect": {
+      "hp": 120,
+      "attack": 100,
+      "defense": 120
+    },
+    "warsect-terra": {
+      "hp": 120,
+      "attack": 105,
+      "defense": 120
+    },
+    "whalaska": {
+      "hp": 105,
+      "attack": 115,
+      "defense": 110
+    },
+    "whalaska-ignis": {
+      "hp": 105,
+      "attack": 120,
+      "defense": 110
+    },
+    "wispaw": {
+      "hp": 85,
+      "attack": 95,
+      "defense": 70
+    },
+    "wistella": {
+      "hp": 80,
+      "attack": 90,
+      "defense": 60
+    },
+    "wixen": {
+      "hp": 90,
+      "attack": 110,
+      "defense": 80
+    },
+    "wixen-noct": {
+      "hp": 90,
+      "attack": 110,
+      "defense": 85
+    },
+    "woolipop": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 90
+    },
+    "woolipop-terra": {
+      "hp": 70,
+      "attack": 70,
+      "defense": 95
+    },
+    "wumpo": {
+      "hp": 140,
+      "attack": 80,
+      "defense": 100
+    },
+    "wumpo-botan": {
+      "hp": 140,
+      "attack": 80,
+      "defense": 110
+    },
+    "xenogard": {
+      "hp": 110,
+      "attack": 120,
+      "defense": 130
+    },
+    "xenolord": {
+      "hp": 130,
+      "attack": 120,
+      "defense": 120
+    },
+    "xenovader": {
+      "hp": 90,
+      "attack": 125,
+      "defense": 85
+    },
+    "yakumo": {
+      "hp": 85,
+      "attack": 85,
+      "defense": 85
+    }
+  }
+}

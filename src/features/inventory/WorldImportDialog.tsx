@@ -125,7 +125,7 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
               <div>
                 <span className="section-kicker">WORLD IMPORT</span>
                 <Heading slot="title">Import or refresh a world</Heading>
-                <p>Choose your Palworld save folder. We'll show the worlds inside so you can pick one.</p>
+                <p>Choose your save folder, then select a world.</p>
               </div>
               <Button
                 slot="close"
@@ -179,7 +179,7 @@ export default function WorldImportDialog({ onImported }: WorldImportDialogProps
               </FileTrigger>
               <p className="privacy-note">
                 <LockIcon />
-                Palpath never uploads raw save files. Signed-in accounts sync only normalized Pal records.
+                Your save stays on this device. Signed-in accounts sync only your imported Pals.
               </p>
 
               {status.kind !== "idle" && status.message ? (

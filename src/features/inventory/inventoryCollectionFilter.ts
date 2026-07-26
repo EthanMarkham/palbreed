@@ -1,5 +1,6 @@
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
+import { getPalCombatStats } from "../../data/palStatsRepository";
 import type { OwnedPal } from "../../domain/inventory";
 
 export function filterInventoryPals(
@@ -22,6 +23,7 @@ export function getInventoryPalSpeciesName(pal: OwnedPal): string {
 
 function getSearchText(pal: OwnedPal): string {
   const passives = passiveRepository.resolve(pal.passiveIds).map(({ name }) => name);
+  const combatStats = getPalCombatStats(pal);
   return [
     getInventoryPalName(pal),
     getInventoryPalSpeciesName(pal),
@@ -29,7 +31,10 @@ function getSearchText(pal: OwnedPal): string {
     pal.level ? `level ${pal.level}` : "",
     pal.location.replace(/-/g, " "),
     pal.abilityScores
-      ? `hp ${pal.abilityScores.hp} attack ${pal.abilityScores.ranged} defense ${pal.abilityScores.defense}`
+      ? `iv hp ${pal.abilityScores.hp} attack ${pal.abilityScores.ranged} defense ${pal.abilityScores.defense} melee ${pal.abilityScores.melee}`
+      : "",
+    combatStats
+      ? `combat hp ${combatStats.hp} health ${combatStats.hp} attack ${combatStats.attack} damage ${combatStats.attack} defense ${combatStats.defense}`
       : "",
     ...passives,
   ].join(" ").toLocaleLowerCase();

@@ -42,9 +42,10 @@ review; this is a release gate, not an optional attribution note.
   passive mask, carried passives)` carrier state space with owned partners.
   Every proposed pairing enforces one male and one female parent, including
   the oriented gender requirements for species-specific breeding exceptions.
-  An `Any` passive goal removes the passive constraint, including the
-  zero-passive outcome. “Cleanest” uses estimated expected cakes; probability
-  copy is always labeled as estimated.
+  An empty passive selection removes the passive constraint. Selected passives
+  are required, while unselected passive slots remain unconstrained.
+  “Cleanest” uses estimated expected cakes; probability copy is always labeled
+  as estimated.
 - Pal Builder deliberately distinguishes this exact carrier model from a future
   full breeding-DAG optimizer in which two independently synthesized children
   can become the final parents. That richer model can be added behind the same

@@ -5,7 +5,6 @@ import type { PalId } from "../../domain/pal";
 import type { PassiveId } from "../../domain/passive";
 import type { BuilderObjective } from "../../services/builder/palBuilder";
 import {
-  getBuilderExtras,
   getBuilderObjective,
   getBuilderPassiveGoal,
   type BuilderSearchState,
@@ -192,20 +191,16 @@ export function createBuilderHistoryEntry(
     targetId,
     passives,
     objective: getBuilderObjective(search),
-    allowedExtras: passiveGoal.kind === "any" ? 0 : getBuilderExtras(search),
+    allowedExtras: 0,
     searchedAt: normalizedDate,
   };
 }
 
 export function builderHistoryEntryToSearch(entry: BuilderHistoryEntry): BuilderSearchState {
-  const extras = entry.allowedExtras === 1 || entry.allowedExtras === 2
-    ? entry.allowedExtras
-    : undefined;
   return {
     target: entry.targetId,
-    passives: entry.passives === "any" ? "any" : entry.passives.join(","),
+    passives: entry.passives === "any" ? undefined : entry.passives.join(","),
     objective: entry.objective === "recommended" ? undefined : entry.objective,
-    extras: entry.passives === "any" ? undefined : extras,
     run: true,
   };
 }
@@ -244,7 +239,7 @@ export function normalizeBuilderHistory(
       targetId,
       passives,
       objective: entry.objective,
-      allowedExtras: passives === "any" ? 0 : entry.allowedExtras,
+      allowedExtras: 0,
       searchedAt,
     };
     const key = getBuilderHistoryKey(candidate);

@@ -16,7 +16,6 @@ const rawBuilderSearchSchema = z.object({
   passives: z.union([z.string(), z.array(z.string())]).optional().catch(undefined),
   passiveQuery: optionalStringSearchParam,
   objective: optionalStringSearchParam,
-  extras: z.union([z.string(), z.number()]).optional().catch(undefined),
   run: z.union([z.string(), z.boolean()]).optional().catch(undefined),
 });
 
@@ -26,7 +25,6 @@ export type BuilderSearchState = {
   passives?: string;
   passiveQuery?: string;
   objective?: Exclude<BuilderObjective, "recommended">;
-  extras?: 1 | 2;
   run?: true;
 };
 
@@ -38,12 +36,8 @@ export function parseBuilderSearch(search: Record<string, unknown>): BuilderSear
   const objective = raw.objective === "fewest" || raw.objective === "cleanest"
     ? raw.objective
     : undefined;
-  const numericExtras = Number(raw.extras);
-  const extras = numericExtras === 1 || numericExtras === 2 ? numericExtras : undefined;
   const run = raw.run === true || raw.run === "true" || raw.run === "1" ? true : undefined;
-  const serializedPassives = passiveSelection === "any"
-    ? "any"
-    : passiveSelection.join(",") || undefined;
+  const serializedPassives = passiveSelection.join(",") || undefined;
 
   return compactSearch({
     target: target.selectedId,
@@ -51,24 +45,21 @@ export function parseBuilderSearch(search: Record<string, unknown>): BuilderSear
     passives: serializedPassives,
     passiveQuery,
     objective,
-    extras,
     run,
   });
 }
 
 export function getBuilderPassiveIds(search: BuilderSearchState): readonly PassiveId[] {
-  const selection = normalizePassiveSelection(search.passives);
-  return selection === "any" ? [] : selection;
+  return normalizePassiveSelection(search.passives);
 }
 
-export function getBuilderPassiveGoal(search: BuilderSearchState): PassiveGoal | undefined {
+export function getBuilderPassiveGoal(search: BuilderSearchState): PassiveGoal {
   const selection = normalizePassiveSelection(search.passives);
-  if (selection === "any") return { kind: "any" };
-  if (!selection.length) return undefined;
+  if (!selection.length) return { kind: "any" };
   return {
     kind: "specific",
     requiredIds: selection,
-    allowedExtras: getBuilderExtras(search),
+    allowedExtras: 4 - selection.length,
   };
 }
 
@@ -76,15 +67,11 @@ export function getBuilderObjective(search: BuilderSearchState): BuilderObjectiv
   return search.objective ?? "recommended";
 }
 
-export function getBuilderExtras(search: BuilderSearchState): 0 | 1 | 2 {
-  return search.extras ?? 0;
-}
-
-function normalizePassiveSelection(value: string | readonly string[] | undefined): "any" | PassiveId[] {
+function normalizePassiveSelection(value: string | readonly string[] | undefined): PassiveId[] {
   const values = (typeof value === "string" ? [value] : value ?? [])
     .flatMap((entry) => entry.split(","))
-    .map((id) => id.trim());
-  if (values.some((id) => id.toLowerCase() === "any")) return "any";
+    .map((id) => id.trim())
+    .filter((id) => id.toLowerCase() !== "any");
   const validIds = values
     .filter((id) => passiveRepository.get(id));
   return [...new Set(validIds)].slice(0, 4);

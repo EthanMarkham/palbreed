@@ -4,13 +4,9 @@ import { useMemo } from "react";
 import { passiveRepository } from "../data/passiveRepository";
 import type { PassiveDefinition, PassiveId } from "../domain/passive";
 
-const ANY_PASSIVE_ID = "__any-passive__";
+type PassiveOption = Pick<PassiveDefinition, "id" | "name" | "description" | "rank">;
 
-type PassiveOption = Pick<PassiveDefinition, "id" | "name" | "description" | "rank"> & {
-  isAny?: boolean;
-};
-
-type PassiveSelectorBaseProps = {
+type PassiveSelectorProps = {
   label: string;
   selected: readonly PassiveId[];
   onChange: (selected: readonly PassiveId[]) => void;
@@ -19,20 +15,7 @@ type PassiveSelectorBaseProps = {
   onQueryChange: (query: string) => void;
 };
 
-type PassiveSelectorAnyProps =
-  | { allowAny: true; anySelected: boolean; onAnyChange: (selected: boolean) => void }
-  | { allowAny?: false; anySelected?: never; onAnyChange?: never };
-
-type PassiveSelectorProps = PassiveSelectorBaseProps & PassiveSelectorAnyProps;
-
 const allPassives = passiveRepository.all();
-const anyPassive: PassiveOption = {
-  id: ANY_PASSIVE_ID,
-  name: "Any",
-  description: "Choose this if you're flexible about passives.",
-  rank: 0,
-  isAny: true,
-};
 const filterPassives = createFilterOptions<PassiveOption>({
   stringify: (passive) => `${passive.name} ${passive.description} ${passive.id}`,
 });
@@ -44,46 +27,28 @@ export default function PassiveSelector({
   max = 4,
   query,
   onQueryChange,
-  allowAny = false,
-  anySelected = false,
-  onAnyChange,
 }: PassiveSelectorProps) {
-  const options = useMemo<readonly PassiveOption[]>(
-    () => allowAny ? [anyPassive, ...allPassives] : allPassives,
-    [allowAny],
-  );
   const selectedOptions = useMemo<PassiveOption[]>(() => {
-    if (anySelected) return [anyPassive];
     return selected.flatMap((id) => {
       const passive = passiveRepository.get(id);
       return passive ? [passive] : [];
     });
-  }, [anySelected, selected]);
+  }, [selected]);
 
   return (
     <fieldset className="passive-selector">
-      <legend>{label} <span>{anySelected ? "Any" : `${selected.length}/${max}`}</span></legend>
+      <legend>{label} <span>{selected.length}/{max}</span></legend>
       <Autocomplete<PassiveOption, true, false, false>
         className="passive-autocomplete"
         multiple
-        options={options}
+        options={allPassives}
         value={selectedOptions}
         inputValue={query}
         onInputChange={(_, nextValue, reason) => {
           if (reason === "input" || reason === "clear") onQueryChange(nextValue);
         }}
-        onChange={(_, nextOptions, reason, details) => {
-          const changedOption = details?.option;
-          if (reason === "selectOption" && changedOption?.isAny) {
-            onAnyChange?.(true);
-            return;
-          }
-          if (reason === "removeOption" && changedOption?.isAny) {
-            onAnyChange?.(false);
-            return;
-          }
+        onChange={(_, nextOptions) => {
           const nextIds = nextOptions
-            .filter((passive) => !passive.isAny)
             .map((passive) => passive.id)
             .slice(0, max);
           onChange(nextIds);
@@ -92,9 +57,7 @@ export default function PassiveSelector({
         getOptionKey={(passive) => passive.id}
         isOptionEqualToValue={(passive, selectedPassive) => passive.id === selectedPassive.id}
         getOptionDisabled={(passive) => (
-          !passive.isAny
-          && !anySelected
-          && !selected.includes(passive.id)
+          !selected.includes(passive.id)
           && selected.length >= max
         )}
         filterOptions={filterPassives}
@@ -115,7 +78,6 @@ export default function PassiveSelector({
             className: "passive-autocomplete-listbox",
             "aria-label": `Add ${label.toLocaleLowerCase()}`,
           },
-          chip: { className: anySelected ? "is-any" : undefined },
         }}
         renderInput={(params) => (
           <TextField
@@ -138,19 +100,18 @@ export default function PassiveSelector({
             <li
               {...optionProps}
               key={key}
-              className={`${optionProps.className ?? ""} passive-autocomplete-option${passive.isAny ? " is-any" : ""}`}
+              className={`${optionProps.className ?? ""} passive-autocomplete-option`}
             >
               <span className="passive-autocomplete-copy">
                 <strong>{passive.name}</strong>
                 <small>{passive.description}</small>
               </span>
-              {passive.isAny
-                ? <span className="passive-any-badge">No preference</span>
-                : <em>{passive.rank > 0 ? `+${passive.rank}` : passive.rank}</em>}
+              <em>{passive.rank > 0 ? `+${passive.rank}` : passive.rank}</em>
             </li>
           );
         }}
       />
+      <p className="passive-selector-help">Leave empty to ignore passives.</p>
     </fieldset>
   );
 }

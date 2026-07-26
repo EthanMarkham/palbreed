@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { passiveRepository } from "../data/passiveRepository";
 import {
   runBuilderSearch,
-  setBuilderAnyPassives,
   setBuilderPassiveQuery,
   setBuilderPassives,
 } from "./builder/builderNavigation";
@@ -43,7 +42,6 @@ describe("route-backed search state", () => {
       passives: [...passiveIds, passiveIds[0], "not-a-passive"],
       passiveQuery: "work speed",
       objective: "cleanest",
-      extras: "2",
       run: "1",
     });
 
@@ -51,11 +49,10 @@ describe("route-backed search state", () => {
       target: "lamball",
       passiveQuery: "work speed",
       objective: "cleanest",
-      extras: 2,
       run: true,
     });
     expect(getBuilderPassiveIds(search)).toEqual(passiveIds.slice(0, 4));
-    expect(parseBuilderSearch({ passives: "any", run: true })).toEqual({ passives: "any", run: true });
+    expect(parseBuilderSearch({ passives: "any", extras: "2", run: true })).toEqual({ run: true });
     expect(parseBuilderSearch({ passives: [`${passiveIds[0]},${passiveIds[1]}`, passiveIds[2]] })).toEqual({
       passives: passiveIds.slice(0, 3).join(","),
     });
@@ -71,9 +68,8 @@ describe("route-backed search state", () => {
       target: "lamball",
       passives: passiveId,
     });
-    expect(setBuilderAnyPassives(typed, true)).toEqual({
+    expect(setBuilderPassives(typed, [])).toEqual({
       target: "lamball",
-      passives: "any",
     });
   });
 

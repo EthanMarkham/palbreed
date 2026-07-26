@@ -8,7 +8,7 @@ export function PrivacyPage() {
         <p>Palpath assigns a random device identifier and stores imported inventory in browser storage. Save files are parsed locally and are never uploaded.</p>
       </PolicySection>
       <PolicySection title="Optional search history">
-        <p>Supabase stores up to eight recent Builder searches. Before sign-in, a random session cookie keeps those searches together; the server stores only a one-way hash of its value. When you sign in, those searches move to your account. Aggregate search counts may be used to improve discovery features.</p>
+        <p>Palpath can keep your eight most recent Builder searches. Before sign-in, they are tied to a random session cookie; after sign-in, they are tied to your account. Aggregate search counts may be used to improve Palpath.</p>
       </PolicySection>
       <PolicySection title="Your choices">
         <p>You can use Palpath without an account, remove local worlds from Inventory, clear recent Builder searches, and request deletion of server-side search history from the site operator.</p>
@@ -16,7 +16,7 @@ export function PrivacyPage() {
       <PolicySection title="Contact">
         <p>{runtimeConfig.legalContactEmail
           ? <>For privacy or deletion requests, email <a href={`mailto:${runtimeConfig.legalContactEmail}`}>{runtimeConfig.legalContactEmail}</a>.</>
-          : "This local build has no configured site-operator contact."}</p>
+          : "No privacy contact has been published."}</p>
       </PolicySection>
     </PolicyShell>
   );
@@ -29,14 +29,14 @@ export function LegalPage() {
         <p>Palpath is an independent, unofficial fan utility. It is not endorsed by, sponsored by, or affiliated with Pocketpair, Inc. Palworld and related names, characters, imagery, and game data belong to their respective rights holders.</p>
       </PolicySection>
       <PolicySection title="Third-party software">
-        <p>The production build includes open-source dependencies under their respective licenses. The release process emits the exact installed notices and license files from the lockfile.</p>
+        <p>Palpath includes open-source software under its respective licenses. The notices for this build identify each package and license.</p>
         <p><a href={`${import.meta.env.BASE_URL}THIRD_PARTY_NOTICES.txt`}>Read third-party notices for this build</a>.</p>
       </PolicySection>
       <PolicySection title="GPL corresponding source">
         <p>The optional save-import compatibility path includes <code>ooz-wasm</code>, distributed under GPL-3.0-or-later. Complete corresponding source for the exact deployed build, including build and interface code, must remain available while that object code is distributed.</p>
         <p>{runtimeConfig.sourceUrl
           ? <a href={runtimeConfig.sourceUrl} rel="external">Download the corresponding source for this release</a>
-          : "This build has no configured corresponding-source URL and must not be treated as cleared for public monetized distribution."}</p>
+          : "Corresponding source is not available for this build."}</p>
       </PolicySection>
       <PolicySection title="No warranty">
         <p>Palpath is provided as a planning utility without guarantees about game outcomes, save compatibility, availability, or fitness for a particular purpose. Keep independent backups of your saves.</p>
@@ -44,7 +44,7 @@ export function LegalPage() {
       <PolicySection title="Contact">
         <p>{runtimeConfig.legalContactEmail
           ? <>For legal, copyright, or licensing questions, email <a href={`mailto:${runtimeConfig.legalContactEmail}`}>{runtimeConfig.legalContactEmail}</a>.</>
-          : "No site-operator contact is configured in this local build."}</p>
+          : "No legal contact has been published."}</p>
       </PolicySection>
     </PolicyShell>
   );
@@ -65,7 +65,9 @@ function PolicyShell({
         <div>
           <span className="section-kicker">PALPATH</span>
           <h1>{title}</h1>
-          <p>Plain-language product and release information for this deployment.</p>
+          <p>{title === "Privacy"
+            ? "How Palpath handles saves, history, and account data."
+            : "Project terms, licenses, and warranty information."}</p>
         </div>
         <span className="hero-index">{index}</span>
       </section>

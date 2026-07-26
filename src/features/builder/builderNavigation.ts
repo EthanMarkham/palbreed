@@ -40,25 +40,12 @@ export function setBuilderPassives(
   });
 }
 
-export function setBuilderAnyPassives(search: BuilderSearchState, selected: boolean): BuilderSearchState {
-  return compactSearch({
-    ...search,
-    passives: selected ? "any" : undefined,
-    passiveQuery: undefined,
-    run: undefined,
-  });
-}
-
 export function setBuilderPassiveQuery(search: BuilderSearchState, value: string): BuilderSearchState {
   return compactSearch({ ...search, passiveQuery: normalizeSearchQuery(value) });
 }
 
 export function setBuilderObjective(search: BuilderSearchState, objective: BuilderObjective): BuilderSearchState {
   return compactSearch({ ...search, objective: objective === "recommended" ? undefined : objective, run: undefined });
-}
-
-export function setBuilderExtras(search: BuilderSearchState, extras: 0 | 1 | 2): BuilderSearchState {
-  return compactSearch({ ...search, extras: extras || undefined, run: undefined });
 }
 
 export function runBuilderSearch(search: BuilderSearchState): BuilderSearchState {

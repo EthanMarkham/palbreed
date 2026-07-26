@@ -13,5 +13,5 @@ export type PassiveGoal =
   | {
       kind: "specific";
       requiredIds: readonly PassiveId[];
-      allowedExtras: 0 | 1 | 2;
+      allowedExtras: number;
     };

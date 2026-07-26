@@ -114,7 +114,7 @@ export default function SyncSignIn() {
               <>
                 <Button className="sync-sign-in-close" aria-label="Close" onPress={close}>×</Button>
                 <span className="section-kicker">PALPATH</span>
-                <Heading slot="title">{user ? "Your data is syncing" : "Sign in to sync data across devices"}</Heading>
+                <Heading slot="title">{user ? "Sync is on" : "Sync your Pals"}</Heading>
                 {user ? (
                   <>
                     <p>{user.email}</p>

@@ -43,16 +43,13 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
           <div className="builder-parent-popover-passives">
             <span>Passives</span>
             {parent.passives.kind === "any" ? (
-              <p>Any passives are fine</p>
+              <p>Unrestricted</p>
             ) : passiveNames.length ? (
               <>
                 <ul>{passiveNames.map((passive) => <li key={passive}>{passive}</li>)}</ul>
-                {parent.passives.kind === "bounded"
-                  ? <p>Up to {formatOtherPassives(parent.passives.maxExtras)} are fine</p>
-                  : null}
               </>
             ) : parent.passives.kind === "bounded" ? (
-              <p>{formatAnyBoundedPassives(parent.passives.maxExtras)} {parent.passives.maxExtras === 1 ? "is" : "are"} fine</p>
+              <p>Unrestricted</p>
             ) : (
               <p>None</p>
             )}
@@ -68,28 +65,15 @@ function getGenderLabel(gender: BuilderParent["gender"]) {
 }
 
 function getPassiveSummary(parent: BuilderParent, passiveNames: readonly string[]) {
-  if (parent.passives.kind === "any") return "Any passives";
+  if (parent.passives.kind === "any") return "Passives unrestricted";
   if (parent.passives.kind === "bounded") {
-    const required = passiveNames.length === 0
-      ? ""
-      : passiveNames.length === 1
-        ? `${passiveNames[0]} · `
-        : `${passiveNames[0]} +${passiveNames.length - 1} · `;
-    return required
-      ? `${required}up to ${formatOtherPassives(parent.passives.maxExtras)}`
-      : formatAnyBoundedPassives(parent.passives.maxExtras);
+    if (passiveNames.length === 0) return "Passives unrestricted";
+    if (passiveNames.length === 1) return passiveNames[0];
+    return `${passiveNames[0]} +${passiveNames.length - 1}`;
   }
   if (passiveNames.length === 0) return "No passives";
   if (passiveNames.length === 1) return passiveNames[0];
   return `${passiveNames[0]} +${passiveNames.length - 1}`;
-}
-
-function formatOtherPassives(count: number) {
-  return `${count} other passive${count === 1 ? "" : "s"}`;
-}
-
-function formatAnyBoundedPassives(count: number) {
-  return count === 1 ? "Any single passive" : `Any combination of up to ${count} passives`;
 }
 
 function InfoIcon() {

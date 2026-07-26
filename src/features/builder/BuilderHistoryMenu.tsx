@@ -44,7 +44,7 @@ export default function BuilderHistoryMenu({ onSelect }: BuilderHistoryMenuProps
         <Dialog className="builder-history-dialog">
           <header className="builder-history-header">
             <div>
-              <span>SEARCH HISTORY</span>
+              <span>BUILDS</span>
               <Heading slot="title">Recent builds</Heading>
             </div>
             {entries.length ? (
@@ -68,13 +68,9 @@ export default function BuilderHistoryMenu({ onSelect }: BuilderHistoryMenuProps
             <div className="builder-history-empty">
               <HistoryIcon />
               <strong>No recent builds</strong>
-              <span>Routes you find will appear here.</span>
+              <span>Your builds will appear here.</span>
             </div>
           )}
-
-          <p className="builder-history-note">
-            Up to eight recent builds are synced. Anonymous history moves to your account when you sign in.
-          </p>
         </Dialog>
       </Popover>
     </DialogTrigger>
@@ -90,7 +86,7 @@ function HistoryRow({
 }) {
   const target = breedingRepository.getPal(entry.targetId);
   const passiveSummary = entry.passives === "any"
-    ? "Passives don't matter"
+    ? "No passive preference"
     : entry.passives.map((id) => passiveRepository.get(id)?.name ?? id).join(" · ");
 
   return (
@@ -116,14 +112,11 @@ function HistoryRow({
 }
 
 function formatSettings(entry: BuilderHistoryEntry) {
-  const objective = entry.objective === "fewest"
+  return entry.objective === "fewest"
     ? "Fewer breedings"
     : entry.objective === "cleanest"
       ? "Better hatch odds"
       : "Balanced route";
-  if (entry.passives === "any" || entry.allowedExtras === 0) return objective;
-  const extras = entry.allowedExtras === 1 ? "1 other passive allowed" : "2 other passives allowed";
-  return `${objective} · ${extras}`;
 }
 
 function formatDate(value: string) {

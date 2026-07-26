@@ -21,7 +21,6 @@ import BuilderHistoryMenu from "./BuilderHistoryMenu";
 import BuilderParentPreview from "./BuilderParentPreview";
 import type { BuilderHistoryEntry } from "./builderHistory";
 import {
-  getBuilderExtras,
   getBuilderObjective,
   getBuilderPassiveGoal,
   getBuilderPassiveIds,
@@ -33,10 +32,8 @@ type BuilderPageProps = {
   onTargetInputChange: (value: string) => void;
   onTargetChange: (value: PalId | undefined) => void;
   onPassivesChange: (value: readonly PassiveId[]) => void;
-  onAnyPassivesChange: (value: boolean) => void;
   onPassiveQueryChange: (value: string) => void;
   onObjectiveChange: (value: BuilderObjective) => void;
-  onExtrasChange: (value: 0 | 1 | 2) => void;
   onHistorySelect: (entry: BuilderHistoryEntry) => void;
   onRun: () => void;
 };
@@ -48,10 +45,8 @@ export default function BuilderPage({
   onTargetInputChange,
   onTargetChange,
   onPassivesChange,
-  onAnyPassivesChange,
   onPassiveQueryChange,
   onObjectiveChange,
-  onExtrasChange,
   onHistorySelect,
   onRun,
 }: BuilderPageProps) {
@@ -60,19 +55,17 @@ export default function BuilderPage({
   const inventory = profile?.pals ?? EMPTY_INVENTORY;
   const targetId = search.target;
   const passiveSelection = search.passives;
-  const extrasSelection = search.extras;
   const requiredPassiveIds = useMemo(
     () => getBuilderPassiveIds({ passives: passiveSelection }),
     [passiveSelection],
   );
   const passiveGoal = useMemo(
-    () => getBuilderPassiveGoal({ passives: passiveSelection, extras: extrasSelection }),
-    [extrasSelection, passiveSelection],
+    () => getBuilderPassiveGoal({ passives: passiveSelection }),
+    [passiveSelection],
   );
-  const allowedExtras = getBuilderExtras(search);
   const objective = getBuilderObjective(search);
   const solveInput = useMemo<BuilderInput | undefined>(() => {
-    if (!search.run || !targetId || !passiveGoal || inventorySnapshot.status === "loading") return undefined;
+    if (!search.run || !targetId || inventorySnapshot.status === "loading") return undefined;
     return {
       inventory,
       targetId,
@@ -93,7 +86,7 @@ export default function BuilderPage({
   const solveError = solve.status === "error" ? solve.message : undefined;
   const displayedResult = result ?? (solve.status === "solving" ? solve.previousResult : undefined);
   const submitBuild = () => {
-    if (!targetId || !passiveGoal || isSolving) return;
+    if (!targetId || isSolving) return;
     if (search.run) solve.restart();
     else onRun();
   };
@@ -104,7 +97,7 @@ export default function BuilderPage({
         <div>
           <span className="section-kicker">BUILDER</span>
           <h1>Plan your next Pal</h1>
-          <p>Choose a Pal and the exact passives you want. We'll look for a route using Pals in your selected world.</p>
+          <p>Choose a Pal and any passives you care about. We'll find the best route from your selected world.</p>
         </div>
         <span className="hero-index">02</span>
       </section>
@@ -128,9 +121,6 @@ export default function BuilderPage({
             onChange={onPassivesChange}
             query={search.passiveQuery ?? ""}
             onQueryChange={onPassiveQueryChange}
-            allowAny
-            anySelected={passiveGoal?.kind === "any"}
-            onAnyChange={onAnyPassivesChange}
           />
 
           <div className="builder-settings">
@@ -145,26 +135,11 @@ export default function BuilderPage({
                 <SelectChevron />
               </span>
             </label>
-            <label className="form-field">
-              <span>Other passives allowed</span>
-              <span className="select-control">
-                <select
-                  value={allowedExtras}
-                  disabled={passiveGoal?.kind === "any"}
-                  onChange={(event) => onExtrasChange(Number(event.target.value) as 0 | 1 | 2)}
-                >
-                  <option value={0}>No others</option>
-                  <option value={1}>Up to 1 other</option>
-                  <option value={2}>Up to 2 others</option>
-                </select>
-                <SelectChevron />
-              </span>
-            </label>
           </div>
           <button
             className="primary-button builder-run"
             type={isSolving ? "button" : "submit"}
-            disabled={inventorySnapshot.status === "loading" || !targetId || !passiveGoal}
+            disabled={inventorySnapshot.status === "loading" || !targetId}
             onClick={isSolving ? solve.cancel : undefined}
             aria-label={isSolving ? "Finding a breeding route. Activate to cancel." : undefined}
             title={isSolving ? "Cancel search" : undefined}
@@ -173,7 +148,7 @@ export default function BuilderPage({
             {isSolving ? "Finding route…" : "Find a breeding route"}
             {isSolving ? <span className="sr-only" role="status">Finding a breeding route. Activate to cancel.</span> : null}
           </button>
-          <p className="model-note">Each step pairs a Pal from the route with one from your selected world. Intermediate Pals may have extra passives when that lowers the average egg count. Estimates use regular Cake and don't include sex or lucky random matches.</p>
+          <p className="model-note">Odds are estimated for regular Cake. Sex and random Lucky rolls aren't included.</p>
         </form>
 
         <div className="feature-card builder-result-card" aria-live="polite">
@@ -207,7 +182,7 @@ function BuilderResultView({
     return <div className="empty-state is-error"><strong>We couldn't finish that route</strong><span>{solveError}</span></div>;
   }
   if (!result) {
-    return <div className="empty-state builder-empty"><span className="empty-glyph">◇</span><strong>Choose a Pal to get started</strong><span>Then pick the passives you want.</span></div>;
+    return <div className="empty-state builder-empty"><span className="empty-glyph">◇</span><strong>Choose a Pal</strong><span>We'll find the best route from your selected world.</span></div>;
   }
   if (result.status === "missing-passives") {
     return (
@@ -231,7 +206,7 @@ function BuilderResultView({
 
   const target = targetId ? breedingRepository.getPal(targetId) : undefined;
   const passiveSummary = passiveGoal?.kind === "any"
-    ? "Passives don't matter"
+    ? "No passive preference"
     : passiveGoal?.requiredIds.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ") ?? "";
   return (
     <div className="build-result">
@@ -277,17 +252,9 @@ function formatEggs(value: number) {
 }
 
 function getResultPassiveSummary(passives: BuilderParentPassives) {
-  if (passives.kind === "any") return "Any passives";
+  if (passives.kind === "any") return "Passives unrestricted";
   const required = passives.ids.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ");
-  if (passives.kind === "bounded") {
-    const others = `up to ${passives.maxExtras} other passive${passives.maxExtras === 1 ? "" : "s"}`;
-    return required
-      ? `${required} + ${others}`
-      : passives.maxExtras === 1
-        ? "Any single passive"
-        : `Any combination of up to ${passives.maxExtras} passives`;
-  }
-  return required || "No passives";
+  return required || (passives.kind === "bounded" ? "Passives unrestricted" : "No passives");
 }
 
 function SparkIcon() {

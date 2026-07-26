@@ -106,7 +106,7 @@ export default function InventoryPage({
           >
             <Label className="sr-only">Search Pals</Label>
             <SearchIcon />
-            <Input placeholder="Search by name, passive, level, sex, or location" />
+            <Input placeholder="Search Pals, passives, stats, or locations" />
             <AriaButton slot="clear" className="inventory-search-clear" aria-label="Clear search">
               <CloseIcon />
             </AriaButton>
@@ -133,7 +133,7 @@ export default function InventoryPage({
             <div className="empty-state inventory-empty inventory-no-world">
               <WorldOutlineIcon />
               <strong>Import a world to get started</strong>
-              <span>Once it's imported, you can browse your Pals here and use them in the Builder.</span>
+              <span>Your Pals will appear here.</span>
             </div>
           )}
         </div>
@@ -148,7 +148,7 @@ function InventoryHero() {
       <div>
         <span className="section-kicker">INVENTORY</span>
         <h1>Your Pals</h1>
-        <p>Browse the Pals in your selected world, or switch worlds to use a different collection in the Builder.</p>
+        <p>Search your imported Pals, compare stats, and choose which world the Builder uses.</p>
       </div>
       <span className="hero-index">01</span>
     </section>
