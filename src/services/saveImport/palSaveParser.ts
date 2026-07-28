@@ -14,7 +14,8 @@ import { normalizePalsFromParsedSave, normalizePlayersFromParsedSave } from "./p
 import { assertPalworldOnePointZero } from "./saveScanner";
 
 const saveAliases: Readonly<Record<string, PalId>> = aliases.aliases;
-const ignoredSaveIds = new Set<string>(aliases.ignoredIds);
+const saveAliasesByNormalizedId = createNormalizedAliasMap(saveAliases);
+const ignoredSaveIds = new Set<string>(aliases.ignoredIds.map(normalizeSaveId));
 const MAX_COMPRESSED_SAVE_BYTES = 512 * 1024 * 1024;
 const MAX_DECOMPRESSED_SAVE_BYTES = 1024 * 1024 * 1024;
 let parserReady: Promise<typeof import("../../vendor/palpath-save-parser/palpath_save_parser")> | undefined;
@@ -64,7 +65,7 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
         || rawSpeciesId.startsWith("Human")
         || /^player/i.test(rawSpeciesId)
       ) continue;
-      if (ignoredSaveIds.has(rawSpeciesId)) continue;
+      if (ignoredSaveIds.has(normalizeSaveId(rawSpeciesId))) continue;
       const speciesId = resolveSpeciesId(rawSpeciesId);
       if (!speciesId) {
         unknownPalIds.add(rawSpeciesId);
@@ -163,10 +164,28 @@ function ascii(data: Uint8Array, start: number, end: number) {
   return String.fromCharCode(...data.slice(start, end));
 }
 
-function resolveSpeciesId(rawId: string) {
+export function resolveSpeciesId(rawId: string) {
   const stripped = rawId.replace(/^(BOSS_|PREDATOR_|RAID_BOSS_)+/i, "");
-  const alias = saveAliases[rawId] ?? saveAliases[stripped];
+  const alias = saveAliasesByNormalizedId.get(normalizeSaveId(rawId))
+    ?? saveAliasesByNormalizedId.get(normalizeSaveId(stripped));
   return alias && breedingRepository.getPal(alias) ? alias : undefined;
+}
+
+function createNormalizedAliasMap(source: Readonly<Record<string, PalId>>) {
+  const normalized = new Map<string, PalId>();
+  for (const [saveId, canonicalId] of Object.entries(source)) {
+    const key = normalizeSaveId(saveId);
+    const existing = normalized.get(key);
+    if (existing && existing !== canonicalId) {
+      throw new Error(`Save aliases conflict for case-insensitive ID ${saveId}.`);
+    }
+    normalized.set(key, canonicalId);
+  }
+  return normalized;
+}
+
+function normalizeSaveId(value: string) {
+  return value.toLocaleLowerCase("en-US");
 }
 
 function parseGender(value?: string): PalGender | undefined {
