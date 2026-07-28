@@ -5,7 +5,6 @@ describe("runtime configuration", () => {
   it("keeps optional services disabled when no environment is configured", () => {
     expect(createRuntimeConfig({})).toEqual({
       errors: [],
-      legalContactEmail: undefined,
       sourceUrl: undefined,
     });
   });
@@ -15,7 +14,6 @@ describe("runtime configuration", () => {
       VITE_SUPABASE_URL: "https://project.supabase.co",
       VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
       VITE_SUPABASE_AUTH_METHOD: "google",
-      VITE_LEGAL_CONTACT_EMAIL: "privacy@example.com",
     })).toMatchObject({
       errors: [],
       supabase: { signInMethod: "google" },
@@ -26,7 +24,6 @@ describe("runtime configuration", () => {
     expect(createRuntimeConfig({
       VITE_SUPABASE_URL: "https://project.supabase.co",
       VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
-      VITE_LEGAL_CONTACT_EMAIL: "privacy@example.com",
     }).supabase?.signInMethod).toBe("email");
   });
 
@@ -35,7 +32,6 @@ describe("runtime configuration", () => {
       VITE_SUPABASE_URL: "https://project.supabase.co",
       VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
       VITE_SUPABASE_AUTH_METHOD: "discord",
-      VITE_LEGAL_CONTACT_EMAIL: "privacy@example.com",
     });
 
     expect(result.supabase).toBeUndefined();

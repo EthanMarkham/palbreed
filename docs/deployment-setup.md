@@ -50,7 +50,6 @@ Copy `.env.example` into the host's environment settings and set:
   works, but use the current publishable key for a new project.
 - `VITE_SUPABASE_AUTH_METHOD`: `google` to show Google OAuth and email magic
   links, or `email` for email-only sign-in.
-- `VITE_LEGAL_CONTACT_EMAIL`: monitored privacy/deletion contact.
 - `VITE_SOURCE_URL`: HTTPS URL for the exact deployed corresponding-source
   release, including application source, WASM interface code, build scripts,
   and lockfiles.
