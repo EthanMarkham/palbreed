@@ -108,6 +108,68 @@ describe("Pal Builder", () => {
     }
   });
 
+  it("combines independently bred passive branches when that is the cleanest route", () => {
+    const branchInventory: OwnedPal[] = [
+      {
+        id: "lamball-branch",
+        sourceInstanceId: "lamball-branch",
+        speciesId: "lamball",
+        gender: "F",
+        passiveIds: ["wanted-0"],
+        location: "palbox",
+      },
+      {
+        id: "blazamut-branch",
+        sourceInstanceId: "blazamut-branch",
+        speciesId: "blazamut",
+        gender: "M",
+        passiveIds: ["wanted-1"],
+        location: "palbox",
+      },
+      {
+        id: "chikipi-branch",
+        sourceInstanceId: "chikipi-branch",
+        speciesId: "chikipi",
+        gender: "F",
+        passiveIds: ["wanted-2"],
+        location: "palbox",
+      },
+      {
+        id: "selyne-branch",
+        sourceInstanceId: "selyne-branch",
+        speciesId: "selyne",
+        gender: "M",
+        passiveIds: ["wanted-3"],
+        location: "palbox",
+      },
+    ];
+    const result = buildPal({
+      inventory: branchInventory,
+      targetId: "tarantriss",
+      passiveGoal: {
+        kind: "specific",
+        requiredIds: branchInventory.flatMap((pal) => pal.passiveIds),
+        allowedExtras: 0,
+      },
+      objective: "cleanest",
+    });
+
+    expect(result.status).toBe("found");
+    if (result.status === "found") {
+      expect(result.steps).toHaveLength(3);
+      expect(result.steps[result.steps.length - 1]).toMatchObject({
+        result: "tarantriss",
+        firstParent: { origin: "planned" },
+        secondParent: { origin: "planned" },
+        resultPassives: {
+          kind: "known",
+          ids: ["wanted-0", "wanted-1", "wanted-2", "wanted-3"],
+        },
+      });
+      expect(result.expectedCakes).toBeCloseTo(26.666666667);
+    }
+  });
+
   it("never proposes a same-sex parent pair", () => {
     const result = buildPal({
       inventory: [inventory[0], { ...inventory[1], gender: "F" }],

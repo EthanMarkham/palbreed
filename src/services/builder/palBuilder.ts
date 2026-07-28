@@ -78,8 +78,7 @@ const MAX_PASSIVES = 4;
 const EXTRA_VARIANTS = MAX_PASSIVES + 1;
 const GENDER_VARIANTS = 3;
 const ANY_GENDER_INDEX = 2;
-const UNVISITED_STATE = -2;
-const SEED_STATE = -1;
+const UNVISITED_PARENT = -0x80000000;
 const UNREACHED_STEPS = 0xffff;
 const MAX_CACHED_PARENT_UNION = MAX_PASSIVES * 3;
 const ODDS_DIMENSION = MAX_PASSIVES + 1;
@@ -152,14 +151,14 @@ export function buildPal(input: BuilderInput): BuilderResult {
     maskVariants,
     acceptsAnyPassives,
   );
-  const canReachTarget = findSpeciesThatCanReach(actionsBySpecies, targetIndex);
   const stateCount = runtimePals.length * maskVariants * EXTRA_VARIANTS * GENDER_VARIANTS;
   const bestSteps = new Uint16Array(stateCount).fill(UNREACHED_STEPS);
   const bestExpectedCakes = new Float64Array(stateCount).fill(Number.POSITIVE_INFINITY);
-  const previousState = new Int32Array(stateCount).fill(UNVISITED_STATE);
-  const firstInventoryParent = new Int32Array(stateCount).fill(-1);
-  const inventoryPartner = new Int32Array(stateCount).fill(-1);
+  const firstParentRef = new Int32Array(stateCount).fill(UNVISITED_PARENT);
+  const secondParentRef = new Int32Array(stateCount).fill(UNVISITED_PARENT);
   const edgeOdds = new Float64Array(stateCount);
+  const settled = new Uint8Array(stateCount);
+  const settledByGender: [number[], number[]] = [[], []];
   const queue = new StatePriorityQueue(input.objective);
 
   const relaxState = (
@@ -170,11 +169,10 @@ export function buildPal(input: BuilderInput): BuilderResult {
     odds: number,
     steps: number,
     expectedCakes: number,
-    predecessor: number,
-    firstParentIndex: number,
-    partnerIndex: number,
+    firstRef: number,
+    secondRef: number,
   ) => {
-    if (odds <= 0 || !canReachTarget[childIndex]) return;
+    if (odds <= 0) return;
     const state = encodeState(
       childIndex,
       nextMask,
@@ -182,6 +180,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
       gender,
       maskVariants,
     );
+    if (settled[state]) return;
     if (bestSteps[state] !== UNREACHED_STEPS && compareLabels(
       steps,
       expectedCakes,
@@ -194,9 +193,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
 
     bestSteps[state] = steps;
     bestExpectedCakes[state] = expectedCakes;
-    previousState[state] = predecessor;
-    firstInventoryParent[state] = firstParentIndex;
-    inventoryPartner[state] = partnerIndex;
+    firstParentRef[state] = firstRef;
+    secondParentRef[state] = secondRef;
     edgeOdds[state] = odds;
     queue.push(state, steps, expectedCakes);
   };
@@ -209,9 +207,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
     isFinalHatch: boolean,
     currentSteps: number,
     currentExpectedCakes: number,
-    predecessor: number,
-    firstParentIndex: number,
-    partnerIndex: number,
+    firstRef: number,
+    secondRef: number,
   ) => {
     if (isFinalHatch) {
       relaxState(
@@ -222,9 +219,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
         passiveChance,
         currentSteps + 1,
         currentExpectedCakes + 1 / passiveChance,
-        predecessor,
-        firstParentIndex,
-        partnerIndex,
+        firstRef,
+        secondRef,
       );
       return;
     }
@@ -242,9 +238,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
         odds,
         currentSteps + 1,
         currentExpectedCakes + 1 / odds,
-        predecessor,
-        firstParentIndex,
-        partnerIndex,
+        firstRef,
+        secondRef,
       );
     }
   };
@@ -255,9 +250,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
     parentUnionSize: number,
     currentSteps: number,
     currentExpectedCakes: number,
-    predecessor: number,
-    firstParentIndex: number,
-    partnerIndex: number,
+    firstRef: number,
+    secondRef: number,
   ) => {
     const desiredCount = countBits(nextMask);
     const availableExtraSlots = MAX_PASSIVES - desiredCount;
@@ -271,9 +265,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
         isFinalHatch,
         currentSteps,
         currentExpectedCakes,
-        predecessor,
-        firstParentIndex,
-        partnerIndex,
+        firstRef,
+        secondRef,
       );
       return;
     }
@@ -296,9 +289,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
         isFinalHatch,
         currentSteps,
         currentExpectedCakes,
-        predecessor,
-        firstParentIndex,
-        partnerIndex,
+        firstRef,
+        secondRef,
       );
     }
   };
@@ -319,16 +311,15 @@ export function buildPal(input: BuilderInput): BuilderResult {
         second.speciesIndex,
         second.pal.gender,
       );
-      if (childIndex < 0 || !canReachTarget[childIndex]) continue;
+      if (childIndex < 0) continue;
       relaxOutcome(
         childIndex,
         first.requiredMask | second.requiredMask,
         acceptsAnyPassives ? 0 : passiveUnionSize(first.passiveIds, second.passiveIds),
         0,
         0,
-        SEED_STATE,
-        firstIndex,
-        secondIndex,
+        encodeInventoryRef(firstIndex),
+        encodeInventoryRef(secondIndex),
       );
     }
   }
@@ -339,6 +330,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
       !current
       || bestSteps[current.state] !== current.steps
       || bestExpectedCakes[current.state] !== current.expectedCakes
+      || settled[current.state]
     ) continue;
 
     const decoded = decodeState(current.state, maskVariants);
@@ -355,17 +347,16 @@ export function buildPal(input: BuilderInput): BuilderResult {
           encodedInventory,
           required,
           acceptsAnyPassives,
-          previousState,
-          firstInventoryParent,
-          inventoryPartner,
+          firstParentRef,
+          secondParentRef,
           edgeOdds,
         ),
         expectedCakes: current.expectedCakes,
       };
     }
 
+    settled[current.state] = 1;
     for (const action of actionsBySpecies[decoded.speciesIndex]) {
-      if (!canReachTarget[action.childIndex]) continue;
       const partner = encodedInventory[action.partnerIndex];
       if (decoded.gender === undefined || decoded.gender === partner.pal.gender) continue;
       const nextMask = decoded.mask | partner.requiredMask;
@@ -378,9 +369,37 @@ export function buildPal(input: BuilderInput): BuilderResult {
         current.steps,
         current.expectedCakes,
         current.state,
-        -1,
-        action.partnerIndex,
+        encodeInventoryRef(action.partnerIndex),
       );
+    }
+
+    if (decoded.gender !== undefined) {
+      const oppositeGenderIndex = decoded.gender === "F" ? 1 : 0;
+      for (const otherState of settledByGender[oppositeGenderIndex]) {
+        const other = decodeState(otherState, maskVariants);
+        if (!other.gender) continue;
+        const childIndex = getRuntimeChildIndex(
+          decoded.speciesIndex,
+          other.speciesIndex,
+          other.gender,
+        );
+        if (childIndex < 0) continue;
+        const nextMask = decoded.mask | other.mask;
+        relaxOutcome(
+          childIndex,
+          nextMask,
+          acceptsAnyPassives
+            ? 0
+            : countBits(nextMask)
+              + decoded.maxUnknownExtraCount
+              + other.maxUnknownExtraCount,
+          current.steps + bestSteps[otherState],
+          current.expectedCakes + bestExpectedCakes[otherState],
+          current.state,
+          otherState,
+        );
+      }
+      settledByGender[decoded.gender === "F" ? 0 : 1].push(current.state);
     }
   }
 
@@ -404,7 +423,9 @@ function buildPartnerActions(
         partner.pal.gender,
       );
       if (childIndex < 0) continue;
-      const actionKey = childIndex * maskVariants + partner.requiredMask;
+      const actionKey = (
+        (childIndex * maskVariants + partner.requiredMask) * 2
+      ) + (partner.pal.gender === "M" ? 1 : 0);
       const existingIndex = bestPartnerByOutcome.get(actionKey);
       if (
         existingIndex !== undefined
@@ -414,42 +435,10 @@ function buildPartnerActions(
     }
 
     return [...bestPartnerByOutcome].map(([actionKey, partnerIndex]) => ({
-      childIndex: Math.floor(actionKey / maskVariants),
+      childIndex: Math.floor(actionKey / (maskVariants * 2)),
       partnerIndex,
     }));
   });
-}
-
-function findSpeciesThatCanReach(
-  actionsBySpecies: readonly (readonly PartnerAction[])[],
-  targetIndex: number,
-) {
-  const reverse: number[][] = Array.from({ length: runtimePals.length }, () => []);
-  for (let parentIndex = 0; parentIndex < actionsBySpecies.length; parentIndex += 1) {
-    for (const { childIndex } of actionsBySpecies[parentIndex]) {
-      reverse[childIndex].push(parentIndex);
-    }
-  }
-
-  const reachable = new Uint8Array(runtimePals.length);
-  const queue = new Uint16Array(runtimePals.length);
-  let head = 0;
-  let tail = 0;
-  reachable[targetIndex] = 1;
-  queue[tail] = targetIndex;
-  tail += 1;
-
-  while (head < tail) {
-    const childIndex = queue[head];
-    head += 1;
-    for (const parentIndex of reverse[childIndex]) {
-      if (reachable[parentIndex]) continue;
-      reachable[parentIndex] = 1;
-      queue[tail] = parentIndex;
-      tail += 1;
-    }
-  }
-  return reachable;
 }
 
 function reconstruct(
@@ -458,18 +447,20 @@ function reconstruct(
   inventory: readonly EncodedOwnedPal[],
   required: readonly PassiveId[],
   acceptsAnyPassives: boolean,
-  previousState: Int32Array,
-  firstInventoryParent: Int32Array,
-  inventoryPartner: Int32Array,
+  firstParentRef: Int32Array,
+  secondParentRef: Int32Array,
   edgeOdds: Float64Array,
 ) {
   const steps: BuilderStep[] = [];
-  let state = targetState;
+  const appendState = (state: number) => {
+    const firstRef = firstParentRef[state];
+    const secondRef = secondParentRef[state];
+    if (firstRef === UNVISITED_PARENT || secondRef === UNVISITED_PARENT) {
+      throw new Error("A planned breeding step is missing its parents.");
+    }
+    if (firstRef >= 0) appendState(firstRef);
+    if (secondRef >= 0) appendState(secondRef);
 
-  while (state >= 0) {
-    const predecessor = previousState[state];
-    if (predecessor === UNVISITED_STATE) break;
-    const partner = inventory[inventoryPartner[state]];
     const resultState = decodeState(state, maskVariants);
     const resultPassives = passivesForState(
       resultState.mask,
@@ -477,26 +468,52 @@ function reconstruct(
       required,
       acceptsAnyPassives,
     );
-    const firstParent = predecessor === SEED_STATE
-      ? createInventoryParent(inventory[firstInventoryParent[state]].pal)
-      : createPlannedParent(
-          decodeState(predecessor, maskVariants),
-          required,
-          acceptsAnyPassives,
-        );
     const odds = edgeOdds[state];
     steps.push({
-      firstParent,
-      secondParent: createInventoryParent(partner.pal),
+      firstParent: createParentFromRef(
+        firstRef,
+        maskVariants,
+        inventory,
+        required,
+        acceptsAnyPassives,
+        firstParentRef,
+      ),
+      secondParent: createParentFromRef(
+        secondRef,
+        maskVariants,
+        inventory,
+        required,
+        acceptsAnyPassives,
+        firstParentRef,
+      ),
       result: runtimePals[resultState.speciesIndex].id,
       resultPassives,
       odds,
       expectedCakes: 1 / odds,
     });
-    state = predecessor;
-  }
+  };
 
-  return steps.reverse();
+  appendState(targetState);
+  return steps;
+}
+
+function createParentFromRef(
+  ref: number,
+  maskVariants: number,
+  inventory: readonly EncodedOwnedPal[],
+  required: readonly PassiveId[],
+  acceptsAnyPassives: boolean,
+  firstParentRef: Int32Array,
+) {
+  if (ref < 0) return createInventoryParent(inventory[decodeInventoryRef(ref)].pal);
+  if (firstParentRef[ref] === UNVISITED_PARENT) {
+    throw new Error("A planned breeding parent has no production step.");
+  }
+  return createPlannedParent(
+    decodeState(ref, maskVariants),
+    required,
+    acceptsAnyPassives,
+  );
 }
 
 function createPlannedParent(
@@ -637,6 +654,14 @@ function decodeGender(index: number): PalGender | undefined {
   if (index === 0) return "F";
   if (index === 1) return "M";
   return undefined;
+}
+
+function encodeInventoryRef(index: number) {
+  return -index - 1;
+}
+
+function decodeInventoryRef(ref: number) {
+  return -ref - 1;
 }
 
 function noRoute(): BuilderResult {

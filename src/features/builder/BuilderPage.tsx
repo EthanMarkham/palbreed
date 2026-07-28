@@ -148,7 +148,7 @@ export default function BuilderPage({
             {isSolving ? "Finding route…" : "Find a breeding route"}
             {isSolving ? <span className="sr-only" role="status">Finding a breeding route. Activate to cancel.</span> : null}
           </button>
-          <p className="model-note">Odds are estimated for regular Cake. Sex and random Lucky rolls aren't included.</p>
+          <p className="model-note">Odds include inherited passives and any required offspring sex. Random Lucky rolls aren't included.</p>
         </form>
 
         <div className="feature-card builder-result-card" aria-live="polite">
