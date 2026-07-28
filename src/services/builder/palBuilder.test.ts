@@ -59,6 +59,55 @@ describe("Pal Builder", () => {
     }
   });
 
+  it("prices a required intermediate gender using that species' hatch distribution", () => {
+    const result = buildPal({
+      inventory: [
+        {
+          id: "amione-1",
+          sourceInstanceId: "amione-1",
+          speciesId: "amione",
+          gender: "F",
+          passiveIds: [],
+          location: "palbox",
+        },
+        {
+          id: "dazzi-noct-1",
+          sourceInstanceId: "dazzi-noct-1",
+          speciesId: "dazzi-noct",
+          gender: "M",
+          passiveIds: [],
+          location: "palbox",
+        },
+        {
+          id: "lamball-1",
+          sourceInstanceId: "lamball-1",
+          speciesId: "lamball",
+          gender: "M",
+          passiveIds: [],
+          location: "palbox",
+        },
+      ],
+      targetId: "herbil",
+      passiveGoal: { kind: "any" },
+      objective: "fewest",
+    });
+
+    expect(result.status).toBe("found");
+    if (result.status === "found") {
+      expect(result.steps).toHaveLength(2);
+      expect(result.steps[0]).toMatchObject({
+        result: "kingpaca",
+      });
+      expect(result.steps[0].odds).toBeCloseTo(0.1);
+      expect(result.steps[1].firstParent).toMatchObject({
+        speciesId: "kingpaca",
+        origin: "planned",
+        gender: "F",
+      });
+      expect(result.expectedCakes).toBeCloseTo(11);
+    }
+  });
+
   it("never proposes a same-sex parent pair", () => {
     const result = buildPal({
       inventory: [inventory[0], { ...inventory[1], gender: "F" }],
@@ -232,15 +281,15 @@ describe("Pal Builder", () => {
   it.each([
     {
       allowedFinalExtras: 0 as const,
-      expectedBridgeExtras: 1,
-      expectedBridgeOdds: 0.16,
-      expectedCakes: 18.75,
+      expectedBridgeExtras: 2,
+      expectedBridgeOdds: 0.2,
+      expectedCakes: 23.75,
     },
     {
       allowedFinalExtras: 1 as const,
-      expectedBridgeExtras: 2,
-      expectedBridgeOdds: 0.4,
-      expectedCakes: 8.269230769,
+      expectedBridgeExtras: 3,
+      expectedBridgeOdds: 0.325,
+      expectedCakes: 10.769230769,
     },
   ])(
     "chooses the globally cheaper bridge when the final build allows $allowedFinalExtras extras",

@@ -3,6 +3,7 @@ import {
   getRuntimePalIndex,
   runtimePals,
 } from "../../data/breedingRuntime";
+import { getPalGenderProbability } from "../../data/palStatsRepository";
 import type { OwnedPal } from "../../domain/inventory";
 import type { PalGender, PalId } from "../../domain/pal";
 import type { PassiveGoal, PassiveId } from "../../domain/passive";
@@ -75,6 +76,8 @@ type QueueEntry = {
 
 const MAX_PASSIVES = 4;
 const EXTRA_VARIANTS = MAX_PASSIVES + 1;
+const GENDER_VARIANTS = 3;
+const ANY_GENDER_INDEX = 2;
 const UNVISITED_STATE = -2;
 const SEED_STATE = -1;
 const UNREACHED_STEPS = 0xffff;
@@ -150,7 +153,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
     acceptsAnyPassives,
   );
   const canReachTarget = findSpeciesThatCanReach(actionsBySpecies, targetIndex);
-  const stateCount = runtimePals.length * maskVariants * EXTRA_VARIANTS;
+  const stateCount = runtimePals.length * maskVariants * EXTRA_VARIANTS * GENDER_VARIANTS;
   const bestSteps = new Uint16Array(stateCount).fill(UNREACHED_STEPS);
   const bestExpectedCakes = new Float64Array(stateCount).fill(Number.POSITIVE_INFINITY);
   const previousState = new Int32Array(stateCount).fill(UNVISITED_STATE);
@@ -163,6 +166,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
     childIndex: number,
     nextMask: number,
     maxUnknownExtraCount: number,
+    gender: PalGender | undefined,
     odds: number,
     steps: number,
     expectedCakes: number,
@@ -171,7 +175,13 @@ export function buildPal(input: BuilderInput): BuilderResult {
     partnerIndex: number,
   ) => {
     if (odds <= 0 || !canReachTarget[childIndex]) return;
-    const state = encodeState(childIndex, nextMask, maxUnknownExtraCount, maskVariants);
+    const state = encodeState(
+      childIndex,
+      nextMask,
+      maxUnknownExtraCount,
+      gender,
+      maskVariants,
+    );
     if (bestSteps[state] !== UNREACHED_STEPS && compareLabels(
       steps,
       expectedCakes,
@@ -191,6 +201,54 @@ export function buildPal(input: BuilderInput): BuilderResult {
     queue.push(state, steps, expectedCakes);
   };
 
+  const relaxHatchGenders = (
+    childIndex: number,
+    nextMask: number,
+    maxUnknownExtraCount: number,
+    passiveChance: number,
+    isFinalHatch: boolean,
+    currentSteps: number,
+    currentExpectedCakes: number,
+    predecessor: number,
+    firstParentIndex: number,
+    partnerIndex: number,
+  ) => {
+    if (isFinalHatch) {
+      relaxState(
+        childIndex,
+        nextMask,
+        maxUnknownExtraCount,
+        undefined,
+        passiveChance,
+        currentSteps + 1,
+        currentExpectedCakes + 1 / passiveChance,
+        predecessor,
+        firstParentIndex,
+        partnerIndex,
+      );
+      return;
+    }
+
+    for (const gender of ["F", "M"] as const) {
+      const odds = passiveChance * getPalGenderProbability(
+        runtimePals[childIndex].id,
+        gender,
+      );
+      relaxState(
+        childIndex,
+        nextMask,
+        maxUnknownExtraCount,
+        gender,
+        odds,
+        currentSteps + 1,
+        currentExpectedCakes + 1 / odds,
+        predecessor,
+        firstParentIndex,
+        partnerIndex,
+      );
+    }
+  };
+
   const relaxOutcome = (
     childIndex: number,
     nextMask: number,
@@ -201,14 +259,18 @@ export function buildPal(input: BuilderInput): BuilderResult {
     firstParentIndex: number,
     partnerIndex: number,
   ) => {
+    const desiredCount = countBits(nextMask);
+    const availableExtraSlots = MAX_PASSIVES - desiredCount;
+    const isFinalHatch = childIndex === targetIndex && nextMask === fullMask;
     if (acceptsAnyPassives) {
-      relaxState(
+      relaxHatchGenders(
         childIndex,
         nextMask,
         0,
         1,
-        currentSteps + 1,
-        currentExpectedCakes + 1,
+        isFinalHatch,
+        currentSteps,
+        currentExpectedCakes,
         predecessor,
         firstParentIndex,
         partnerIndex,
@@ -216,9 +278,6 @@ export function buildPal(input: BuilderInput): BuilderResult {
       return;
     }
 
-    const desiredCount = countBits(nextMask);
-    const availableExtraSlots = MAX_PASSIVES - desiredCount;
-    const isFinalHatch = childIndex === targetIndex && nextMask === fullMask;
     const maxExtras = isFinalHatch
       ? Math.min(allowedExtras, availableExtraSlots)
       : availableExtraSlots;
@@ -226,16 +285,17 @@ export function buildPal(input: BuilderInput): BuilderResult {
     let previousOdds = 0;
 
     for (let acceptedExtras = firstExtraLimit; acceptedExtras <= maxExtras; acceptedExtras += 1) {
-      const odds = getPassiveOdds(parentUnionSize, desiredCount, acceptedExtras);
-      if (odds <= previousOdds) continue;
-      previousOdds = odds;
-      relaxState(
+      const passiveChance = getPassiveOdds(parentUnionSize, desiredCount, acceptedExtras);
+      if (passiveChance <= previousOdds) continue;
+      previousOdds = passiveChance;
+      relaxHatchGenders(
         childIndex,
         nextMask,
         acceptedExtras,
-        odds,
-        currentSteps + 1,
-        currentExpectedCakes + 1 / odds,
+        passiveChance,
+        isFinalHatch,
+        currentSteps,
+        currentExpectedCakes,
         predecessor,
         firstParentIndex,
         partnerIndex,
@@ -307,6 +367,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
     for (const action of actionsBySpecies[decoded.speciesIndex]) {
       if (!canReachTarget[action.childIndex]) continue;
       const partner = encodedInventory[action.partnerIndex];
+      if (decoded.gender === undefined || decoded.gender === partner.pal.gender) continue;
       const nextMask = decoded.mask | partner.requiredMask;
       relaxOutcome(
         action.childIndex,
@@ -420,7 +481,6 @@ function reconstruct(
       ? createInventoryParent(inventory[firstInventoryParent[state]].pal)
       : createPlannedParent(
           decodeState(predecessor, maskVariants),
-          oppositeGender(partner.pal.gender),
           required,
           acceptsAnyPassives,
         );
@@ -440,16 +500,21 @@ function reconstruct(
 }
 
 function createPlannedParent(
-  state: { speciesIndex: number; mask: number; maxUnknownExtraCount: number },
-  gender: PalGender,
+  state: {
+    speciesIndex: number;
+    mask: number;
+    maxUnknownExtraCount: number;
+    gender: PalGender | undefined;
+  },
   required: readonly PassiveId[],
   acceptsAnyPassives: boolean,
 ): BuilderParent {
+  if (!state.gender) throw new Error("A planned breeding parent must have a gender.");
   return {
     speciesId: runtimePals[state.speciesIndex].id,
     origin: "planned",
     level: 1,
-    gender,
+    gender: state.gender,
     passives: passivesForState(
       state.mask,
       state.maxUnknownExtraCount,
@@ -539,24 +604,39 @@ function encodeState(
   speciesIndex: number,
   mask: number,
   maxUnknownExtraCount: number,
+  gender: PalGender | undefined,
   maskVariants: number,
 ) {
-  return ((speciesIndex * maskVariants + mask) * EXTRA_VARIANTS) + maxUnknownExtraCount;
+  return (
+    ((speciesIndex * maskVariants + mask) * EXTRA_VARIANTS + maxUnknownExtraCount)
+    * GENDER_VARIANTS
+  ) + encodeGender(gender);
 }
 
 function decodeState(state: number, maskVariants: number) {
-  const maxUnknownExtraCount = state % EXTRA_VARIANTS;
-  const withoutExtras = (state - maxUnknownExtraCount) / EXTRA_VARIANTS;
+  const genderIndex = state % GENDER_VARIANTS;
+  const withoutGender = (state - genderIndex) / GENDER_VARIANTS;
+  const maxUnknownExtraCount = withoutGender % EXTRA_VARIANTS;
+  const withoutExtras = (withoutGender - maxUnknownExtraCount) / EXTRA_VARIANTS;
   const mask = withoutExtras % maskVariants;
   return {
     speciesIndex: (withoutExtras - mask) / maskVariants,
     mask,
     maxUnknownExtraCount,
+    gender: decodeGender(genderIndex),
   };
 }
 
-function oppositeGender(gender: PalGender): PalGender {
-  return gender === "F" ? "M" : "F";
+function encodeGender(gender: PalGender | undefined) {
+  if (gender === "F") return 0;
+  if (gender === "M") return 1;
+  return ANY_GENDER_INDEX;
+}
+
+function decodeGender(index: number): PalGender | undefined {
+  if (index === 0) return "F";
+  if (index === 1) return "M";
+  return undefined;
 }
 
 function noRoute(): BuilderResult {
@@ -674,11 +754,15 @@ class StatePriorityQueue {
     return compareLabels(
       firstSteps,
       firstExpectedCakes,
-      firstState % EXTRA_VARIANTS,
+      stateExtraCount(firstState),
       secondSteps,
       secondExpectedCakes,
-      secondState % EXTRA_VARIANTS,
+      stateExtraCount(secondState),
       this.objective,
     );
   }
+}
+
+function stateExtraCount(state: number) {
+  return Math.floor(state / GENDER_VARIANTS) % EXTRA_VARIANTS;
 }
