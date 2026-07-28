@@ -1,7 +1,6 @@
 export type SupportedSignInMethod = "email" | "google";
 
 export type RuntimeConfig = {
-  legalContactEmail?: string;
   sourceUrl?: string;
   supabase?: {
     url: string;
@@ -17,11 +16,7 @@ const SIGN_IN_METHODS = new Set<SupportedSignInMethod>(["email", "google"]);
 
 export function createRuntimeConfig(environment: Environment): RuntimeConfig {
   const errors: string[] = [];
-  const legalContactEmail = readString(environment.VITE_LEGAL_CONTACT_EMAIL);
   const sourceUrl = readString(environment.VITE_SOURCE_URL);
-  if (legalContactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(legalContactEmail)) {
-    errors.push("VITE_LEGAL_CONTACT_EMAIL must be a valid email address.");
-  }
   if (sourceUrl && !isHttpsUrl(sourceUrl)) {
     errors.push("VITE_SOURCE_URL must be a valid HTTPS URL.");
   }
@@ -46,12 +41,7 @@ export function createRuntimeConfig(environment: Environment): RuntimeConfig {
     }
   }
 
-  if (supabase && !legalContactEmail) {
-    errors.push("VITE_LEGAL_CONTACT_EMAIL is required when Supabase sync is enabled.");
-  }
-
   return {
-    legalContactEmail: legalContactEmail || undefined,
     sourceUrl: sourceUrl || undefined,
     supabase,
     errors,
@@ -70,4 +60,9 @@ function isHttpsUrl(value: string) {
   }
 }
 
-export const runtimeConfig = createRuntimeConfig(import.meta.env);
+export const runtimeConfig = createRuntimeConfig({
+  VITE_SOURCE_URL: import.meta.env.VITE_SOURCE_URL,
+  VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+  VITE_SUPABASE_PUBLISHABLE_KEY: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  VITE_SUPABASE_AUTH_METHOD: import.meta.env.VITE_SUPABASE_AUTH_METHOD,
+});

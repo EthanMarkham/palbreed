@@ -13,11 +13,6 @@ export function PrivacyPage() {
       <PolicySection title="Your choices">
         <p>You can use Palpath without an account, remove local worlds from Inventory, clear recent Builder searches, and request deletion of server-side search history from the site operator.</p>
       </PolicySection>
-      <PolicySection title="Contact">
-        <p>{runtimeConfig.legalContactEmail
-          ? <>For privacy or deletion requests, email <a href={`mailto:${runtimeConfig.legalContactEmail}`}>{runtimeConfig.legalContactEmail}</a>.</>
-          : "No privacy contact has been published."}</p>
-      </PolicySection>
     </PolicyShell>
   );
 }
@@ -40,11 +35,6 @@ export function LegalPage() {
       </PolicySection>
       <PolicySection title="No warranty">
         <p>Palpath is provided as a planning utility without guarantees about game outcomes, save compatibility, availability, or fitness for a particular purpose. Keep independent backups of your saves.</p>
-      </PolicySection>
-      <PolicySection title="Contact">
-        <p>{runtimeConfig.legalContactEmail
-          ? <>For legal, copyright, or licensing questions, email <a href={`mailto:${runtimeConfig.legalContactEmail}`}>{runtimeConfig.legalContactEmail}</a>.</>
-          : "No legal contact has been published."}</p>
       </PolicySection>
     </PolicyShell>
   );
