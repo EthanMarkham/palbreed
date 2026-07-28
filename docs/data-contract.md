@@ -15,10 +15,13 @@ Each source release must provide a stable form ID, display name, form name when 
 The generator emits two versioned artifacts from the same validated source. `breeding-1.0.json` is the canonical release table with form-specific `palsById`, `childByParentPair`, `parentPairsByChild`, and `partnerIdsByParentAndChild` indexes. `breeding-runtime-1.0.json` is the compact browser payload containing only Pal identity, the encoded pair matrix, release identity/counts, and gender rules. The repository rebuilds only its required lookup maps from that matrix once at startup.
 
 `pal-stats-runtime-1.0.json` maps the same stable form IDs to HP, attack, and
-defense coefficients. Inventory combines those coefficients with level and
-the imported 0–100 hidden scores to calculate core combat stats. Passive and
-enhancement bonuses are deliberately excluded and the UI does not represent
-those derived values as a complete battle-state simulation.
+defense coefficients plus female/male hatch probabilities. Inventory combines
+the combat coefficients with level and the imported 0–100 hidden scores to
+calculate core combat stats. The builder combines hatch gender probabilities
+with passive inheritance odds whenever an intermediate offspring needs a
+specific gender. Passive and enhancement bonuses are deliberately excluded
+from displayed combat stats, and the UI does not represent those derived
+values as a complete battle-state simulation.
 
 Parent-pair keys are alphabetically ordered IDs. Gender-dependent combinations are emitted in `genderedChildrenByParentPair` and `genderedRules` instead of being flattened into an incorrect deterministic result. The canonical artifact retains the source URL, retrieval date, license/attribution, and content checksum; the runtime artifact carries only fields required by the browser.
 

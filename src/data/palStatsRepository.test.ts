@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { calculatePalCombatStats } from "./palStatsRepository";
+import {
+  calculatePalCombatStats,
+  getPalGenderProbability,
+} from "./palStatsRepository";
 
 describe("Pal combat stats", () => {
   it("combines species coefficients, level, and hidden scores", () => {
@@ -24,5 +27,14 @@ describe("Pal combat stats", () => {
       attack: 107,
       defense: 57,
     });
+  });
+});
+
+describe("Pal gender probabilities", () => {
+  it("preserves ordinary and species-specific distributions from PalCalc", () => {
+    expect(getPalGenderProbability("lamball", "F")).toBe(0.5);
+    expect(getPalGenderProbability("lamball", "M")).toBe(0.5);
+    expect(getPalGenderProbability("kingpaca", "F")).toBeCloseTo(0.1);
+    expect(getPalGenderProbability("kingpaca", "M")).toBe(0.9);
   });
 });

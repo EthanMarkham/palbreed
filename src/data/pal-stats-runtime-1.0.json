@@ -2,7 +2,7 @@
   "metadata": {
     "gameVersion": "1.0",
     "source": "PalCalc.Model/db.json",
-    "sourceCommit": "be2ec7a95c521dea6591469c051e7cb0f6658065"
+    "sourceCommit": "0055422d9cee4b65457fdb1544b248b76ef16805"
   },
   "stats": {
     "aegidron": {
@@ -1499,6 +1499,1204 @@
       "hp": 85,
       "attack": 85,
       "defense": 85
+    }
+  },
+  "genderProbabilities": {
+    "aegidron": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "amione": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "anubis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "arsox": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "astegon": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "azurmane": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "azurobe": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "azurobe-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "bakemi": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "bastigor": {
+      "F": 0.39999998,
+      "M": 0.6
+    },
+    "beakon": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "beakon-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "beegarde": {
+      "F": 0.9,
+      "M": 0.1
+    },
+    "bellanoir": {
+      "F": 0.9,
+      "M": 0.1
+    },
+    "bellanoir-libero": {
+      "F": 0.9,
+      "M": 0.1
+    },
+    "blazamut": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "blazamut-ryu": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "blazehowl": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "blazehowl-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "blue-slime": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "braloha": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "bristla": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "broncherry": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "broncherry-aqua": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "bulldosu": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "bushi": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "bushi-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "caprity": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "caprity-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "carnibora": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "cattiva": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "cave-bat": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "cawgnito": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "celaray": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "celaray-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "celesdir": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "celesdir-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "chikipi": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "chillet": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "chillet-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "cinnamoth": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "clovee": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "cremis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "croajiro": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "croajiro-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "cryolinx": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "cryolinx-terra": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "daedream": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dandilord": {
+      "F": 0.39999998,
+      "M": 0.6
+    },
+    "dazemu": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dazzi": {
+      "F": 0.8,
+      "M": 0.2
+    },
+    "dazzi-noct": {
+      "F": 0.8,
+      "M": 0.2
+    },
+    "demon-eye": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "depresso": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "digtoise": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dinossom": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dinossom-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "direhowl": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dogen": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dualith": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dualith-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dumud": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dumud-gild": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dupin": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "dynamoff": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "eidrolon": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "eidrolon-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "eikthyrdeer": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "eikthyrdeer-terra": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "elgrove": {
+      "F": 0.39999998,
+      "M": 0.6
+    },
+    "elgrove-cryst": {
+      "F": 0.39999998,
+      "M": 0.6
+    },
+    "elizabee": {
+      "F": 0.9,
+      "M": 0.1
+    },
+    "elphidran": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "elphidran-aqua": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "enchanted-sword": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "eye-of-cthulhu": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "faleris": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "faleris-aqua": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "felbat": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "fenglope": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "fenglope-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "finsider": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "finsider-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "flambelle": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "flaracle": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "flopie": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "foxcicle": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "foxparks": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "foxparks-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "frostallion": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "frostallion-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "frostplume": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "fuack": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "fuack-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "fuddler": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "galeclaw": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "ghangler": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "ghangler-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "gildane": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "gildra": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "gloopie": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "gloopie-primo": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "gobfin": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "gobfin-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "gorirat": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "gorirat-terra": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "green-slime": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "grintale": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "grizzbolt": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "gumoss": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "gumoss-special": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "hangyu": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "hangyu-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "hartalis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "helzephyr": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "helzephyr-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "herbil": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "hoocrates": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "hoodle": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "icelyn": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "illuminant-bat": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "illuminant-slime": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "incineram": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "incineram-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "jelliette": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "jellroy": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "jetragon": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "jolthog": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "jolthog-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "jormuntide": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "jormuntide-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "katress": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "katress-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "kelpsea": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "kelpsea-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "kikit": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "killamari": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "killamari-primo": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "kingpaca": {
+      "F": 0.100000024,
+      "M": 0.9
+    },
+    "kingpaca-cryst": {
+      "F": 0.100000024,
+      "M": 0.9
+    },
+    "kitsun": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "kitsun-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "knocklem": {
+      "F": 0.3,
+      "M": 0.7
+    },
+    "knocklem-ignis": {
+      "F": 0.3,
+      "M": 0.7
+    },
+    "lamball": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "lapiron": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "lapure": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "leafan": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "leezpunk": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "leezpunk-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "lifmunk": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "loomen": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "loupmoon": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "loupmoon-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "lovander": {
+      "F": 0.7,
+      "M": 0.3
+    },
+    "lullu": {
+      "F": 0.7,
+      "M": 0.3
+    },
+    "lunaris": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "lyleen": {
+      "F": 0.7,
+      "M": 0.3
+    },
+    "lyleen-noct": {
+      "F": 0.7,
+      "M": 0.3
+    },
+    "majex": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "mammorest": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "mammorest-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "maraith": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "mau": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "mau-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "melpaca": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "menasting": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "menasting-terra": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "mimog": {
+      "F": 0.19999999,
+      "M": 0.8
+    },
+    "moldron": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "moldron-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "mossanda": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "mossanda-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "mozzarina": {
+      "F": 0.8,
+      "M": 0.2
+    },
+    "muffly": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "munchill": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "mycora": {
+      "F": 0.7,
+      "M": 0.3
+    },
+    "necromus": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "needoll": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "needoll-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "neptilius": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "nitemary": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "nitemary-botan": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "nitewing": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "nox": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "nyafia": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "omascul": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "ophydia": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "orserk": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "paladius": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "palumba": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "panthalus": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "pengullet": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "pengullet-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "penking": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "penking-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "petallia": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "petallia-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "pierdon": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "pierdon-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "polapup": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "polapup-terra": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "prixter": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "prixter-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "prunelia": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "puffolt": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "pupperai": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "purple-slime": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "pyrin": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "pyrin-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "quivern": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "quivern-botan": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "ragnahawk": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "rainbow-slime": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "rayhound": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "rayhound-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "red-slime": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "reindrix": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "relaxaurus": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "relaxaurus-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "renjishi": {
+      "F": 0.39999998,
+      "M": 0.6
+    },
+    "reptyro": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "reptyro-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "ribbuny": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "ribbuny-botan": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "robinquill": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "robinquill-terra": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "rooby": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "roujay": {
+      "F": 0.39999998,
+      "M": 0.6
+    },
+    "rushoar": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "sekhmet": {
+      "F": 0.7,
+      "M": 0.3
+    },
+    "selyne": {
+      "F": 0.8,
+      "M": 0.2
+    },
+    "shadowbeak": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "shaolong": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "shroomer": {
+      "F": 0.45,
+      "M": 0.55
+    },
+    "shroomer-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "sibelyx": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "sibelyx-primo": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "silvance": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "silvegis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "skutlass": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "skutlass-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "slowatt": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "smokie": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "smokie-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "snock": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "snock-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "snugloo": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "solenne": {
+      "F": 0.7,
+      "M": 0.3
+    },
+    "solmora": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "solmora-lux": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "sootseer": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "souffline": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "sparkit": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "splatterina": {
+      "F": 0.62,
+      "M": 0.38
+    },
+    "starryon": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "starryon-primo": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "surfent": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "surfent-terra": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "suzaku": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "suzaku-aqua": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "swee": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "sweepa": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "tanzee": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "tanzee-ignis": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "tarantriss": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "teafant": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "tetroise": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "tetroise-primo": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "tocotoco": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "tombat": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "tropicaw": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "turtacle": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "turtacle-terra": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "univolt": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "univolt-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "vaelet": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "valentail": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "vanwyrm": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "vanwyrm-cryst": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "venusa": {
+      "F": 0.6,
+      "M": 0.4
+    },
+    "verdash": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "vixy": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "warsect": {
+      "F": 0.14999998,
+      "M": 0.85
+    },
+    "warsect-terra": {
+      "F": 0.14999998,
+      "M": 0.85
+    },
+    "whalaska": {
+      "F": 0.42000002,
+      "M": 0.58
+    },
+    "whalaska-ignis": {
+      "F": 0.58000004,
+      "M": 0.42
+    },
+    "wispaw": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "wistella": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "wixen": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "wixen-noct": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "woolipop": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "woolipop-terra": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "wumpo": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "wumpo-botan": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "xenogard": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "xenolord": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "xenovader": {
+      "F": 0.5,
+      "M": 0.5
+    },
+    "yakumo": {
+      "F": 0.5,
+      "M": 0.5
     }
   }
 }

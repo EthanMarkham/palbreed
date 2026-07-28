@@ -34,17 +34,42 @@ const stats = Object.fromEntries(
     }),
 );
 
+const genderProbabilities = Object.fromEntries(
+  Object.values(breeding.palsById)
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map((pal) => {
+      const sourcePal = sourcePals.get(`${pal.dexNumber}:${Boolean(pal.isVariant)}`);
+      if (!sourcePal) throw new Error(`Missing gender probabilities for ${pal.id}.`);
+      const probabilities = source.BreedingGenderProbability[sourcePal.InternalName];
+      const female = Number(probabilities?.FEMALE);
+      const male = Number(probabilities?.MALE);
+      if (
+        !Number.isFinite(female)
+        || !Number.isFinite(male)
+        || female <= 0
+        || male <= 0
+        || Math.abs(female + male - 1) > 1e-6
+      ) {
+        throw new Error(`Invalid gender probabilities for ${pal.id}.`);
+      }
+      return [pal.id, { F: female, M: male }];
+    }),
+);
+
 await writeFile(
   outputPath,
   `${JSON.stringify({
     metadata: {
       gameVersion: "1.0",
       source: "PalCalc.Model/db.json",
-      sourceCommit: "be2ec7a95c521dea6591469c051e7cb0f6658065",
+      sourceCommit: "0055422d9cee4b65457fdb1544b248b76ef16805",
     },
     stats,
+    genderProbabilities,
   }, null, 2)}\n`,
   "utf8",
 );
 
-console.log(`Generated combat coefficients for ${Object.keys(stats).length} Pals.`);
+console.log(
+  `Generated combat coefficients and gender probabilities for ${Object.keys(stats).length} Pals.`,
+);

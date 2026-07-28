@@ -1,6 +1,6 @@
 import statsData from "./pal-stats-runtime-1.0.json";
 import type { OwnedPal, PalAbilityScores } from "../domain/inventory";
-import type { PalId } from "../domain/pal";
+import type { PalGender, PalId } from "../domain/pal";
 
 type PalCombatCoefficients = {
   hp: number;
@@ -15,6 +15,18 @@ export type PalCombatStats = {
 };
 
 const statsByPalId = statsData.stats as Record<PalId, PalCombatCoefficients>;
+const genderProbabilitiesByPalId = statsData.genderProbabilities as Record<
+  PalId,
+  Record<PalGender, number>
+>;
+
+export function getPalGenderProbability(speciesId: PalId, gender: PalGender) {
+  const probability = genderProbabilitiesByPalId[speciesId]?.[gender];
+  if (probability === undefined) {
+    throw new Error(`Missing ${gender} probability for ${speciesId}.`);
+  }
+  return probability;
+}
 
 export function getPalCombatStats(pal: OwnedPal): PalCombatStats | undefined {
   if (pal.level === undefined || !pal.abilityScores) return undefined;
