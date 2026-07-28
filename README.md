@@ -26,6 +26,17 @@ The browser imports only `src/data/breeding-runtime-1.0.json`. The larger `breed
 
 See `docs/architecture.md`, `docs/data-contract.md`, `docs/inventory-architecture.md`, and `docs/deployment-setup.md` for the runtime, Supabase search-history implementation, save-parser boundary, solver guarantees, licensing boundaries, and production setup.
 
+## PalCalc credit
+
+Palpath gratefully credits [tylercamp/palcalc](https://github.com/tylercamp/palcalc).
+Its `PalCalc.Model/db.json` data supplies the generated combat coefficients and
+species-specific breeding gender probabilities, and its well-tested breeding
+and passive-inheritance models are used as reference fixtures for validating
+Palpath's calculator. PalCalc is distributed under the
+[MIT License](https://github.com/tylercamp/palcalc/blob/main/LICENSE.txt);
+the exact source revision used for generated data is recorded in the artifact
+metadata.
+
 ## Save-decoder licensing
 
 The structured-save wrapper is MIT-licensed. Oodle compatibility is provided by the separately lazy-loaded `ooz-wasm` dependency under GPL-3.0-or-later. Any public binary distribution that includes save import must complete the GPL compliance review described in `docs/inventory-architecture.md`.
