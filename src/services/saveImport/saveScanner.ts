@@ -16,13 +16,27 @@ export async function scanSaveSelection(
   selectedFiles: readonly File[],
   platform: SavePlatform,
 ): Promise<SaveManifest> {
+  return scanLogicalSaveSelection(
+    selectedFiles.map((file) => ({
+      path: normalizePath(file.webkitRelativePath || file.name),
+      file,
+      updatedAt: file.lastModified,
+    })),
+    platform,
+  );
+}
+
+export async function scanLogicalSaveSelection(
+  selectedFiles: readonly LogicalSaveFile[],
+  platform: SavePlatform,
+): Promise<SaveManifest> {
   if (!selectedFiles.length) {
     throw new SaveImportError("WRONG_FOLDER", "Choose the save folder, not an individual save file.");
   }
 
   const logicalFiles = platform === "xbox"
     ? await extractXboxLogicalFiles(selectedFiles)
-    : extractSteamLogicalFiles(selectedFiles);
+    : [...selectedFiles];
   const slots = buildSlotCandidates(logicalFiles);
 
   if (!slots.length) {
@@ -71,21 +85,13 @@ export function assertPalworldOnePointZero(slot: SaveSlotCandidate) {
   }
 }
 
-function extractSteamLogicalFiles(files: readonly File[]): LogicalSaveFile[] {
-  return files.map((file) => ({
-    path: normalizePath(file.webkitRelativePath || file.name),
-    file,
-    updatedAt: file.lastModified,
-  }));
-}
-
-async function extractXboxLogicalFiles(files: readonly File[]): Promise<LogicalSaveFile[]> {
+async function extractXboxLogicalFiles(files: readonly LogicalSaveFile[]): Promise<LogicalSaveFile[]> {
   const filesByPath = new Map(
-    files.map((file) => [normalizePath(file.webkitRelativePath || file.name).toLowerCase(), file]),
+    files.map((file) => [normalizePath(file.path).toLowerCase(), file]),
   );
   const indexFiles = files.filter((file) =>
-    normalizePath(file.webkitRelativePath || file.name).toLowerCase().endsWith("/containers.index") ||
-    file.name.toLowerCase() === "containers.index",
+    normalizePath(file.path).toLowerCase().endsWith("/containers.index") ||
+    file.file.name.toLowerCase() === "containers.index",
   );
   if (!indexFiles.length) {
     throw new SaveImportError(
@@ -97,9 +103,9 @@ async function extractXboxLogicalFiles(files: readonly File[]): Promise<LogicalS
   const logical: LogicalSaveFile[] = [];
   const missing: string[] = [];
   for (const indexFile of indexFiles) {
-    const indexPath = normalizePath(indexFile.webkitRelativePath || indexFile.name);
+    const indexPath = normalizePath(indexFile.path);
     const accountRoot = indexPath.slice(0, Math.max(0, indexPath.lastIndexOf("/")));
-    const entries = parseContainerIndex(await indexFile.arrayBuffer());
+    const entries = parseContainerIndex(await indexFile.file.arrayBuffer());
 
     for (const entry of entries) {
       const folderRoot = joinPath(accountRoot, entry.folderGuid);
@@ -112,7 +118,7 @@ async function extractXboxLogicalFiles(files: readonly File[]): Promise<LogicalS
 
       let blobs: ReturnType<typeof parseContainerFile>;
       try {
-        blobs = parseContainerFile(await containerFile.arrayBuffer());
+        blobs = parseContainerFile(await containerFile.file.arrayBuffer());
       } catch (error) {
         throw new SaveImportError(
           "CORRUPT_SAVE",
@@ -122,7 +128,7 @@ async function extractXboxLogicalFiles(files: readonly File[]): Promise<LogicalS
       const blob = blobs
         .flatMap(({ firstGuid, secondGuid }) => [firstGuid, secondGuid])
         .map((guid) => filesByPath.get(joinPath(folderRoot, guid).toLowerCase()))
-        .find((candidate): candidate is File => Boolean(candidate));
+        .find((candidate): candidate is LogicalSaveFile => Boolean(candidate));
       if (!blob) {
         missing.push(entry.name);
         continue;
@@ -130,8 +136,8 @@ async function extractXboxLogicalFiles(files: readonly File[]): Promise<LogicalS
 
       logical.push({
         path: `${entry.name.replace(/-/g, "/")}.sav`,
-        file: blob,
-        updatedAt: blob.lastModified,
+        file: blob.file,
+        updatedAt: blob.updatedAt,
       });
     }
   }
@@ -191,6 +197,7 @@ function buildSlotCandidates(files: readonly LogicalSaveFile[]): SaveSlotCandida
       worldId,
       label: "",
       format,
+      rootPath: root,
       updatedAt: updatedAt || undefined,
       files: mapped,
     };
@@ -305,15 +312,15 @@ class LittleEndianReader {
   }
 }
 
-function inferXboxAccountId(files: readonly File[]) {
-  const index = files.find((file) => file.name.toLowerCase() === "containers.index");
-  const path = normalizePath(index?.webkitRelativePath ?? "");
+function inferXboxAccountId(files: readonly LogicalSaveFile[]) {
+  const index = files.find((file) => file.file.name.toLowerCase() === "containers.index");
+  const path = normalizePath(index?.path ?? "");
   return path.split("/").find((part) => part.includes("_"));
 }
 
-function inferSteamAccountId(files: readonly File[]) {
+function inferSteamAccountId(files: readonly LogicalSaveFile[]) {
   for (const file of files) {
-    const parts = normalizePath(file.webkitRelativePath || file.name).split("/");
+    const parts = normalizePath(file.path).split("/");
     const worldIndex = parts.findIndex((part) => /^[a-f\d]{32}$/i.test(part));
     if (worldIndex > 0) return parts[worldIndex - 1];
   }

@@ -6,12 +6,29 @@ import type {
   OwnedPal,
 } from "../../domain/inventory";
 import type { InventoryGateway } from "./inventoryGateway";
+import { importedProfileMatches } from "./importedProfileComparison";
 import { IndexedDbInventoryGateway } from "./indexedDbInventoryGateway";
 
 type Listener = () => void;
 type MutationListener = (profile: InventoryProfile) => void;
 
 const OWNER_KEY = "palpath-anonymous-owner";
+
+export type ImportedProfileInput = {
+  name: string;
+  platform: InventoryPlatform;
+  worldId: string;
+  slotId: string;
+  accountId?: string;
+  playerId?: string;
+  playerName?: string;
+  playerLevel?: number;
+  pals: readonly OwnedPal[];
+};
+
+type ReplaceImportedProfileOptions = {
+  activate?: boolean;
+};
 
 export class InventoryService {
   private readonly listeners = new Set<Listener>();
@@ -74,6 +91,10 @@ export class InventoryService {
     ) ?? this.snapshot.document.profiles[0];
   }
 
+  getProfile(profileId: string) {
+    return this.snapshot.document.profiles.find(({ id }) => id === profileId);
+  }
+
   selectProfile(profileId: string) {
     if (!this.snapshot.document.profiles.some(({ id }) => id === profileId)) return;
     this.commit({ ...this.snapshot.document, activeProfileId: profileId });
@@ -90,19 +111,20 @@ export class InventoryService {
     if (removed) void this.deleteSyncedProfile(removed.id);
   }
 
-  replaceImportedProfile(input: {
-    name: string;
-    platform: InventoryPlatform;
-    worldId: string;
-    slotId: string;
-    accountId?: string;
-    playerId?: string;
-    playerName?: string;
-    playerLevel?: number;
-    pals: readonly OwnedPal[];
-  }) {
+  replaceImportedProfile(
+    input: ImportedProfileInput,
+    options: ReplaceImportedProfileOptions = {},
+  ) {
     const matches = this.snapshot.document.profiles.filter((profile) => isSameWorld(profile, input));
     const existing = matches[0];
+    const activate = options.activate ?? true;
+    if (existing && matches.length === 1 && importedProfileMatches(existing, input)) {
+      if (activate && this.snapshot.document.activeProfileId !== existing.id) {
+        this.commit({ ...this.snapshot.document, activeProfileId: existing.id });
+      }
+      return "unchanged" as const;
+    }
+
     const now = new Date().toISOString();
     const profile: InventoryProfile = {
       ...(existing ?? createImportedProfile(this.ownerId, input.name, input.platform)),
@@ -122,7 +144,7 @@ export class InventoryService {
     const duplicateIds = new Set(matches.map(({ id }) => id));
     this.commit({
       ...this.snapshot.document,
-      activeProfileId: profile.id,
+      activeProfileId: activate ? profile.id : this.snapshot.document.activeProfileId,
       profiles: [
         ...this.snapshot.document.profiles.filter(({ id }) => !duplicateIds.has(id)),
         profile,
@@ -131,6 +153,25 @@ export class InventoryService {
     this.mutationListeners.forEach((listener) => listener(profile));
     void this.saveSyncedProfile(profile);
     return existing ? "updated" as const : "created" as const;
+  }
+
+  async flush() {
+    await this.saveQueue;
+  }
+
+  async refreshFromStorage() {
+    await this.saveQueue;
+    const stored = await this.gateway.load(this.ownerId);
+    if (!stored) return;
+    const document = sanitizeDocument(stored);
+    const currentActiveId = this.snapshot.document.activeProfileId;
+    this.snapshot = {
+      status: "ready",
+      document: currentActiveId && document.profiles.some(({ id }) => id === currentActiveId)
+        ? { ...document, activeProfileId: currentActiveId }
+        : document,
+    };
+    this.emit();
   }
 
   async enableAccountSync(gateway: InventoryGateway, ownerId: string) {
@@ -142,7 +183,18 @@ export class InventoryService {
     const merged = mergeDocuments(localDocument, syncedDocument, ownerId);
     this.snapshot = { status: "ready", document: merged };
     this.emit();
-    await gateway.save(ownerId, merged);
+    const changedProfiles = merged.profiles.filter((profile) => {
+      const synced = syncedDocument?.profiles.find(({ id }) => id === profile.id);
+      return !synced || !importedProfileMatches(synced, profile);
+    });
+    const profileGateway = gateway as InventoryGateway & {
+      replaceProfile?: (profile: InventoryProfile) => Promise<void>;
+    };
+    if (profileGateway.replaceProfile) {
+      for (const profile of changedProfiles) await profileGateway.replaceProfile(profile);
+    } else if (changedProfiles.length) {
+      await gateway.save(ownerId, merged);
+    }
   }
 
   disableAccountSync() {

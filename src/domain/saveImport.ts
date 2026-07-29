@@ -14,6 +14,8 @@ export type SaveSlotCandidate = {
   worldId: string;
   label: string;
   format: SaveFormat;
+  /** Normalized path from the selected folder to this world's root. */
+  rootPath: string;
   updatedAt?: number;
   files: ReadonlyMap<string, LogicalSaveFile>;
 };

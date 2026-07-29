@@ -5,12 +5,14 @@ import { InventoryService } from "./inventoryService";
 
 class MemoryInventoryGateway implements InventoryGateway {
   document?: InventoryDocument;
+  saveCalls = 0;
 
   load() {
     return Promise.resolve(this.document);
   }
 
   save(_ownerId: string, document: InventoryDocument) {
+    this.saveCalls += 1;
     this.document = document;
     return Promise.resolve();
   }
@@ -100,6 +102,43 @@ describe("InventoryService persistence boundary", () => {
       pals: [{ id: "pal-1-refreshed", sourceInstanceId: "instance-1" }],
     });
     await vi.waitFor(() => expect(gateway.document?.activeProfileId).toBe(importedProfileId));
+  });
+
+  it("does not persist or sync a semantically unchanged refresh", async () => {
+    const gateway = new MemoryInventoryGateway();
+    const service = new InventoryService(gateway, "owner-1");
+    service.start();
+    await vi.waitFor(() => expect(service.getSnapshot().status).toBe("ready"));
+
+    const input = {
+      name: "World 1",
+      platform: "steam" as const,
+      worldId: "world-1",
+      slotId: "world-1:current",
+      playerId: "player-1",
+      playerLevel: 50,
+      pals: [{
+        ...lamball,
+        passiveIds: ["CraftSpeed_up2", "Workaholic"],
+      }],
+    };
+    expect(service.replaceImportedProfile(input)).toBe("created");
+    await service.flush();
+    const revision = service.getActiveProfile()?.revision;
+    const saveCalls = gateway.saveCalls;
+
+    expect(service.replaceImportedProfile({
+      ...input,
+      name: "World 2",
+      pals: [{
+        ...lamball,
+        passiveIds: ["Workaholic", "CraftSpeed_up2"],
+      }],
+    })).toBe("unchanged");
+    await service.flush();
+
+    expect(service.getActiveProfile()?.revision).toBe(revision);
+    expect(gateway.saveCalls).toBe(saveCalls);
   });
 
   it("keeps generated Xbox world identifiers scoped to their accounts", async () => {

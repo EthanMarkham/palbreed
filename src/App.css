@@ -1972,7 +1972,7 @@
   background: rgba(255, 255, 255, 0.5);
 }
 
-.world-row > div {
+.world-row > div:first-child {
   min-width: 0;
   display: grid;
 }
@@ -1985,9 +1985,50 @@
   white-space: nowrap;
 }
 
-.world-row > div span {
+.world-row > div:first-child span {
   color: var(--text-muted);
   font-size: 0.56rem;
+}
+
+.world-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.watching-badge,
+.manual-only-badge {
+  min-height: 30px;
+  padding: 0.35rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  border-radius: 999px;
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+  font: 800 0.5rem/1 "Space Grotesk", sans-serif;
+  white-space: nowrap;
+}
+
+.watching-badge svg {
+  width: 10px;
+  height: 10px;
+  fill: currentColor;
+  stroke: none;
+  animation: watch-pulse 1.8s ease-in-out infinite;
+}
+
+.manual-only-badge {
+  color: var(--text-muted);
+  background: var(--paper-muted);
+  text-transform: uppercase;
+}
+
+@keyframes watch-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.82); }
+  50% { opacity: 1; transform: scale(1); }
 }
 
 .format-badge {
@@ -2017,7 +2058,7 @@
 .inventory-import-overlay[data-exiting] { opacity: 0; transition: opacity 0.12s ease-in; }
 
 .inventory-import-modal {
-  width: min(700px, 100%);
+  width: min(760px, 100%);
   max-height: calc(100svh - 40px);
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.42);
@@ -2066,6 +2107,109 @@
 .platform-tabs button[data-disabled] { opacity: 0.55; cursor: not-allowed; }
 .inventory-modal-close svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
 .inventory-import-body { padding: 18px 20px 20px; }
+
+.managed-worlds {
+  display: grid;
+  gap: 9px;
+}
+
+.managed-world-list {
+  display: grid;
+  gap: 7px;
+}
+
+.managed-world-row {
+  min-width: 0;
+  padding: 0.62rem;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.62rem;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.managed-world-row > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.managed-world-row strong,
+.managed-world-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.managed-world-row strong {
+  color: var(--ink);
+  font-size: 0.66rem;
+}
+
+.managed-world-row small {
+  color: var(--text-muted);
+  font-size: 0.54rem;
+}
+
+.managed-world-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.watch-lifetime-note,
+.platform-limit-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.57rem;
+  line-height: 1.55;
+}
+
+.watch-lifetime-note code {
+  color: var(--ink-soft);
+  font: 650 0.56rem/1 ui-monospace, "Cascadia Code", monospace;
+}
+
+.world-import-section.has-managed-worlds {
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px solid var(--line);
+}
+
+.import-section-heading {
+  margin-bottom: 11px;
+}
+
+.platform-limit-note {
+  margin-top: 9px;
+  text-align: center;
+}
+
+.import-completion {
+  margin-top: 12px;
+  padding: 0.68rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(35, 133, 109, 0.18);
+  border-radius: 11px;
+  color: var(--ink-soft);
+  background: rgba(226, 241, 235, 0.66);
+  font-size: 0.62rem;
+}
+
+.import-completion svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: var(--teal-dark);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
 
 @keyframes inventory-overlay-in {
   from { opacity: 0; }
@@ -3073,7 +3217,13 @@
   .copy-box { grid-template-columns: 1fr; padding: 0.55rem; }
   .copy-box button { width: 100%; }
   .world-row { grid-template-columns: minmax(0, 1fr) auto; }
-  .world-row .compact-button { grid-column: 1 / -1; }
+  .world-row-actions { grid-column: 1 / -1; justify-content: stretch; }
+  .world-row-actions .compact-button { flex: 1; }
+  .managed-world-row { grid-template-columns: 34px minmax(0, 1fr); }
+  .managed-world-row > .compact-button,
+  .managed-world-row > .manual-only-badge,
+  .managed-world-actions { grid-column: 1 / -1; width: 100%; }
+  .managed-world-actions .compact-button { flex: 1; }
   .builder-settings { grid-template-columns: 1fr; }
   .builder-result-content { min-height: 360px; }
   .build-summary { grid-template-columns: 60px minmax(0, 1fr); }

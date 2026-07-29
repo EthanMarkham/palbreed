@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { SaveSlotCandidate } from "../../domain/saveImport";
 import { SaveImportError } from "../../domain/saveImport";
-import { assertPalworldOnePointZero, scanSaveSelection } from "./saveScanner";
+import {
+  assertPalworldOnePointZero,
+  scanLogicalSaveSelection,
+  scanSaveSelection,
+} from "./saveScanner";
 
 function slot(format: SaveSlotCandidate["format"]): SaveSlotCandidate {
-  return { id: "slot", worldId: "world", label: "Test world", format, files: new Map() };
+  return { id: "slot", worldId: "world", label: "Test world", format, rootPath: "world", files: new Map() };
 }
 
 describe("strict Palworld 1.0 format guard", () => {
@@ -56,6 +60,20 @@ describe("strict Palworld 1.0 format guard", () => {
     expect(manifest.slots[0]?.worldId).toBe(secondWorld);
     expect(manifest.slots[0]?.updatedAt).toBe(30);
   });
+
+  it("preserves the exact selected world root for persistent folder polling", async () => {
+    const worldId = "33333333333333333333333333333333";
+    const manifest = await scanLogicalSaveSelection([
+      logicalSteamFile(`SaveGames/account/${worldId}/LevelMeta.sav`, 20),
+      logicalSteamFile(`SaveGames/account/${worldId}/Level/01.sav`, 30),
+    ], "steam");
+
+    expect(manifest.slots[0]).toMatchObject({
+      worldId,
+      rootPath: `SaveGames/account/${worldId}`,
+    });
+    expect(manifest.slots[0]?.files.get("level/01.sav")?.updatedAt).toBe(30);
+  });
 });
 
 function fakeSteamFile(path: string, lastModified = 1): File {
@@ -65,4 +83,16 @@ function fakeSteamFile(path: string, lastModified = 1): File {
     webkitRelativePath: path,
     lastModified,
   } as File;
+}
+
+function logicalSteamFile(path: string, lastModified = 1) {
+  const parts = path.split("/");
+  return {
+    path,
+    file: {
+      name: parts[parts.length - 1] ?? "save.sav",
+      lastModified,
+    } as File,
+    updatedAt: lastModified,
+  };
 }

@@ -6,7 +6,7 @@ A browser-first Palworld 1.0 breeding suite centered on three workflows:
 - a passive-aware Pal Builder with optional required passives, acquisition gaps, and hatch estimates;
 - condensed Path Finder and Parent Finder lookups across the complete breeding table, including gender-specific exceptions.
 
-Save files are decoded locally and never modified or uploaded. Import is intentionally strict: only the Palworld 1.0 `LevelMeta.sav` + `Level/01.sav` world layout is accepted, while pre-1.0 worlds receive a typed error.
+Save files are decoded locally and never modified or uploaded. Steam users can optionally keep an imported world refreshed while Palpath is open; the browser checks only that world's `Level/01.sav` and syncs normalized Pal data only when its contents meaningfully change. Import is intentionally strict: only the Palworld 1.0 `LevelMeta.sav` + `Level/01.sav` world layout is accepted, while pre-1.0 worlds receive a typed error.
 
 ## Commands
 
