@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BuilderRouteImport } from './routes/builder'
+import { Route as CreditsRouteImport } from './routes/credits'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ToolsRouteImport } from './routes/tools'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const BuilderRoute = BuilderRouteImport.update({
   id: '/builder',
   path: '/builder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreditsRoute = CreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LegalRoute = LegalRouteImport.update({
@@ -44,6 +50,7 @@ const ToolsRoute = ToolsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/builder': typeof BuilderRoute
+  '/credits': typeof CreditsRoute
   '/legal': typeof LegalRoute
   '/privacy': typeof PrivacyRoute
   '/tools': typeof ToolsRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/builder': typeof BuilderRoute
+  '/credits': typeof CreditsRoute
   '/legal': typeof LegalRoute
   '/privacy': typeof PrivacyRoute
   '/tools': typeof ToolsRoute
@@ -59,21 +67,30 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/builder': typeof BuilderRoute
+  '/credits': typeof CreditsRoute
   '/legal': typeof LegalRoute
   '/privacy': typeof PrivacyRoute
   '/tools': typeof ToolsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/builder' | '/legal' | '/privacy' | '/tools'
+  fullPaths: '/' | '/builder' | '/credits' | '/legal' | '/privacy' | '/tools'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/builder' | '/legal' | '/privacy' | '/tools'
-  id: '__root__' | '/' | '/builder' | '/legal' | '/privacy' | '/tools'
+  to: '/' | '/builder' | '/credits' | '/legal' | '/privacy' | '/tools'
+  id:
+    | '__root__'
+    | '/'
+    | '/builder'
+    | '/credits'
+    | '/legal'
+    | '/privacy'
+    | '/tools'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BuilderRoute: typeof BuilderRoute
+  CreditsRoute: typeof CreditsRoute
   LegalRoute: typeof LegalRoute
   PrivacyRoute: typeof PrivacyRoute
   ToolsRoute: typeof ToolsRoute
@@ -93,6 +110,13 @@ declare module '@tanstack/react-router' {
       path: '/builder'
       fullPath: '/builder'
       preLoaderRoute: typeof BuilderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/credits': {
+      id: '/credits'
+      path: '/credits'
+      fullPath: '/credits'
+      preLoaderRoute: typeof CreditsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/legal': {
@@ -122,6 +146,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BuilderRoute: BuilderRoute,
+  CreditsRoute: CreditsRoute,
   LegalRoute: LegalRoute,
   PrivacyRoute: PrivacyRoute,
   ToolsRoute: ToolsRoute,

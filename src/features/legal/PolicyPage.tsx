@@ -19,7 +19,11 @@ export function PrivacyPage() {
 
 export function LegalPage() {
   return (
-    <PolicyShell title="Legal & licenses" index="06">
+    <PolicyShell
+      title="Legal & licenses"
+      description="Project terms, licenses, and warranty information."
+      index="06"
+    >
       <PolicySection title="Unofficial project">
         <p>Palpath is an independent, unofficial fan utility. It is not endorsed by, sponsored by, or affiliated with Pocketpair, Inc. Palworld and related names, characters, imagery, and game data belong to their respective rights holders.</p>
       </PolicySection>
@@ -40,12 +44,33 @@ export function LegalPage() {
   );
 }
 
+export function CreditsPage() {
+  return (
+    <PolicyShell
+      title="Credits"
+      description="Open-source projects that make Palpath possible."
+      index="04"
+    >
+      <PolicySection title="PalCalc">
+        <p>Palpath's breeding data and combat coefficients are generated from PalCalc's database. Thank you to Tyler Camp for creating and open-sourcing this foundational Palworld calculator.</p>
+        <p><a href="https://github.com/tylercamp/palcalc" rel="external">Visit tylercamp/palcalc on GitHub</a>.</p>
+      </PolicySection>
+      <PolicySection title="uesave-rs">
+        <p>Palpath's local save import uses uesave-rs, compiled into the browser-based save parser so imported saves stay on your device.</p>
+        <p><a href="https://github.com/oMaN-Rod/uesave-rs" rel="external">Visit oMaN-Rod/uesave-rs on GitHub</a>.</p>
+      </PolicySection>
+    </PolicyShell>
+  );
+}
+
 function PolicyShell({
   title,
+  description,
   index,
   children,
 }: {
   title: string;
+  description?: string;
   index: string;
   children: React.ReactNode;
 }) {
@@ -55,15 +80,16 @@ function PolicyShell({
         <div>
           <span className="section-kicker">PALPATH</span>
           <h1>{title}</h1>
-          <p>{title === "Privacy"
+          <p>{description ?? (title === "Privacy"
             ? "How Palpath handles saves, history, and account data."
-            : "Project terms, licenses, and warranty information."}</p>
+            : "Project terms, licenses, and warranty information.")}</p>
         </div>
         <span className="hero-index">{index}</span>
       </section>
       <article className="feature-card policy-card">
         {children}
         <nav aria-label="Policy links">
+          <Link to="/credits">Credits</Link>
           <Link to="/privacy">Privacy</Link>
           <Link to="/legal">Legal & licenses</Link>
         </nav>

@@ -41,6 +41,7 @@ function RootLayout() {
 
       <footer className="site-footer">
         <span>Unofficial Palworld utility</span>
+        <Link to="/credits">Credits</Link>
         <Link to="/privacy">Privacy</Link>
         <Link to="/legal">Legal</Link>
       </footer>
