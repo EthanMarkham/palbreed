@@ -14,6 +14,8 @@ export type PalCombatStats = {
   defense: number;
 };
 
+export type PalBaseStats = PalCombatStats;
+
 const statsByPalId = statsData.stats as Record<PalId, PalCombatCoefficients>;
 const genderProbabilitiesByPalId = statsData.genderProbabilities as Record<
   PalId,
@@ -26,6 +28,10 @@ export function getPalGenderProbability(speciesId: PalId, gender: PalGender) {
     throw new Error(`Missing ${gender} probability for ${speciesId}.`);
   }
   return probability;
+}
+
+export function getPalBaseStats(speciesId: PalId): PalBaseStats | undefined {
+  return statsByPalId[speciesId];
 }
 
 export function getPalCombatStats(pal: OwnedPal): PalCombatStats | undefined {

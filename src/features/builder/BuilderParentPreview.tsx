@@ -62,6 +62,7 @@ export default function BuilderParentPreview({
       <Popover
         className="builder-parent-popover"
         placement="top"
+        isNonModal
         onMouseEnter={keepOpen}
         onMouseLeave={scheduleClose}
       >

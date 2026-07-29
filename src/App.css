@@ -2716,25 +2716,17 @@
 .build-metrics strong { color: var(--lime); font: 700 1.1rem/1 "Space Grotesk", sans-serif; }
 
 .breeding-route {
-  --route-rail-width: 30px;
   margin-top: 12px;
-  padding: 10px 8px 10px 10px;
+  padding: 10px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--route-rail-width);
-  gap: 4px;
+  grid-auto-rows: 112px;
+  gap: 10px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.48), rgba(244, 249, 246, 0.62)),
     rgba(255, 255, 255, 0.42);
-}
-
-.breeding-route-rows {
-  min-width: 0;
-  display: grid;
-  grid-auto-rows: 112px;
-  gap: 10px;
 }
 
 .breeding-route-row {
@@ -2800,11 +2792,17 @@
   width: 100%;
   min-width: 0;
   min-height: 86px;
+  padding: 0;
   display: grid;
   justify-items: center;
   align-content: start;
   gap: 4px;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
   text-align: center;
+  cursor: pointer;
+  outline: none;
 }
 
 .breeding-route-result-portrait {
@@ -2825,6 +2823,16 @@
   width: 47px;
   height: 47px;
   filter: drop-shadow(0 4px 5px rgba(18, 34, 27, 0.1));
+}
+
+.breeding-route-result[data-hovered] .breeding-route-result-portrait,
+.breeding-route-result[data-focus-visible] .breeding-route-result-portrait,
+.breeding-route-result[data-pressed] .breeding-route-result-portrait {
+  border-color: rgba(35, 133, 109, 0.48);
+  box-shadow:
+    0 0 0 5px rgba(35, 133, 109, 0.1),
+    0 10px 22px rgba(18, 34, 27, 0.13);
+  transform: translateY(-2px);
 }
 
 .breeding-route-result-portrait small {
@@ -2850,6 +2858,50 @@
   white-space: nowrap;
 }
 
+.builder-offspring-stats {
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.38rem;
+  border: 1px solid rgba(216, 242, 154, 0.12);
+  border-radius: 8px;
+  background: rgba(216, 242, 154, 0.055);
+}
+
+.builder-offspring-stats > span {
+  color: #9eb6ab;
+  font: 700 0.45rem/1 "Space Grotesk", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.builder-offspring-stats dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.3rem;
+}
+
+.builder-offspring-stats dl div {
+  padding: 0.34rem;
+  display: grid;
+  gap: 0.12rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.045);
+  text-align: center;
+}
+
+.builder-offspring-stats dt {
+  color: #9eb6ab;
+  font: 700 0.4rem/1 "Space Grotesk", sans-serif;
+  text-transform: uppercase;
+}
+
+.builder-offspring-stats dd {
+  margin: 0;
+  color: #d8f29a;
+  font: 700 0.66rem/1 "Space Grotesk", sans-serif;
+}
+
 .breeding-route-odds {
   min-width: 88px;
   padding: 0.38rem 0.5rem;
@@ -2864,30 +2916,6 @@
 .breeding-route-odds strong {
   font: 750 0.54rem/1 "Space Grotesk", sans-serif;
   white-space: nowrap;
-}
-
-.breeding-route-rail {
-  align-self: start;
-  overflow: visible;
-}
-
-.breeding-route-link {
-  fill: none;
-  stroke: rgba(35, 133, 109, 0.44);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.25;
-}
-
-.breeding-route-rail marker path,
-.breeding-route-link-dot {
-  fill: var(--teal);
-}
-
-.breeding-route-link-label {
-  fill: var(--text-subtle);
-  font: 700 6px "Space Grotesk", sans-serif;
-  letter-spacing: 0.03em;
 }
 
 .builder-parent-trigger {
@@ -3236,8 +3264,8 @@
   .build-metrics { grid-column: 1 / -1; }
   .build-metrics span { flex: 1; }
   .breeding-route {
-    padding: 6px 4px 6px 6px;
-    gap: 2px;
+    padding: 6px;
+    gap: 6px;
   }
   .breeding-route-row {
     position: relative;
@@ -3270,5 +3298,4 @@
     bottom: 5px;
   }
   .breeding-route-odds strong { font-size: 0.46rem; }
-  .breeding-route-link-label { display: none; }
 }
