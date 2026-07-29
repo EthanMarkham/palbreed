@@ -205,7 +205,7 @@ export default function WorldImportDialog({
         className={trigger === "header" ? "header-icon-trigger" : "primary-button inventory-import-trigger"}
         aria-label={profiles.length ? "Manage worlds" : "Import a world"}
       >
-        <ManageWorldsIcon />
+        <UploadIcon />
         {trigger === "inventory" ? (profiles.length ? "Manage worlds" : "Import world") : null}
       </Button>
       <ModalOverlay className="inventory-import-overlay" isDismissable={status.kind !== "working"}>
@@ -464,8 +464,8 @@ async function copyPath(path: string) {
   }
 }
 
-function ManageWorldsIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="4" /><circle cx="16" cy="16" r="4" /><path d="M11 10.5 13.5 13M16 9V5m-2 2h4" /></svg>;
+function UploadIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4" /><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" /></svg>;
 }
 
 function FolderIcon() {
