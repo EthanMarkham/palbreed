@@ -29,6 +29,7 @@ import {
   scanSaveSelection,
 } from "../../services/saveImport/saveScanner";
 import { saveWatchService } from "../../services/saveImport/saveWatchService";
+import { readStableSaveDirectory } from "../../services/saveImport/stableSaveDirectory";
 import { useSaveWatch } from "../../services/saveImport/useSaveWatch";
 
 const SAVE_PATHS = {
@@ -128,7 +129,11 @@ export default function WorldImportDialog({
       let importManifest = activeManifest;
       let importSlot = slot;
       if (isRefresh && directoryHandle) {
-        const files = await readSaveDirectory(directoryHandle);
+        const files = await readStableSaveDirectory(directoryHandle, {
+          platform: activeManifest.platform,
+          accountId: activeManifest.accountId,
+          worldRootPath: slot.rootPath,
+        });
         importManifest = await scanLogicalSaveSelection(files, activeManifest.platform);
         const refreshedSlot = importManifest.slots.find(({ worldId }) => worldId === slot.worldId)
           ?? (importManifest.slots.length === 1 ? importManifest.slots[0] : undefined);
