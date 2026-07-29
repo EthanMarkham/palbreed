@@ -3011,16 +3011,23 @@
 .builder-parent-popover {
   z-index: 80;
   width: min(240px, calc(100vw - 24px));
+  background: transparent;
+  outline: none;
+}
+
+.builder-detail-popover-surface {
   border: 1px solid rgba(220, 236, 228, 0.12);
   border-radius: 12px;
   color: #f4f8f5;
   background: #16251e;
   box-shadow: 0 16px 42px rgba(11, 22, 16, 0.28);
-  outline: none;
+  will-change: transform, opacity;
 }
 
-.builder-parent-popover[data-entering] { animation: parent-popover-enter 0.14s ease-out; }
-.builder-parent-popover[data-exiting] { opacity: 0; transition: opacity 0.1s ease-in; }
+.builder-parent-popover[data-exiting] {
+  pointer-events: none;
+  transition: visibility 0.14s;
+}
 
 .builder-parent-popover-arrow svg {
   width: 10px;
@@ -3163,11 +3170,6 @@
 
 .policy-card a { color: var(--teal-dark); }
 .policy-card nav { display: flex; gap: 14px; font-size: 0.62rem; }
-
-@keyframes parent-popover-enter {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
 
 @media (max-width: 900px) {
   .site-header {

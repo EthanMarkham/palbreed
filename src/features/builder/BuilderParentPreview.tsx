@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { Button, Dialog, DialogTrigger, OverlayArrow, Popover } from "react-aria-components";
 import PalAvatar from "../../components/PalAvatar";
 import { breedingRepository } from "../../data/breedingRepository";
@@ -20,6 +21,7 @@ export default function BuilderParentPreview({
     : [];
   const location = getLocationLabel(parent);
   const titleId = useId();
+  const reduceMotion = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout>>();
   const keepOpen = () => {
@@ -66,40 +68,56 @@ export default function BuilderParentPreview({
         onMouseEnter={keepOpen}
         onMouseLeave={scheduleClose}
       >
-        <OverlayArrow className="builder-parent-popover-arrow">
-          <svg viewBox="0 0 8 8" aria-hidden="true"><path d="M0 0 L4 4 L8 0" /></svg>
-        </OverlayArrow>
-        <Dialog className="builder-parent-dialog" aria-labelledby={titleId}>
-          <div className="builder-parent-popover-meta">
-            <span className="builder-parent-popover-eyebrow">
-              {parent.origin === "inventory" ? "FROM YOUR WORLD" : "BRED IN THIS ROUTE"}
-            </span>
-            {species ? <span className="builder-parent-popover-number">No. {String(species.number).padStart(3, "0")}</span> : null}
-          </div>
-          <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
-          <div className="builder-parent-popover-location">
-            <span>Where to find</span>
-            <strong>{location}</strong>
-          </div>
-          <dl className="builder-parent-popover-facts">
-            <div><dt>Required sex</dt><dd>{genderLabel}</dd></div>
-            {parent.level !== undefined ? <div><dt>Level</dt><dd>{parent.level}</dd></div> : null}
-          </dl>
-          <div className="builder-parent-popover-passives">
-            <span>Passives</span>
-            {parent.passives.kind === "any" ? (
-              <p>Unrestricted</p>
-            ) : passiveNames.length ? (
-              <>
-                <ul>{passiveNames.map((passive) => <li key={passive}>{passive}</li>)}</ul>
-              </>
-            ) : parent.passives.kind === "bounded" ? (
-              <p>Unrestricted</p>
-            ) : (
-              <p>None</p>
-            )}
-          </div>
-        </Dialog>
+        {({ isExiting }) => (
+          <>
+            <OverlayArrow className="builder-parent-popover-arrow">
+              <svg viewBox="0 0 8 8" aria-hidden="true"><path d="M0 0 L4 4 L8 0" /></svg>
+            </OverlayArrow>
+            <motion.div
+              className="builder-detail-popover-surface"
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.88, y: 7 }}
+              animate={reduceMotion
+                ? { opacity: 1 }
+                : isExiting
+                  ? { opacity: 0, scale: 0.9, y: 5 }
+                  : { opacity: 1, scale: 1, y: 0 }}
+              transition={isExiting
+                ? { duration: 0.12, ease: "easeIn" }
+                : { type: "spring", stiffness: 430, damping: 29, mass: 0.72 }}
+              style={{ transformOrigin: "50% 100%" }}
+            >
+              <Dialog className="builder-parent-dialog" aria-labelledby={titleId}>
+                <div className="builder-parent-popover-meta">
+                  <span className="builder-parent-popover-eyebrow">
+                    {parent.origin === "inventory" ? "FROM YOUR WORLD" : "BRED IN THIS ROUTE"}
+                  </span>
+                  {species ? <span className="builder-parent-popover-number">No. {String(species.number).padStart(3, "0")}</span> : null}
+                </div>
+                <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
+                <div className="builder-parent-popover-location">
+                  <span>Where to find</span>
+                  <strong>{location}</strong>
+                </div>
+                <dl className="builder-parent-popover-facts">
+                  <div><dt>Required sex</dt><dd>{genderLabel}</dd></div>
+                  {parent.level !== undefined ? <div><dt>Level</dt><dd>{parent.level}</dd></div> : null}
+                </dl>
+                <div className="builder-parent-popover-passives">
+                  <span>Passives</span>
+                  {parent.passives.kind === "any" ? (
+                    <p>Unrestricted</p>
+                  ) : passiveNames.length ? (
+                    <ul>{passiveNames.map((passive) => <li key={passive}>{passive}</li>)}</ul>
+                  ) : parent.passives.kind === "bounded" ? (
+                    <p>Unrestricted</p>
+                  ) : (
+                    <p>None</p>
+                  )}
+                </div>
+              </Dialog>
+            </motion.div>
+          </>
+        )}
       </Popover>
     </DialogTrigger>
   );
@@ -108,7 +126,7 @@ export default function BuilderParentPreview({
 function getLocationLabel(parent: BuilderParent) {
   if (parent.origin === "planned") return "Breed earlier in this route";
   if (parent.location === "palbox") {
-    if (parent.palboxSlotIndex === undefined) return "Palbox";
+    if (parent.palboxSlotIndex === undefined) return "Palbox · Page unavailable — re-import this world";
     const page = Math.floor(parent.palboxSlotIndex / 30) + 1;
     const slot = (parent.palboxSlotIndex % 30) + 1;
     return `Palbox · Page ${page} · Slot ${slot}`;

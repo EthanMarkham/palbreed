@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { Button, Dialog, DialogTrigger, OverlayArrow, Popover } from "react-aria-components";
 import PalAvatar from "../../components/PalAvatar";
 import { breedingRepository } from "../../data/breedingRepository";
@@ -20,6 +21,7 @@ export default function BuilderOffspringPreview({
     ? []
     : step.resultPassives.ids.map((id) => passiveRepository.get(id)?.name ?? id);
   const titleId = useId();
+  const reduceMotion = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout>>();
   const keepOpen = () => {
@@ -63,51 +65,69 @@ export default function BuilderOffspringPreview({
         onMouseEnter={keepOpen}
         onMouseLeave={scheduleClose}
       >
-        <OverlayArrow className="builder-parent-popover-arrow">
-          <svg viewBox="0 0 8 8" aria-hidden="true"><path d="M0 0 L4 4 L8 0" /></svg>
-        </OverlayArrow>
-        <Dialog className="builder-parent-dialog" aria-labelledby={titleId}>
-          <div className="builder-parent-popover-meta">
-            <span className="builder-parent-popover-eyebrow">OFFSPRING</span>
-            {species ? (
-              <span className="builder-parent-popover-number">
-                No. {String(species.number).padStart(3, "0")}
-              </span>
-            ) : null}
-          </div>
-          <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
-          {stats ? (
-            <div className="builder-offspring-stats">
-              <span>Base stats</span>
-              <dl>
-                <div><dt>HP</dt><dd>{stats.hp}</dd></div>
-                <div><dt>Attack</dt><dd>{stats.attack}</dd></div>
-                <div><dt>Defense</dt><dd>{stats.defense}</dd></div>
-              </dl>
-            </div>
-          ) : null}
-          <dl className="builder-parent-popover-facts">
-            <div><dt>Breed chance</dt><dd>{formatOdds(step.odds)}</dd></div>
-            <div><dt>Eggs on average</dt><dd>{formatEggs(step.expectedCakes)}</dd></div>
-          </dl>
-          <div className="builder-parent-popover-passives">
-            <span>Expected passives</span>
-            {step.resultPassives.kind === "any" ? (
-              <p>Unrestricted</p>
-            ) : passiveNames.length ? (
-              <>
-                <ul>{passiveNames.map((passive) => <li key={passive}>{passive}</li>)}</ul>
-                {step.resultPassives.kind === "bounded" && step.resultPassives.maxExtras > 0 ? (
-                  <p>May include up to {step.resultPassives.maxExtras} additional passive{step.resultPassives.maxExtras === 1 ? "" : "s"}.</p>
+        {({ isExiting }) => (
+          <>
+            <OverlayArrow className="builder-parent-popover-arrow">
+              <svg viewBox="0 0 8 8" aria-hidden="true"><path d="M0 0 L4 4 L8 0" /></svg>
+            </OverlayArrow>
+            <motion.div
+              className="builder-detail-popover-surface"
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.88, y: 7 }}
+              animate={reduceMotion
+                ? { opacity: 1 }
+                : isExiting
+                  ? { opacity: 0, scale: 0.9, y: 5 }
+                  : { opacity: 1, scale: 1, y: 0 }}
+              transition={isExiting
+                ? { duration: 0.12, ease: "easeIn" }
+                : { type: "spring", stiffness: 430, damping: 29, mass: 0.72 }}
+              style={{ transformOrigin: "50% 100%" }}
+            >
+              <Dialog className="builder-parent-dialog" aria-labelledby={titleId}>
+                <div className="builder-parent-popover-meta">
+                  <span className="builder-parent-popover-eyebrow">OFFSPRING</span>
+                  {species ? (
+                    <span className="builder-parent-popover-number">
+                      No. {String(species.number).padStart(3, "0")}
+                    </span>
+                  ) : null}
+                </div>
+                <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
+                {stats ? (
+                  <div className="builder-offspring-stats">
+                    <span>Base stats</span>
+                    <dl>
+                      <div><dt>HP</dt><dd>{stats.hp}</dd></div>
+                      <div><dt>Attack</dt><dd>{stats.attack}</dd></div>
+                      <div><dt>Defense</dt><dd>{stats.defense}</dd></div>
+                    </dl>
+                  </div>
                 ) : null}
-              </>
-            ) : step.resultPassives.kind === "bounded" ? (
-              <p>Up to {step.resultPassives.maxExtras} unrestricted passive{step.resultPassives.maxExtras === 1 ? "" : "s"}</p>
-            ) : (
-              <p>None</p>
-            )}
-          </div>
-        </Dialog>
+                <dl className="builder-parent-popover-facts">
+                  <div><dt>Breed chance</dt><dd>{formatOdds(step.odds)}</dd></div>
+                  <div><dt>Eggs on average</dt><dd>{formatEggs(step.expectedCakes)}</dd></div>
+                </dl>
+                <div className="builder-parent-popover-passives">
+                  <span>Expected passives</span>
+                  {step.resultPassives.kind === "any" ? (
+                    <p>Unrestricted</p>
+                  ) : passiveNames.length ? (
+                    <>
+                      <ul>{passiveNames.map((passive) => <li key={passive}>{passive}</li>)}</ul>
+                      {step.resultPassives.kind === "bounded" && step.resultPassives.maxExtras > 0 ? (
+                        <p>May include up to {step.resultPassives.maxExtras} additional passive{step.resultPassives.maxExtras === 1 ? "" : "s"}.</p>
+                      ) : null}
+                    </>
+                  ) : step.resultPassives.kind === "bounded" ? (
+                    <p>Up to {step.resultPassives.maxExtras} unrestricted passive{step.resultPassives.maxExtras === 1 ? "" : "s"}</p>
+                  ) : (
+                    <p>None</p>
+                  )}
+                </div>
+              </Dialog>
+            </motion.div>
+          </>
+        )}
       </Popover>
     </DialogTrigger>
   );
