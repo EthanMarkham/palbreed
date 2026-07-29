@@ -14,7 +14,7 @@ anonymous imports continue to live in IndexedDB until they are claimed by an acc
 The `schemaVersion` on the document is independent from the Palworld game
 version and enables deterministic local migrations before sync.
 
-## Optional automatic refresh
+## Optional Steam refresh
 
 Automatic refresh is opt-in and is available only after a world has been
 imported successfully. A retained, read-only `FileSystemDirectoryHandle` is
@@ -22,17 +22,18 @@ stored in a dedicated IndexedDB database. Every open Palpath tab participates
 in a Web Locks election, so at most one tab checks saves at a time.
 
 The inexpensive 15-second poll reads only the imported Steam world's
-`Level/01.sav` metadata or the Xbox WGS `containers.index` metadata. When it
-changes and remains stable through a debounce, Palpath enumerates and parses
-the connected save. The normalized result is compared semantically with the
-current profile; ordering, import timestamps, and fallback display labels
-cannot cause an update. Identical results do not change the local revision or
-call the Supabase sync RPC.
+`Level/01.sav` metadata. When its size or modified time changes and remains
+stable through a debounce, Palpath enumerates and parses only that world
+directory. The normalized result is compared semantically with the current
+profile; ordering, import timestamps, and fallback display labels cannot cause
+an update. Identical results do not change the local revision or call the
+Supabase sync RPC.
 
 The poll exists only while a Palpath tab is open. Persisted folder permission
 may return to `prompt` or `denied` after a browser restart, in which case the
-world manager requires a user gesture to reconnect the folder. Xbox refresh
-rescans the WGS container because its opaque backing blobs may rotate.
+world manager requires a user gesture to reconnect the folder. Xbox WGS
+containers can rotate opaque backing blobs and therefore remain a manual
+refresh workflow.
 
 ## Save parser contract
 

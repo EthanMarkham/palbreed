@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   fileSignature,
   getSteamWorldTrigger,
-  getXboxSaveTrigger,
   readSaveDirectory,
 } from "./fileSystemDirectory";
 
@@ -33,20 +32,6 @@ describe("persistent Steam folder access", () => {
       `SaveGames/account/${worldId}`,
     );
     expect(fileSignature(await trigger.getFile())).toBe("100:42");
-  });
-
-  it("finds an Xbox WGS index below the selected folder", async () => {
-    const indexFile = fakeFileHandle("containers.index", 84, 200);
-    const root = fakeDirectory("wgs", {
-      account: fakeDirectory("account-id", {
-        index: indexFile,
-      }),
-    });
-
-    const trigger = await getXboxSaveTrigger(root);
-
-    expect(trigger).toBe(indexFile);
-    expect(fileSignature(await trigger.getFile())).toBe("200:84");
   });
 });
 

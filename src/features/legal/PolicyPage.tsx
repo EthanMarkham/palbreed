@@ -5,7 +5,7 @@ export function PrivacyPage() {
   return (
     <PolicyShell title="Privacy" index="05">
       <PolicySection title="Local use">
-        <p>Palpath assigns a random device identifier and stores imported inventory in browser storage. Save files are parsed locally and are never uploaded. If you turn on automatic refresh, Palpath also stores the read-only folder permission you selected until you disconnect that world or clear the site’s data.</p>
+        <p>Palpath assigns a random device identifier and stores imported inventory in browser storage. Save files are parsed locally and are never uploaded. If you turn on automatic Steam refresh, Palpath also stores the read-only folder permission you selected until you disconnect that world or clear the site’s data.</p>
       </PolicySection>
       <PolicySection title="Optional search history">
         <p>Palpath can keep your eight most recent Builder searches. Before sign-in, they are tied to a random session cookie; after sign-in, they are tied to your account. Aggregate search counts may be used to improve Palpath.</p>

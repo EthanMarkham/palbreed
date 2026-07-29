@@ -116,17 +116,44 @@ export default function WorldImportDialog({
 
   const importSlot = async (slot: SaveSlotCandidate) => {
     if (!activeManifest) return;
+    const isRefresh = Boolean(
+      importedBySlot[slot.id] ?? findImportedProfile(profiles, activeManifest, slot)?.id,
+    );
     setCompletion(undefined);
-    setStatus({ kind: "working", message: `Importing ${slot.label}…` });
+    setStatus({
+      kind: "working",
+      message: `${isRefresh ? "Refreshing" : "Importing"} ${slot.label}…`,
+    });
     try {
-      const preview = await extractPalsFromSlot(slot);
+      let importManifest = activeManifest;
+      let importSlot = slot;
+      if (isRefresh && directoryHandle) {
+        const files = await readSaveDirectory(directoryHandle);
+        importManifest = await scanLogicalSaveSelection(files, activeManifest.platform);
+        const refreshedSlot = importManifest.slots.find(({ worldId }) => worldId === slot.worldId)
+          ?? (importManifest.slots.length === 1 ? importManifest.slots[0] : undefined);
+        if (!refreshedSlot) {
+          throw new SaveImportError(
+            "NO_WORLDS",
+            `We couldn't find ${slot.label} in the selected folder.`,
+          );
+        }
+        importSlot = refreshedSlot;
+        setManifest(importManifest);
+      }
+
+      const preview = await extractPalsFromSlot(importSlot);
       const result = inventoryService.replaceImportedProfile(
-        createImportedProfileInput(activeManifest, slot, preview),
+        createImportedProfileInput(importManifest, importSlot, preview),
       );
       const profile = inventoryService.getActiveProfile();
       if (!profile) throw new Error("We imported the world, but couldn't open it.");
 
-      setImportedBySlot((current) => ({ ...current, [slot.id]: profile.id }));
+      setImportedBySlot((current) => ({
+        ...current,
+        [slot.id]: profile.id,
+        [importSlot.id]: profile.id,
+      }));
       const skipped = preview.unknownPalIds.length + preview.unknownPassiveIds.length;
       const action = result === "created"
         ? "Imported"
@@ -198,7 +225,6 @@ export default function WorldImportDialog({
       onOpenChange={(open) => {
         if (!open && status.kind === "working") return;
         setIsOpen(open);
-        if (!open) resetSelection();
       }}
     >
       <Button
@@ -215,7 +241,7 @@ export default function WorldImportDialog({
               <div>
                 <span className="section-kicker">WORLDS</span>
                 <Heading slot="title">{profiles.length ? "Manage your worlds" : "Import a world"}</Heading>
-                <p>Import manually, or let Palpath refresh a world while this site is open.</p>
+                <p>Import manually, or let Palpath refresh a Steam world while this site is open.</p>
               </div>
               <Button
                 slot="close"
@@ -246,7 +272,7 @@ export default function WorldImportDialog({
                             <strong>{profile.name}</strong>
                             <small>{worldStatus(profile, watch)}</small>
                           </div>
-                          {persistentFoldersSupported ? (
+                          {profile.platform === "steam" && persistentFoldersSupported ? (
                             watch ? (
                               <div className="managed-world-actions">
                                 {watch.status === "needs-folder" || watch.status === "error" ? (
@@ -283,7 +309,8 @@ export default function WorldImportDialog({
                     })}
                   </div>
                   <p className="watch-lifetime-note">
-                    Automatic refresh checks each connected save about every 15 seconds and stops when all Palpath tabs close.
+                    Automatic refresh checks only each connected world’s <code>Level/01.sav</code> about every 15 seconds
+                    and stops when all Palpath tabs close.
                   </p>
                 </section>
               ) : null}
@@ -348,6 +375,12 @@ export default function WorldImportDialog({
                   Your save stays on this device. Signed-in accounts sync only changed Pal data.
                 </p>
 
+                {platform === "xbox" ? (
+                  <p className="platform-limit-note">
+                    Xbox worlds use manual refresh. Your selected save stays ready while Palpath is open,
+                    so you can reopen this window and click Refresh.
+                  </p>
+                ) : null}
                 {status.kind !== "idle" && status.message ? (
                   <StatusBanner kind={status.kind} message={status.message} />
                 ) : null}
@@ -385,7 +418,8 @@ export default function WorldImportDialog({
                             >
                               {profileId ? "Refresh" : "Import"}
                             </Button>
-                            {persistentFoldersSupported
+                            {platform === "steam"
+                              && persistentFoldersSupported
                               && directoryHandle
                               && profileId
                               && needsConnection ? (
@@ -429,6 +463,7 @@ function worldStatus(
   profile: InventoryProfile,
   watch: ReturnType<typeof useSaveWatch>["worlds"][string] | undefined,
 ) {
+  if (profile.platform === "xbox") return `${profile.pals.length.toLocaleString()} Pals · Manual refresh`;
   if (!watch) return `${profile.pals.length.toLocaleString()} Pals · Not connected`;
   if (watch.status === "checking") return "Checking for changes…";
   if (watch.status === "needs-folder") return "Folder access needs to be reconnected";
