@@ -15,7 +15,6 @@ import InventoryCollection from "./InventoryCollection";
 import { filterInventoryPals } from "./inventoryCollectionFilter";
 import type { InventorySearchState } from "./inventorySearch";
 import InventoryWorldSelect from "./InventoryWorldSelect";
-import WorldImportDialog from "./WorldImportDialog";
 
 type InventoryPageProps = {
   search: InventorySearchState;
@@ -114,13 +113,6 @@ export default function InventoryPage({
             </AriaButton>
           </SearchField>
 
-          <WorldImportDialog
-            profiles={profiles}
-            onImported={(profileId, message) => {
-              setNotice({ message, kind: "success" });
-              onWorldChange(profileId);
-            }}
-          />
         </div>
 
         <div className="inventory-browser-content">

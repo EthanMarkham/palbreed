@@ -3,6 +3,8 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import "../App.css";
 import { breedingRepository } from "../data/breedingRepository";
 import SyncSignIn from "../features/account/SyncSignIn";
+import WorldImportDialog from "../features/inventory/WorldImportDialog";
+import { useInventory } from "../services/inventory/useInventory";
 
 const metadata = breedingRepository.metadata;
 
@@ -32,6 +34,7 @@ function RootLayout() {
           <Link to="/tools" activeProps={{ className: "is-active" }}>Tools</Link>
         </nav>
         <div className="header-actions">
+          <WorldManager />
           <SyncSignIn />
           <span className="version-label">v{metadata.gameVersion}</span>
         </div>
@@ -48,6 +51,17 @@ function RootLayout() {
 
       {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}
     </div>
+  );
+}
+
+function WorldManager() {
+  const inventory = useInventory();
+  return (
+    <WorldImportDialog
+      profiles={inventory.document.profiles}
+      onImported={() => {}}
+      trigger="header"
+    />
   );
 }
 

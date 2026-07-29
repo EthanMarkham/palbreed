@@ -44,11 +44,13 @@ type ImportStatus = {
 type WorldImportDialogProps = {
   profiles: readonly InventoryProfile[];
   onImported: (profileId: string, message: string) => void;
+  trigger?: "header" | "inventory";
 };
 
 export default function WorldImportDialog({
   profiles,
   onImported,
+  trigger = "inventory",
 }: WorldImportDialogProps) {
   const saveWatch = useSaveWatch();
   const [isOpen, setIsOpen] = useState(false);
@@ -199,9 +201,12 @@ export default function WorldImportDialog({
         if (!open) resetSelection();
       }}
     >
-      <Button className="primary-button inventory-import-trigger">
+      <Button
+        className={trigger === "header" ? "header-icon-trigger" : "primary-button inventory-import-trigger"}
+        aria-label={profiles.length ? "Manage worlds" : "Import a world"}
+      >
         <ManageWorldsIcon />
-        {profiles.length ? "Manage worlds" : "Import world"}
+        {trigger === "inventory" ? (profiles.length ? "Manage worlds" : "Import world") : null}
       </Button>
       <ModalOverlay className="inventory-import-overlay" isDismissable={status.kind !== "working"}>
         <Modal className="inventory-import-modal">
@@ -210,7 +215,7 @@ export default function WorldImportDialog({
               <div>
                 <span className="section-kicker">WORLDS</span>
                 <Heading slot="title">{profiles.length ? "Manage your worlds" : "Import a world"}</Heading>
-                <p>Import manually, or let Palpath refresh a Steam world while this site is open.</p>
+                <p>Import manually, or let Palpath refresh a world while this site is open.</p>
               </div>
               <Button
                 slot="close"
@@ -241,7 +246,7 @@ export default function WorldImportDialog({
                             <strong>{profile.name}</strong>
                             <small>{worldStatus(profile, watch)}</small>
                           </div>
-                          {profile.platform === "steam" && persistentFoldersSupported ? (
+                          {persistentFoldersSupported ? (
                             watch ? (
                               <div className="managed-world-actions">
                                 {watch.status === "needs-folder" || watch.status === "error" ? (
@@ -278,8 +283,7 @@ export default function WorldImportDialog({
                     })}
                   </div>
                   <p className="watch-lifetime-note">
-                    Automatic refresh checks only each connected world’s <code>Level/01.sav</code> about every 15 seconds
-                    and stops when all Palpath tabs close.
+                    Automatic refresh checks each connected save about every 15 seconds and stops when all Palpath tabs close.
                   </p>
                 </section>
               ) : null}
@@ -344,9 +348,6 @@ export default function WorldImportDialog({
                   Your save stays on this device. Signed-in accounts sync only changed Pal data.
                 </p>
 
-                {platform === "xbox" ? (
-                  <p className="platform-limit-note">Xbox worlds can be imported or refreshed manually. Automatic refresh is available for Steam.</p>
-                ) : null}
                 {status.kind !== "idle" && status.message ? (
                   <StatusBanner kind={status.kind} message={status.message} />
                 ) : null}
@@ -384,8 +385,7 @@ export default function WorldImportDialog({
                             >
                               {profileId ? "Refresh" : "Import"}
                             </Button>
-                            {platform === "steam"
-                              && persistentFoldersSupported
+                            {persistentFoldersSupported
                               && directoryHandle
                               && profileId
                               && needsConnection ? (
@@ -429,7 +429,6 @@ function worldStatus(
   profile: InventoryProfile,
   watch: ReturnType<typeof useSaveWatch>["worlds"][string] | undefined,
 ) {
-  if (profile.platform === "xbox") return `${profile.pals.length.toLocaleString()} Pals · Manual refresh`;
   if (!watch) return `${profile.pals.length.toLocaleString()} Pals · Not connected`;
   if (watch.status === "checking") return "Checking for changes…";
   if (watch.status === "needs-folder") return "Folder access needs to be reconnected";

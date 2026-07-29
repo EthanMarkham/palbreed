@@ -63,6 +63,17 @@ export async function getSteamWorldTrigger(
   return level.getFileHandle("01.sav");
 }
 
+export async function getXboxSaveTrigger(selectedDirectory: FileSystemDirectoryHandle) {
+  const trigger = await findFile(selectedDirectory, "containers.index", 0);
+  if (!trigger) {
+    throw new SaveImportError(
+      "WRONG_FOLDER",
+      "Choose the Xbox wgs folder that contains containers.index.",
+    );
+  }
+  return trigger;
+}
+
 export function fileSignature(file: Pick<File, "lastModified" | "size">) {
   return `${file.lastModified}:${file.size}`;
 }
@@ -100,6 +111,22 @@ async function visitDirectory(
     const file = await entry.getFile();
     target.push({ path: entryPath, file, updatedAt: file.lastModified });
   }
+}
+
+async function findFile(
+  directory: FileSystemDirectoryHandle,
+  fileName: string,
+  depth: number,
+): Promise<FileSystemFileHandle | undefined> {
+  if (depth > MAX_DIRECTORY_DEPTH) return undefined;
+  for await (const entry of directory.values()) {
+    if (entry.kind === "file" && entry.name.toLowerCase() === fileName.toLowerCase()) return entry;
+    if (entry.kind === "directory") {
+      const found = await findFile(entry, fileName, depth + 1);
+      if (found) return found;
+    }
+  }
+  return undefined;
 }
 
 function isBackupDirectory(name: string) {
