@@ -136,9 +136,10 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
         abilityScores: candidate.abilityScores,
       };
       const existing = palsByInstance.get(normalizedInstance);
-      palsByInstance.set(normalizedInstance, existing && locationPriority(existing.location) > locationPriority(location)
-        ? existing
-        : nextPal);
+      palsByInstance.set(
+        normalizedInstance,
+        selectPreferredImportedPal(existing, nextPal),
+      );
     }
   }
 
@@ -270,7 +271,32 @@ function normalizeGuid(value: string) {
 }
 
 function locationPriority(location: PalLocation) {
-  return location === "party" ? 4 : location === "global-storage" ? 3 : location === "base" ? 2 : 1;
+  return location === "party"
+    ? 4
+    : location === "global-storage"
+      ? 3
+      : location === "palbox"
+        ? 2
+        : 1;
+}
+
+export function selectPreferredImportedPal(
+  existing: OwnedPal | undefined,
+  candidate: OwnedPal,
+) {
+  if (!existing) return candidate;
+  const priorityDifference = locationPriority(candidate.location)
+    - locationPriority(existing.location);
+  if (priorityDifference > 0) return candidate;
+  if (priorityDifference < 0) return existing;
+  if (
+    existing.location === "palbox"
+    && existing.palboxSlotIndex !== undefined
+    && candidate.palboxSlotIndex === undefined
+  ) {
+    return existing;
+  }
+  return candidate;
 }
 
 function formatMegabytes(bytes: number) {

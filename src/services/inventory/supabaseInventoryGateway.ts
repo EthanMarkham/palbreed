@@ -40,6 +40,7 @@ const inventoryProfileSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   revision: z.number(),
+  normalizationVersion: z.number().int().min(1).max(32_767).default(1),
   pals: z.array(ownedPalSchema),
 });
 
@@ -78,6 +79,7 @@ export class SupabaseInventoryGateway implements InventoryGateway {
       profile_player_level: profile.playerLevel ?? null,
       imported_at: profile.importedAt ?? null,
       pal_records: profile.pals.map(toPalRecord) as Json,
+      profile_normalization_version: profile.normalizationVersion,
     });
     if (error) throw requestError("sync the imported world", error);
   }

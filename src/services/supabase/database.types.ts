@@ -117,6 +117,7 @@ export type Database = {
           profile_player_level?: number | null;
           imported_at?: string | null;
           pal_records?: Json;
+          profile_normalization_version?: number;
         };
         Returns: Json;
       };

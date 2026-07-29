@@ -10,6 +10,7 @@ type ComparableImportedProfile = Pick<
   | "playerId"
   | "playerName"
   | "playerLevel"
+  | "normalizationVersion"
   | "pals"
 >;
 
@@ -31,6 +32,7 @@ function canonicalImportedProfile(
     profile.playerId ?? null,
     profile.playerName ?? null,
     profile.playerLevel ?? null,
+    profile.normalizationVersion,
     [...profile.pals]
       .sort(comparePals)
       .map(canonicalPal),

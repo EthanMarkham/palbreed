@@ -5,6 +5,7 @@ import type {
   InventorySnapshot,
   OwnedPal,
 } from "../../domain/inventory";
+import { CURRENT_INVENTORY_NORMALIZATION_VERSION } from "../../domain/inventory";
 import type { InventoryGateway } from "./inventoryGateway";
 import { importedProfileMatches } from "./importedProfileComparison";
 import { IndexedDbInventoryGateway } from "./indexedDbInventoryGateway";
@@ -118,7 +119,11 @@ export class InventoryService {
     const matches = this.snapshot.document.profiles.filter((profile) => isSameWorld(profile, input));
     const existing = matches[0];
     const activate = options.activate ?? true;
-    if (existing && matches.length === 1 && importedProfileMatches(existing, input)) {
+    const normalizedInput = {
+      ...input,
+      normalizationVersion: CURRENT_INVENTORY_NORMALIZATION_VERSION,
+    };
+    if (existing && matches.length === 1 && importedProfileMatches(existing, normalizedInput)) {
       if (activate && this.snapshot.document.activeProfileId !== existing.id) {
         this.commit({ ...this.snapshot.document, activeProfileId: existing.id });
       }
@@ -139,6 +144,7 @@ export class InventoryService {
       importedAt: now,
       updatedAt: now,
       revision: (existing?.revision ?? 0) + 1,
+      normalizationVersion: CURRENT_INVENTORY_NORMALIZATION_VERSION,
       pals: input.pals,
     };
     const duplicateIds = new Set(matches.map(({ id }) => id));
@@ -287,6 +293,7 @@ function sanitizeDocument(document: InventoryDocument): InventoryDocument {
     .filter(({ platform }) => platform === "xbox" || platform === "steam")
     .map((profile) => ({
       ...profile,
+      normalizationVersion: sanitizeNormalizationVersion(profile),
       pals: profile.pals.flatMap((pal) => {
         const imported = sanitizeImportedPal(pal);
         return imported ? [imported] : [];
@@ -336,6 +343,24 @@ function sanitizeAbilityScores(scores: OwnedPal["abilityScores"]) {
     : undefined;
 }
 
+function sanitizeNormalizationVersion(profile: InventoryProfile) {
+  const value = (profile as InventoryProfile & { normalizationVersion?: unknown })
+    .normalizationVersion;
+  if (
+    typeof value === "number"
+    && Number.isInteger(value)
+    && value >= 1
+    && value <= 32_767
+  ) {
+    return value;
+  }
+  return profile.pals.some((pal) =>
+    pal.location === "base" || pal.palboxSlotIndex !== undefined
+  )
+    ? CURRENT_INVENTORY_NORMALIZATION_VERSION
+    : 1;
+}
+
 function mergeDocuments(
   localDocument: InventoryDocument,
   syncedDocument: InventoryDocument | undefined,
@@ -346,7 +371,7 @@ function mergeDocuments(
   for (const profile of localDocument.profiles) {
     const existing = profiles.get(profile.id);
     const candidate = toAccountProfile(profile, accountOwnerId);
-    if (!existing || Date.parse(candidate.updatedAt) >= Date.parse(existing.updatedAt)) {
+    if (!existing || compareProfileFreshness(candidate, existing) >= 0) {
       profiles.set(candidate.id, candidate);
     }
   }
@@ -357,6 +382,15 @@ function mergeDocuments(
       ? syncedDocument.activeProfileId
       : mergedProfiles[0]?.id;
   return { schemaVersion: 1, activeProfileId, profiles: mergedProfiles };
+}
+
+function compareProfileFreshness(
+  candidate: InventoryProfile,
+  existing: InventoryProfile,
+) {
+  return candidate.normalizationVersion - existing.normalizationVersion
+    || Date.parse(candidate.updatedAt) - Date.parse(existing.updatedAt)
+    || candidate.revision - existing.revision;
 }
 
 function toAccountProfile(profile: InventoryProfile, accountOwnerId: string): InventoryProfile {
@@ -382,6 +416,7 @@ function createImportedProfile(
     createdAt: now,
     updatedAt: now,
     revision: 0,
+    normalizationVersion: CURRENT_INVENTORY_NORMALIZATION_VERSION,
     pals: [],
   };
 }

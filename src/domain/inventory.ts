@@ -3,6 +3,7 @@ import type { PassiveId } from "./passive";
 
 export type PalLocation = "party" | "palbox" | "base" | "global-storage";
 export type InventoryPlatform = "xbox" | "steam";
+export const CURRENT_INVENTORY_NORMALIZATION_VERSION = 2;
 
 export type InventoryOwner =
   | { kind: "anonymous"; id: string }
@@ -47,6 +48,8 @@ export type InventoryProfile = {
   createdAt: string;
   updatedAt: string;
   revision: number;
+  /** Version of the save-to-inventory normalization contract used for this import. */
+  normalizationVersion: number;
   pals: readonly OwnedPal[];
 };
 

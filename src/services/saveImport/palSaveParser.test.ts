@@ -3,7 +3,9 @@ import {
   classifyPalLocation,
   resolvePalboxSlotIndex,
   resolveSpeciesId,
+  selectPreferredImportedPal,
 } from "./palSaveParser";
+import type { OwnedPal } from "../../domain/inventory";
 
 describe("resolveSpeciesId", () => {
   it("preserves the special Gumoss breeding species", () => {
@@ -19,6 +21,20 @@ describe("resolveSpeciesId", () => {
 });
 
 describe("Pal save placement", () => {
+  const basePal: OwnedPal = {
+    id: "pal-1",
+    sourceInstanceId: "instance-1",
+    speciesId: "lamball",
+    gender: "F",
+    passiveIds: [],
+    location: "base",
+  };
+  const palboxPal: OwnedPal = {
+    ...basePal,
+    location: "palbox",
+    palboxSlotIndex: 65,
+  };
+
   it("only calls a Level-save Pal a Palbox Pal when its container confirms that", () => {
     expect(classifyPalLocation("Level/01.sav", "palbox")).toBe("palbox");
     expect(classifyPalLocation("Level/01.sav")).toBe("base");
@@ -35,5 +51,17 @@ describe("Pal save placement", () => {
   it("does not expose container slots as Palbox pages for other locations", () => {
     expect(resolvePalboxSlotIndex("base", 12, 11)).toBeUndefined();
     expect(resolvePalboxSlotIndex("party", 2, 1)).toBeUndefined();
+  });
+
+  it("keeps a confirmed Palbox placement over an unconfirmed Level fallback", () => {
+    expect(selectPreferredImportedPal(basePal, palboxPal)).toBe(palboxPal);
+    expect(selectPreferredImportedPal(palboxPal, basePal)).toBe(palboxPal);
+  });
+
+  it("does not replace an exact Palbox slot with an incomplete duplicate", () => {
+    expect(selectPreferredImportedPal(
+      palboxPal,
+      { ...palboxPal, palboxSlotIndex: undefined },
+    )).toBe(palboxPal);
   });
 });

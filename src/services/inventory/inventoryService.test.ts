@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import type { InventoryDocument, OwnedPal } from "../../domain/inventory";
+import {
+  CURRENT_INVENTORY_NORMALIZATION_VERSION,
+  type InventoryDocument,
+  type OwnedPal,
+} from "../../domain/inventory";
 import type { InventoryGateway } from "./inventoryGateway";
 import { InventoryService } from "./inventoryService";
 
@@ -99,6 +103,7 @@ describe("InventoryService persistence boundary", () => {
       name: "Ethan · Level 65",
       slotId: "slot-1-refreshed",
       revision: 2,
+      normalizationVersion: CURRENT_INVENTORY_NORMALIZATION_VERSION,
       pals: [{ id: "pal-1-refreshed", sourceInstanceId: "instance-1" }],
     });
     await vi.waitFor(() => expect(gateway.document?.activeProfileId).toBe(importedProfileId));
@@ -217,4 +222,81 @@ it("claims local profiles into an account sync gateway", async () => {
 
   expect(service.getActiveProfile()?.owner).toEqual({ kind: "account", id: "account-1" });
   await vi.waitFor(() => expect(syncGateway.document?.profiles[0]?.owner).toEqual({ kind: "account", id: "account-1" }));
+});
+
+it("keeps richer normalized local data over a newer legacy synced profile", async () => {
+  const localGateway = new MemoryInventoryGateway();
+  const syncGateway = new MemoryInventoryGateway();
+  const localProfile = {
+    ...legacyProfile("world-profile", "xbox", [lamball]),
+    worldId: "world-1",
+    slotId: "world-1:current",
+    accountId: "xbox-account",
+    updatedAt: "2026-07-28T20:00:00.000Z",
+  };
+  const syncedProfile = {
+    ...localProfile,
+    owner: { kind: "account" as const, id: "account-1" },
+    normalizationVersion: 1,
+    updatedAt: "2026-07-28T23:00:00.000Z",
+    revision: 99,
+    pals: [{ ...lamball, palboxSlotIndex: undefined }],
+  };
+  localGateway.document = {
+    schemaVersion: 1,
+    activeProfileId: localProfile.id,
+    profiles: [localProfile],
+  } as unknown as InventoryDocument;
+  syncGateway.document = {
+    schemaVersion: 1,
+    activeProfileId: syncedProfile.id,
+    profiles: [syncedProfile],
+  } as InventoryDocument;
+  const service = new InventoryService(localGateway, "owner-1");
+  service.start();
+  await service.whenReady();
+
+  await service.enableAccountSync(syncGateway, "account-1");
+
+  expect(service.getActiveProfile()).toMatchObject({
+    normalizationVersion: CURRENT_INVENTORY_NORMALIZATION_VERSION,
+    pals: [{ palboxSlotIndex: 65 }],
+  });
+  expect(syncGateway.document?.profiles[0]).toMatchObject({
+    normalizationVersion: CURRENT_INVENTORY_NORMALIZATION_VERSION,
+    pals: [{ palboxSlotIndex: 65 }],
+  });
+});
+
+it("uses timestamps normally when both synced profiles have current normalization", async () => {
+  const localGateway = new MemoryInventoryGateway();
+  const syncGateway = new MemoryInventoryGateway();
+  const localProfile = {
+    ...legacyProfile("world-profile", "xbox", [lamball]),
+    normalizationVersion: CURRENT_INVENTORY_NORMALIZATION_VERSION,
+    updatedAt: "2026-07-28T20:00:00.000Z",
+  };
+  const syncedProfile = {
+    ...localProfile,
+    owner: { kind: "account" as const, id: "account-1" },
+    updatedAt: "2026-07-28T23:00:00.000Z",
+    pals: [{ ...lamball, palboxSlotIndex: 94 }],
+  };
+  localGateway.document = {
+    schemaVersion: 1,
+    activeProfileId: localProfile.id,
+    profiles: [localProfile],
+  } as InventoryDocument;
+  syncGateway.document = {
+    schemaVersion: 1,
+    activeProfileId: syncedProfile.id,
+    profiles: [syncedProfile],
+  } as InventoryDocument;
+  const service = new InventoryService(localGateway, "owner-1");
+  service.start();
+  await service.whenReady();
+
+  await service.enableAccountSync(syncGateway, "account-1");
+
+  expect(service.getActiveProfile()?.pals[0]?.palboxSlotIndex).toBe(94);
 });
