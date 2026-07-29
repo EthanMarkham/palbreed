@@ -1,4 +1,5 @@
 import {
+  forEachBreedingOutcome,
   getRuntimeChildIndex,
   getRuntimePalIndex,
   runtimePals,
@@ -74,6 +75,13 @@ type EncodedOwnedPal = {
 type PartnerAction = {
   childIndex: number;
   partnerIndex: number;
+};
+
+type TargetPairing = {
+  firstSpeciesIndex: number;
+  secondSpeciesIndex: number;
+  firstGender?: PalGender;
+  secondGender?: PalGender;
 };
 
 type QueueEntry = {
@@ -153,6 +161,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
 
   const targetIndex = getRuntimePalIndex(input.targetId);
   if (targetIndex === undefined) return noRoute();
+  const targetPairings = getTargetPairings(input.targetId);
 
   const actionsBySpecies = buildPartnerActions(
     encodedInventory,
@@ -166,8 +175,46 @@ export function buildPal(input: BuilderInput): BuilderResult {
   const secondParentRef = new Int32Array(stateCount).fill(UNVISITED_PARENT);
   const edgeOdds = new Float64Array(stateCount);
   const settled = new Uint8Array(stateCount);
-  const settledByGender: [number[], number[]] = [[], []];
-  const queue = new StatePriorityQueue(input.objective);
+  const settledBySpeciesAndGender: number[][] = Array.from(
+    { length: runtimePals.length * 2 },
+    () => [],
+  );
+  const queue = new StatePriorityQueue(input.objective, stateCount);
+
+  const recordFinalState = (
+    maxUnknownExtraCount: number,
+    odds: number,
+    steps: number,
+    expectedCakes: number,
+    firstRef: number,
+    secondRef: number,
+  ) => {
+    if (odds <= 0) return;
+    const state = encodeState(
+      targetIndex,
+      fullMask,
+      maxUnknownExtraCount,
+      undefined,
+      maskVariants,
+    );
+    const nextSteps = steps + 1;
+    const nextExpectedCakes = expectedCakes + 1 / odds;
+    if (bestSteps[state] !== UNREACHED_STEPS && compareLabels(
+      nextSteps,
+      nextExpectedCakes,
+      maxUnknownExtraCount,
+      bestSteps[state],
+      bestExpectedCakes[state],
+      maxUnknownExtraCount,
+      input.objective,
+    ) >= 0) return;
+
+    bestSteps[state] = nextSteps;
+    bestExpectedCakes[state] = nextExpectedCakes;
+    firstParentRef[state] = firstRef;
+    secondParentRef[state] = secondRef;
+    edgeOdds[state] = odds;
+  };
 
   const relaxState = (
     childIndex: number,
@@ -219,14 +266,11 @@ export function buildPal(input: BuilderInput): BuilderResult {
     secondRef: number,
   ) => {
     if (isFinalHatch) {
-      relaxState(
-        childIndex,
-        nextMask,
+      recordFinalState(
         maxUnknownExtraCount,
-        undefined,
         passiveChance,
-        currentSteps + 1,
-        currentExpectedCakes + 1 / passiveChance,
+        currentSteps,
+        currentExpectedCakes,
         firstRef,
         secondRef,
       );
@@ -342,28 +386,12 @@ export function buildPal(input: BuilderInput): BuilderResult {
     ) continue;
 
     const decoded = decodeState(current.state, maskVariants);
-    if (
-      decoded.speciesIndex === targetIndex
-      && decoded.mask === fullMask
-      && decoded.maxUnknownExtraCount <= allowedExtras
-    ) {
-      return {
-        status: "found",
-        steps: reconstruct(
-          current.state,
-          maskVariants,
-          encodedInventory,
-          required,
-          acceptsAnyPassives,
-          firstParentRef,
-          secondParentRef,
-          edgeOdds,
-        ),
-        expectedCakes: current.expectedCakes,
-      };
-    }
-
     settled[current.state] = 1;
+    if (decoded.gender !== undefined) {
+      settledBySpeciesAndGender[
+        speciesGenderOffset(decoded.speciesIndex, decoded.gender)
+      ].push(current.state);
+    }
     for (const action of actionsBySpecies[decoded.speciesIndex]) {
       const partner = encodedInventory[action.partnerIndex];
       if (decoded.gender === undefined || decoded.gender === partner.pal.gender) continue;
@@ -380,38 +408,112 @@ export function buildPal(input: BuilderInput): BuilderResult {
         encodeInventoryRef(action.partnerIndex),
       );
     }
+  }
 
-    if (decoded.gender !== undefined) {
-      const oppositeGenderIndex = decoded.gender === "F" ? 1 : 0;
-      for (const otherState of settledByGender[oppositeGenderIndex]) {
-        const other = decodeState(otherState, maskVariants);
-        if (!other.gender) continue;
-        const childIndex = getRuntimeChildIndex(
-          decoded.speciesIndex,
-          other.speciesIndex,
-          other.gender,
-        );
-        if (childIndex < 0) continue;
-        const nextMask = decoded.mask | other.mask;
+  const combineGroups = (firstStates: readonly number[], secondStates: readonly number[]) => {
+    for (const firstState of firstStates) {
+      const first = decodeState(firstState, maskVariants);
+      for (const secondState of secondStates) {
+        const second = decodeState(secondState, maskVariants);
+        const nextMask = first.mask | second.mask;
+        if (nextMask !== fullMask) continue;
         relaxOutcome(
-          childIndex,
+          targetIndex,
           nextMask,
           acceptsAnyPassives
             ? 0
             : countBits(nextMask)
-              + decoded.maxUnknownExtraCount
-              + other.maxUnknownExtraCount,
-          current.steps + bestSteps[otherState],
-          current.expectedCakes + bestExpectedCakes[otherState],
-          current.state,
-          otherState,
+              + first.maxUnknownExtraCount
+              + second.maxUnknownExtraCount,
+          bestSteps[firstState] + bestSteps[secondState],
+          bestExpectedCakes[firstState] + bestExpectedCakes[secondState],
+          firstState,
+          secondState,
         );
       }
-      settledByGender[decoded.gender === "F" ? 0 : 1].push(current.state);
+    }
+  };
+
+  // Join two independently planned branches only at the requested final hatch.
+  // Pairing every intermediate state with every other state made full Palboxes
+  // quadratic in both work and retained queue memory.
+  for (const pairing of targetPairings) {
+    if (pairing.firstGender && pairing.secondGender) {
+      combineGroups(
+        settledBySpeciesAndGender[
+          speciesGenderOffset(pairing.firstSpeciesIndex, pairing.firstGender)
+        ],
+        settledBySpeciesAndGender[
+          speciesGenderOffset(pairing.secondSpeciesIndex, pairing.secondGender)
+        ],
+      );
+      continue;
+    }
+    combineGroups(
+      settledBySpeciesAndGender[speciesGenderOffset(pairing.firstSpeciesIndex, "F")],
+      settledBySpeciesAndGender[speciesGenderOffset(pairing.secondSpeciesIndex, "M")],
+    );
+    if (pairing.firstSpeciesIndex !== pairing.secondSpeciesIndex) {
+      combineGroups(
+        settledBySpeciesAndGender[speciesGenderOffset(pairing.firstSpeciesIndex, "M")],
+        settledBySpeciesAndGender[speciesGenderOffset(pairing.secondSpeciesIndex, "F")],
+      );
     }
   }
 
-  return noRoute();
+  let bestTargetState: number | undefined;
+  for (let extraCount = 0; extraCount <= allowedExtras; extraCount += 1) {
+    const state = encodeState(targetIndex, fullMask, extraCount, undefined, maskVariants);
+    if (bestSteps[state] === UNREACHED_STEPS) continue;
+    if (
+      bestTargetState === undefined
+      || compareLabels(
+        bestSteps[state],
+        bestExpectedCakes[state],
+        extraCount,
+        bestSteps[bestTargetState],
+        bestExpectedCakes[bestTargetState],
+        stateExtraCount(bestTargetState),
+        input.objective,
+      ) < 0
+    ) {
+      bestTargetState = state;
+    }
+  }
+
+  return bestTargetState === undefined
+    ? noRoute()
+    : {
+        status: "found",
+        steps: reconstruct(
+          bestTargetState,
+          maskVariants,
+          encodedInventory,
+          required,
+          acceptsAnyPassives,
+          firstParentRef,
+          secondParentRef,
+          edgeOdds,
+        ),
+        expectedCakes: bestExpectedCakes[bestTargetState],
+      };
+}
+
+function getTargetPairings(targetId: PalId) {
+  const pairings: TargetPairing[] = [];
+  forEachBreedingOutcome((outcome) => {
+    if (outcome.childId !== targetId) return;
+    const firstSpeciesIndex = getRuntimePalIndex(outcome.firstParentId);
+    const secondSpeciesIndex = getRuntimePalIndex(outcome.secondParentId);
+    if (firstSpeciesIndex === undefined || secondSpeciesIndex === undefined) return;
+    pairings.push({
+      firstSpeciesIndex,
+      secondSpeciesIndex,
+      firstGender: outcome.firstParentGender,
+      secondGender: outcome.secondParentGender,
+    });
+  });
+  return pairings;
 }
 
 function buildPartnerActions(
@@ -690,42 +792,48 @@ class StatePriorityQueue {
   private readonly states: number[] = [];
   private readonly steps: number[] = [];
   private readonly expectedCakes: number[] = [];
+  private readonly positions: Int32Array;
 
-  constructor(private readonly objective: BuilderObjective) {}
+  constructor(
+    private readonly objective: BuilderObjective,
+    stateCount: number,
+  ) {
+    this.positions = new Int32Array(stateCount).fill(-1);
+  }
 
   get size() {
     return this.states.length;
   }
 
   push(state: number, steps: number, expectedCakes: number) {
-    let index = this.states.length;
+    const existingIndex = this.positions[state];
+    if (existingIndex >= 0) {
+      this.steps[existingIndex] = steps;
+      this.expectedCakes[existingIndex] = expectedCakes;
+      this.siftUp(existingIndex);
+      return;
+    }
+
+    const index = this.states.length;
     this.states.push(state);
     this.steps.push(steps);
     this.expectedCakes.push(expectedCakes);
-
-    while (index > 0) {
-      const parent = Math.floor((index - 1) / 2);
-      if (this.compareAt(parent, state, steps, expectedCakes) <= 0) break;
-      this.states[index] = this.states[parent];
-      this.steps[index] = this.steps[parent];
-      this.expectedCakes[index] = this.expectedCakes[parent];
-      index = parent;
-    }
-    this.states[index] = state;
-    this.steps[index] = steps;
-    this.expectedCakes[index] = expectedCakes;
+    this.positions[state] = index;
+    this.siftUp(index);
   }
 
   pop(): QueueEntry | undefined {
     if (!this.states.length) return undefined;
+    const firstState = this.states[0];
     const first = {
-      state: this.states[0],
+      state: firstState,
       steps: this.steps[0],
       expectedCakes: this.expectedCakes[0],
     };
     const tailState = this.states.pop();
     const tailSteps = this.steps.pop();
     const tailExpectedCakes = this.expectedCakes.pop();
+    this.positions[firstState] = -1;
 
     if (
       this.states.length
@@ -733,32 +841,69 @@ class StatePriorityQueue {
       && tailSteps !== undefined
       && tailExpectedCakes !== undefined
     ) {
-      let index = 0;
-      while (true) {
-        const left = index * 2 + 1;
-        if (left >= this.states.length) break;
-        const right = left + 1;
-        const child = right < this.states.length && this.compareIndices(right, left) < 0
-          ? right
-          : left;
-        if (this.compareValues(
-          tailState,
-          tailSteps,
-          tailExpectedCakes,
-          this.states[child],
-          this.steps[child],
-          this.expectedCakes[child],
-        ) <= 0) break;
-        this.states[index] = this.states[child];
-        this.steps[index] = this.steps[child];
-        this.expectedCakes[index] = this.expectedCakes[child];
-        index = child;
-      }
-      this.states[index] = tailState;
-      this.steps[index] = tailSteps;
-      this.expectedCakes[index] = tailExpectedCakes;
+      this.states[0] = tailState;
+      this.steps[0] = tailSteps;
+      this.expectedCakes[0] = tailExpectedCakes;
+      this.positions[tailState] = 0;
+      this.siftDown(0);
     }
     return first;
+  }
+
+  private siftUp(startIndex: number) {
+    let index = startIndex;
+    const state = this.states[index];
+    const steps = this.steps[index];
+    const expectedCakes = this.expectedCakes[index];
+    while (index > 0) {
+      const parent = Math.floor((index - 1) / 2);
+      if (this.compareAt(parent, state, steps, expectedCakes) <= 0) break;
+      this.copyEntry(parent, index);
+      index = parent;
+    }
+    this.setEntry(index, state, steps, expectedCakes);
+  }
+
+  private siftDown(startIndex: number) {
+    let index = startIndex;
+    const state = this.states[index];
+    const steps = this.steps[index];
+    const expectedCakes = this.expectedCakes[index];
+    while (true) {
+      const left = index * 2 + 1;
+      if (left >= this.states.length) break;
+      const right = left + 1;
+      const child = right < this.states.length && this.compareIndices(right, left) < 0
+        ? right
+        : left;
+      if (this.compareValues(
+        state,
+        steps,
+        expectedCakes,
+        this.states[child],
+        this.steps[child],
+        this.expectedCakes[child],
+      ) <= 0) break;
+      this.copyEntry(child, index);
+      index = child;
+    }
+    this.setEntry(index, state, steps, expectedCakes);
+  }
+
+  private copyEntry(from: number, to: number) {
+    this.setEntry(
+      to,
+      this.states[from],
+      this.steps[from],
+      this.expectedCakes[from],
+    );
+  }
+
+  private setEntry(index: number, state: number, steps: number, expectedCakes: number) {
+    this.states[index] = state;
+    this.steps[index] = steps;
+    this.expectedCakes[index] = expectedCakes;
+    this.positions[state] = index;
   }
 
   private compareAt(index: number, state: number, steps: number, expectedCakes: number) {
@@ -805,4 +950,8 @@ class StatePriorityQueue {
 
 function stateExtraCount(state: number) {
   return Math.floor(state / GENDER_VARIANTS) % EXTRA_VARIANTS;
+}
+
+function speciesGenderOffset(speciesIndex: number, gender: PalGender) {
+  return speciesIndex * 2 + (gender === "M" ? 1 : 0);
 }

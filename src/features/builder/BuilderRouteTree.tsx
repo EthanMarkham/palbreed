@@ -51,19 +51,21 @@ function BreedingNode({
     <section className={isRoot ? "breeding-tree-node is-root" : "breeding-tree-node"} role="treeitem">
       {isRoot ? (
         <div className="breeding-tree-target">
-          {result ? <PalAvatar pal={result} className="breeding-tree-target-avatar" /> : null}
-          <span>
-            <small>FINAL HATCH</small>
-            <strong>{result?.name ?? step.result}</strong>
-            <em>{getResultPassiveSummary(step.resultPassives)}</em>
+          <span className="breeding-tree-target-portrait">
+            {result ? <PalAvatar pal={result} className="breeding-tree-target-avatar" /> : null}
+            <small>Goal</small>
           </span>
+          <strong>{result?.name ?? step.result}</strong>
+          <em>{getResultPassiveSummary(step.resultPassives)}</em>
         </div>
       ) : parent ? (
         <BuilderParentPreview parent={parent} />
       ) : null}
 
-      <div className="breeding-tree-step">
-        <span>Breed {String(stepNumber).padStart(2, "0")}</span>
+      <div
+        className="breeding-tree-step"
+        aria-label={`Breed ${stepNumber}: ${formatOdds(step.odds)}, ${formatEggs(step.expectedCakes)} eggs`}
+      >
         <strong>{formatOdds(step.odds)} / {formatEggs(step.expectedCakes)} eggs</strong>
       </div>
 

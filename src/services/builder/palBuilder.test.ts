@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { runtimePals } from "../../data/breedingRuntime";
 import type { OwnedPal } from "../../domain/inventory";
 import { buildPal } from "./palBuilder";
 
@@ -175,6 +176,39 @@ describe("Pal Builder", () => {
       expect(result.expectedCakes).toBeCloseTo(26.666666667);
     }
   });
+
+  it("keeps a full Palbox search bounded", () => {
+    const requiredIds = [
+      "CraftSpeed_up2",
+      "CraftSpeed_up3",
+      "MutationPal_Babysitter",
+      "Vampire",
+    ];
+    const species = runtimePals.filter(({ id }) => id !== "dynamoff");
+    const largeInventory: OwnedPal[] = Array.from({ length: 690 }, (_, index) => ({
+      id: `large-${index}`,
+      sourceInstanceId: `large-${index}`,
+      speciesId: species[index % species.length].id,
+      gender: index % 2 === 0 ? "F" : "M",
+      passiveIds: index < requiredIds.length ? [requiredIds[index]] : [],
+      location: "palbox",
+    }));
+    const startedAt = performance.now();
+
+    const result = buildPal({
+      inventory: largeInventory,
+      targetId: "dynamoff",
+      passiveGoal: {
+        kind: "specific",
+        requiredIds,
+        allowedExtras: 0,
+      },
+      objective: "cleanest",
+    });
+
+    expect(result.status).toBe("found");
+    expect(performance.now() - startedAt).toBeLessThan(3_000);
+  }, 5_000);
 
   it("never proposes a same-sex parent pair", () => {
     const result = buildPal({

@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button, Dialog, DialogTrigger, OverlayArrow, Popover } from "react-aria-components";
 import PalAvatar from "../../components/PalAvatar";
 import { breedingRepository } from "../../data/breedingRepository";
@@ -12,21 +12,51 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
   const passiveNames = parent.passives.kind !== "any"
     ? parent.passives.ids.map((id) => passiveRepository.get(id)?.name ?? id)
     : [];
-  const passiveSummary = getPassiveSummary(parent, passiveNames);
-  const compactDetails = getCompactDetails(parent, genderLabel, passiveSummary);
   const location = getLocationLabel(parent);
   const titleId = useId();
+  const [isOpen, setIsOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout>>();
+  const keepOpen = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = undefined;
+    setIsOpen(true);
+  };
+  const scheduleClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setIsOpen(false), 120);
+  };
+
+  useEffect(() => () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
 
   return (
-    <DialogTrigger>
-      <Button className="builder-parent-trigger" aria-label={`View details for ${name}`}>
-        {species ? <PalAvatar pal={species} className="builder-parent-avatar" /> : null}
-        <span className="builder-parent-copy">
-          <span className="builder-parent-name"><strong>{name}</strong><InfoIcon /></span>
-          <small>{compactDetails.map((detail) => <span key={detail}>{detail}</span>)}</small>
+    <DialogTrigger
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (closeTimer.current) clearTimeout(closeTimer.current);
+        setIsOpen(open);
+      }}
+    >
+      <Button
+        className="builder-parent-trigger"
+        aria-label={`View details for ${name}`}
+        onHoverStart={keepOpen}
+        onHoverEnd={scheduleClose}
+      >
+        <span className="builder-parent-portrait">
+          {species ? <PalAvatar pal={species} className="builder-parent-avatar" /> : null}
+          <span className="builder-parent-info"><InfoIcon /></span>
         </span>
+        <strong>{name}</strong>
+        {parent.origin === "planned" ? <small>Breed first</small> : null}
       </Button>
-      <Popover className="builder-parent-popover" placement="top">
+      <Popover
+        className="builder-parent-popover"
+        placement="top"
+        onMouseEnter={keepOpen}
+        onMouseLeave={scheduleClose}
+      >
         <OverlayArrow className="builder-parent-popover-arrow">
           <svg viewBox="0 0 8 8" aria-hidden="true"><path d="M0 0 L4 4 L8 0" /></svg>
         </OverlayArrow>
@@ -38,14 +68,14 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
             {species ? <span className="builder-parent-popover-number">No. {String(species.number).padStart(3, "0")}</span> : null}
           </div>
           <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
-          <dl className="builder-parent-popover-facts">
-            <div><dt>Sex</dt><dd>{genderLabel}</dd></div>
-            {parent.level !== undefined ? <div><dt>Level</dt><dd>{parent.level}</dd></div> : null}
-          </dl>
           <div className="builder-parent-popover-location">
             <span>Where to find</span>
             <strong>{location}</strong>
           </div>
+          <dl className="builder-parent-popover-facts">
+            <div><dt>Required sex</dt><dd>{genderLabel}</dd></div>
+            {parent.level !== undefined ? <div><dt>Level</dt><dd>{parent.level}</dd></div> : null}
+          </dl>
           <div className="builder-parent-popover-passives">
             <span>Passives</span>
             {parent.passives.kind === "any" ? (
@@ -66,17 +96,6 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
   );
 }
 
-function getCompactDetails(
-  parent: BuilderParent,
-  genderLabel: string,
-  passiveSummary: string,
-) {
-  const details = [genderLabel];
-  if (parent.origin === "inventory") details.push(getLocationLabel(parent));
-  details.push(passiveSummary);
-  return details;
-}
-
 function getLocationLabel(parent: BuilderParent) {
   if (parent.origin === "planned") return "Breed earlier in this route";
   if (parent.location === "palbox") {
@@ -91,18 +110,6 @@ function getLocationLabel(parent: BuilderParent) {
 
 function getGenderLabel(gender: BuilderParent["gender"]) {
   return gender === "F" ? "Female" : "Male";
-}
-
-function getPassiveSummary(parent: BuilderParent, passiveNames: readonly string[]) {
-  if (parent.passives.kind === "any") return "Passives unrestricted";
-  if (parent.passives.kind === "bounded") {
-    if (passiveNames.length === 0) return "Passives unrestricted";
-    if (passiveNames.length === 1) return passiveNames[0];
-    return `${passiveNames[0]} +${passiveNames.length - 1}`;
-  }
-  if (passiveNames.length === 0) return "No passives";
-  if (passiveNames.length === 1) return passiveNames[0];
-  return `${passiveNames[0]} +${passiveNames.length - 1}`;
 }
 
 function InfoIcon() {
