@@ -2567,154 +2567,180 @@
 
 .build-metrics strong { color: var(--lime); font: 700 1.1rem/1 "Space Grotesk", sans-serif; }
 
-.breeding-tree {
+.breeding-route {
+  --route-rail-width: 30px;
   margin-top: 12px;
-  padding: 24px 16px 18px;
-  overflow-x: auto;
+  padding: 10px 8px 10px 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--route-rail-width);
+  gap: 4px;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
   background:
-    radial-gradient(circle at 50% 0, rgba(35, 133, 109, 0.08), transparent 42%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.48), rgba(244, 249, 246, 0.62)),
     rgba(255, 255, 255, 0.42);
-  scrollbar-color: rgba(35, 133, 109, 0.22) transparent;
 }
 
-.breeding-tree > .breeding-tree-node {
+.breeding-route-rows {
+  min-width: 0;
+  display: grid;
+  grid-auto-rows: 112px;
+  gap: 10px;
+}
+
+.breeding-route-row {
+  min-width: 0;
+  height: 112px;
+  padding: 8px 10px 8px 8px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(27, 48, 38, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 4px 14px rgba(18, 34, 27, 0.035);
+}
+
+.breeding-route-number {
+  align-self: stretch;
+  display: grid;
+  place-items: start center;
+  padding-top: 5px;
+  border-right: 1px solid rgba(35, 133, 109, 0.14);
+  color: var(--text-subtle);
+  font: 750 0.5rem/1 "Space Grotesk", sans-serif;
+  letter-spacing: 0.05em;
+}
+
+.breeding-route-formula {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(64px, 1fr) 14px minmax(64px, 1fr) 18px minmax(64px, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 4px;
+}
+
+.breeding-route-formula .builder-parent-trigger {
   width: 100%;
-  min-width: 560px;
+  min-height: 86px;
 }
 
-.breeding-tree-node {
+.breeding-route-formula .builder-parent-portrait {
+  width: 54px;
+  height: 54px;
+}
+
+.breeding-route-formula .builder-parent-avatar {
+  width: 47px;
+  height: 47px;
+}
+
+.breeding-route-operator {
+  color: var(--text-subtle);
+  font: 600 0.82rem/1 "Space Grotesk", sans-serif;
+}
+
+.breeding-route-operator.is-arrow {
+  color: var(--teal);
+  font-size: 1rem;
+}
+
+.breeding-route-result {
+  width: 100%;
+  min-width: 0;
+  min-height: 86px;
   display: grid;
   justify-items: center;
   align-content: start;
-}
-
-.breeding-tree-target {
-  width: 144px;
-  display: grid;
-  justify-items: center;
   gap: 4px;
   text-align: center;
 }
 
-.breeding-tree-target-portrait {
-  width: 78px;
-  height: 78px;
+.breeding-route-result-portrait {
+  width: 54px;
+  height: 54px;
   position: relative;
   display: grid;
   place-items: center;
-  border: 2px solid rgba(35, 133, 109, 0.28);
+  border: 1px solid rgba(35, 133, 109, 0.22);
   border-radius: 50%;
   background: var(--paper-strong);
   box-shadow:
-    0 0 0 5px rgba(35, 133, 109, 0.07),
-    0 10px 24px rgba(18, 34, 27, 0.12);
+    0 0 0 3px rgba(35, 133, 109, 0.06),
+    0 6px 14px rgba(18, 34, 27, 0.09);
 }
 
-.breeding-tree-target-avatar { width: 67px; height: 67px; }
+.breeding-route-result-avatar {
+  width: 47px;
+  height: 47px;
+  filter: drop-shadow(0 4px 5px rgba(18, 34, 27, 0.1));
+}
 
-.breeding-tree-target-portrait small {
-  padding: 0.24rem 0.42rem;
+.breeding-route-result-portrait small {
+  padding: 0.18rem 0.32rem;
   position: absolute;
   left: 50%;
-  bottom: -8px;
+  bottom: -6px;
   border-radius: 999px;
-  color: #f7fbf8;
+  color: #fff;
   background: var(--teal-dark);
-  font: 800 0.41rem/1 "Space Grotesk", sans-serif;
-  letter-spacing: 0.1em;
+  font: 800 0.34rem/1 "Space Grotesk", sans-serif;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   transform: translateX(-50%);
 }
 
-.breeding-tree-target > strong {
-  max-width: 100%;
-  margin-top: 7px;
+.breeding-route-result > strong {
+  width: 100%;
   overflow: hidden;
   color: var(--ink);
-  font: 750 0.78rem/1.15 "Space Grotesk", sans-serif;
+  font: 700 0.58rem/1.2 "Space Grotesk", sans-serif;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.breeding-tree-target > em {
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--text-muted);
-  font-size: 0.47rem;
-  font-style: normal;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.breeding-tree-step {
-  margin-top: 20px;
-  padding: 0.38rem 0.58rem;
-  position: relative;
+.breeding-route-odds {
+  min-width: 88px;
+  padding: 0.38rem 0.5rem;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(35, 133, 109, 0.15);
+  border: 1px solid rgba(35, 133, 109, 0.14);
   border-radius: 999px;
-  background: var(--paper-strong);
-  box-shadow: 0 4px 12px rgba(18, 34, 27, 0.045);
-}
-
-.breeding-tree-step::before {
-  content: "";
-  width: 1px;
-  height: 21px;
-  position: absolute;
-  left: 50%;
-  bottom: 100%;
-  background: rgba(35, 133, 109, 0.26);
-}
-
-.breeding-tree-step strong {
   color: var(--teal-dark);
-  font: 750 0.56rem/1 "Space Grotesk", sans-serif;
+  background: var(--paper-strong);
+}
+
+.breeding-route-odds strong {
+  font: 750 0.54rem/1 "Space Grotesk", sans-serif;
   white-space: nowrap;
 }
 
-.breeding-tree-parents {
-  width: 100%;
-  min-width: 0;
-  padding-top: 27px;
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-  gap: 18px;
+.breeding-route-rail {
+  align-self: start;
+  overflow: visible;
 }
 
-.breeding-tree-parents::before {
-  content: "";
-  position: absolute;
-  top: 13px;
-  left: 25%;
-  right: 25%;
-  border-top: 1px solid rgba(35, 133, 109, 0.26);
+.breeding-route-link {
+  fill: none;
+  stroke: rgba(35, 133, 109, 0.44);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.25;
 }
 
-.breeding-tree-branch {
-  min-width: 0;
-  position: relative;
-  display: grid;
-  justify-items: center;
+.breeding-route-rail marker path,
+.breeding-route-link-dot {
+  fill: var(--teal);
 }
 
-.breeding-tree-branch::before {
-  content: "";
-  width: 1px;
-  height: 14px;
-  position: absolute;
-  left: 50%;
-  bottom: 100%;
-  background: rgba(35, 133, 109, 0.26);
+.breeding-route-link-label {
+  fill: var(--text-subtle);
+  font: 700 6px "Space Grotesk", sans-serif;
+  letter-spacing: 0.03em;
 }
-
-.breeding-tree-branch > .breeding-tree-node { width: 100%; }
-.breeding-tree-leaf { width: 100%; display: grid; justify-items: center; }
 
 .builder-parent-trigger {
   width: 112px;
@@ -3054,29 +3080,40 @@
   .build-summary-avatar { width: 60px; height: 60px; }
   .build-metrics { grid-column: 1 / -1; }
   .build-metrics span { flex: 1; }
-  .breeding-tree { padding: 20px 8px 14px; }
-  .breeding-tree > .breeding-tree-node { min-width: 0; }
-  .breeding-tree-parents { gap: 6px; }
-  .breeding-tree-target-portrait { width: 72px; height: 72px; }
-  .breeding-tree-target-avatar { width: 62px; height: 62px; }
-  .builder-parent-trigger { width: 96px; }
-  .builder-parent-portrait { width: 58px; height: 58px; }
-  .builder-parent-avatar { width: 50px; height: 50px; }
-  .breeding-tree-node:not(.is-root) > .breeding-tree-parents {
-    padding: 15px 0 0 16px;
-    grid-template-columns: 1fr;
-    gap: 7px;
-    border-left: 1px solid rgba(35, 133, 109, 0.26);
+  .breeding-route {
+    padding: 6px 4px 6px 6px;
+    gap: 2px;
   }
-  .breeding-tree-node:not(.is-root) > .breeding-tree-parents::before { display: none; }
-  .breeding-tree-node:not(.is-root) > .breeding-tree-parents > .breeding-tree-branch {
-    justify-items: start;
+  .breeding-route-row {
+    position: relative;
+    padding: 7px 5px;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 4px;
   }
-  .breeding-tree-node:not(.is-root) > .breeding-tree-parents > .breeding-tree-branch::before {
-    width: 12px;
-    height: 1px;
-    left: -16px;
-    bottom: auto;
-    top: 29px;
+  .breeding-route-number { padding-top: 4px; font-size: 0.43rem; }
+  .breeding-route-formula {
+    padding-bottom: 14px;
+    grid-template-columns: minmax(48px, 1fr) 9px minmax(48px, 1fr) 12px minmax(48px, 1fr);
+    gap: 1px;
   }
+  .breeding-route-formula .builder-parent-trigger,
+  .breeding-route-result { min-height: 76px; }
+  .breeding-route-formula .builder-parent-portrait,
+  .breeding-route-result-portrait { width: 46px; height: 46px; }
+  .breeding-route-formula .builder-parent-avatar,
+  .breeding-route-result-avatar { width: 40px; height: 40px; }
+  .breeding-route-formula .builder-parent-trigger > strong,
+  .breeding-route-result > strong { font-size: 0.5rem; }
+  .breeding-route-formula .builder-parent-trigger > small { font-size: 0.31rem; }
+  .breeding-route-operator { font-size: 0.66rem; }
+  .breeding-route-operator.is-arrow { font-size: 0.78rem; }
+  .breeding-route-odds {
+    min-width: 0;
+    padding: 0.25rem 0.38rem;
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+  }
+  .breeding-route-odds strong { font-size: 0.46rem; }
+  .breeding-route-link-label { display: none; }
 }

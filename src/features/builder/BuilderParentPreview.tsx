@@ -5,7 +5,13 @@ import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { BuilderParent } from "../../services/builder/palBuilder";
 
-export default function BuilderParentPreview({ parent }: { parent: BuilderParent }) {
+export default function BuilderParentPreview({
+  parent,
+  sourceStepNumber,
+}: {
+  parent: BuilderParent;
+  sourceStepNumber?: number;
+}) {
   const species = breedingRepository.getPal(parent.speciesId);
   const name = species?.name ?? parent.speciesId;
   const genderLabel = getGenderLabel(parent.gender);
@@ -49,7 +55,9 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
           <span className="builder-parent-info"><InfoIcon /></span>
         </span>
         <strong>{name}</strong>
-        {parent.origin === "planned" ? <small>Breed first</small> : null}
+        {parent.origin === "planned" ? (
+          <small>{sourceStepNumber ? `From ${String(sourceStepNumber).padStart(2, "0")}` : "Breed first"}</small>
+        ) : null}
       </Button>
       <Popover
         className="builder-parent-popover"
