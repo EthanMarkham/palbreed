@@ -127,7 +127,7 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
         </div>
         <div>
           <dt>Location</dt>
-          <dd>{formatLocation(pal.location)}</dd>
+          <dd>{formatLocation(pal)}</dd>
         </div>
       </dl>
 
@@ -230,10 +230,14 @@ function formatProfileDetails(profile: InventoryProfile) {
   return parts.join(" · ");
 }
 
-function formatLocation(location: OwnedPal["location"]) {
-  if (location === "palbox") return "Palbox";
-  if (location === "global-storage") return "Global storage";
-  return location === "party" ? "Party" : "Base";
+function formatLocation(pal: OwnedPal) {
+  if (pal.location === "palbox") {
+    return pal.palboxSlotIndex === undefined
+      ? "Palbox"
+      : `Palbox · Page ${Math.floor(pal.palboxSlotIndex / 30) + 1}`;
+  }
+  if (pal.location === "global-storage") return "Global storage";
+  return pal.location === "party" ? "Party" : "Base";
 }
 
 function SearchIcon() {

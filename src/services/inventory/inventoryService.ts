@@ -256,12 +256,24 @@ function sanitizeImportedPal(pal: OwnedPal): OwnedPal | undefined {
     gender: pal.gender,
     passiveIds: pal.passiveIds,
     location: pal.location,
+    palboxSlotIndex: pal.location === "palbox"
+      ? sanitizePalboxSlotIndex(pal.palboxSlotIndex)
+      : undefined,
     worldId: pal.worldId,
     playerId: pal.playerId,
     nickname: pal.nickname,
     level: pal.level,
     abilityScores: sanitizeAbilityScores(pal.abilityScores),
   };
+}
+
+function sanitizePalboxSlotIndex(value: OwnedPal["palboxSlotIndex"]) {
+  return typeof value === "number"
+    && Number.isInteger(value)
+    && value >= 0
+    && value <= 99_999
+    ? value
+    : undefined;
 }
 
 function sanitizeAbilityScores(scores: OwnedPal["abilityScores"]) {

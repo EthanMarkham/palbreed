@@ -10,7 +10,12 @@ import {
 } from "../../domain/saveImport";
 import type { PalGender, PalId } from "../../domain/pal";
 import type { PassiveId } from "../../domain/passive";
-import { normalizePalsFromParsedSave, normalizePlayersFromParsedSave } from "./palSaveNormalizer";
+import {
+  normalizePalContainerSlotsFromParsedSave,
+  normalizePalsFromParsedSave,
+  normalizePlayerContainersFromParsedSave,
+  normalizePlayersFromParsedSave,
+} from "./palSaveNormalizer";
 import { assertPalworldOnePointZero } from "./saveScanner";
 
 const saveAliases: Readonly<Record<string, PalId>> = aliases.aliases;
@@ -26,6 +31,7 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
   const unknownPassiveIds = new Set<string>();
   const palsByInstance = new Map<string, OwnedPal>();
   const playersById = new Map<string, ImportedPlayer>();
+  const parsedFiles: Array<{ path: string; parsed: unknown }> = [];
   const relevant = [...slot.files.entries()].filter(([path]) =>
     /^level\/\d+\.sav$/i.test(path) ||
     /^players\/.+\.sav$/i.test(path) ||
@@ -42,6 +48,15 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
         `We couldn't read ${path}. ${error instanceof Error ? error.message : "The save data is invalid."}`,
       );
     }
+    parsedFiles.push({ path, parsed });
+  }
+
+  const containerOwners = new Map<string, { location: "party" | "palbox"; playerId: string }>();
+  const containerSlotByInstance = new Map<
+    string,
+    { slotIndex: number; containerId?: string }
+  >();
+  for (const { path, parsed } of parsedFiles) {
     const playerId = playerIdFromPath(path);
     for (const metadata of normalizePlayersFromParsedSave(parsed)) {
       const id = metadata.id ?? playerId;
@@ -56,6 +71,21 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
     if (playerId && !playersById.has(playerId)) {
       playersById.set(playerId, { id: playerId });
     }
+    if (playerId) {
+      const containers = normalizePlayerContainersFromParsedSave(parsed);
+      addContainerOwner(containerOwners, containers.palboxContainerId, "palbox", playerId);
+      addContainerOwner(containerOwners, containers.partyContainerId, "party", playerId);
+    }
+    for (const slot of normalizePalContainerSlotsFromParsedSave(parsed)) {
+      containerSlotByInstance.set(normalizeGuid(slot.instanceId), {
+        slotIndex: slot.slotIndex,
+        containerId: slot.containerId,
+      });
+    }
+  }
+
+  for (const { path, parsed } of parsedFiles) {
+    const pathPlayerId = playerIdFromPath(path);
     const candidates = normalizePalsFromParsedSave(parsed);
     for (const [index, candidate] of candidates.entries()) {
       const rawSpeciesId = candidate.speciesId;
@@ -79,7 +109,13 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
         return known;
       }))];
       const instanceId = candidate.instanceId ?? `${path}:${speciesId}:${index}`;
-      const location = inferLocation(path);
+      const authoritativeSlot = containerSlotByInstance.get(normalizeGuid(instanceId));
+      const containerId = authoritativeSlot?.containerId ?? candidate.containerId;
+      const containerOwner = containerId
+        ? containerOwners.get(normalizeGuid(containerId))
+        : undefined;
+      const location = inferLocation(path, containerOwner?.location);
+      const playerId = pathPlayerId ?? containerOwner?.playerId;
       const normalizedInstance = instanceId.toLowerCase();
       const nextPal: OwnedPal = {
         id: `save:${slot.id}:${normalizedInstance}`,
@@ -88,6 +124,11 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
         gender,
         passiveIds,
         location,
+        palboxSlotIndex:
+          containerOwner?.location === "palbox"
+          && (authoritativeSlot?.slotIndex ?? candidate.containerSlotIndex) !== undefined
+            ? authoritativeSlot?.slotIndex ?? candidate.containerSlotIndex
+            : undefined,
         worldId: slot.worldId,
         playerId,
         nickname: candidate.nickname || undefined,
@@ -195,10 +236,24 @@ function parseGender(value?: string): PalGender | undefined {
   return value === "F" || value === "M" ? value : undefined;
 }
 
-function inferLocation(path: string): PalLocation {
+function inferLocation(path: string, containerLocation?: "party" | "palbox"): PalLocation {
   if (/globalpalstorage/i.test(path)) return "global-storage";
   if (/players\//i.test(path)) return "party";
+  if (containerLocation) return containerLocation;
   return "palbox";
+}
+
+function addContainerOwner(
+  target: Map<string, { location: "party" | "palbox"; playerId: string }>,
+  containerId: string | undefined,
+  location: "party" | "palbox",
+  playerId: string,
+) {
+  if (containerId) target.set(normalizeGuid(containerId), { location, playerId });
+}
+
+function normalizeGuid(value: string) {
+  return value.replace(/[^a-f\d]/gi, "").toLocaleLowerCase();
 }
 
 function locationPriority(location: PalLocation) {

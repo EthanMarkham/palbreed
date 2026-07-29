@@ -3,7 +3,7 @@ import type { OwnedPal } from "../../domain/inventory";
 import { buildPal } from "./palBuilder";
 
 const inventory: OwnedPal[] = [
-  { id: "lamball-1", sourceInstanceId: "lamball-1", speciesId: "lamball", gender: "F", passiveIds: ["CraftSpeed_up2"], level: 24, location: "palbox" },
+  { id: "lamball-1", sourceInstanceId: "lamball-1", speciesId: "lamball", gender: "F", passiveIds: ["CraftSpeed_up2"], level: 24, location: "palbox", palboxSlotIndex: 65 },
   { id: "cattiva-1", sourceInstanceId: "cattiva-1", speciesId: "cattiva", gender: "M", passiveIds: [], level: 17, location: "palbox" },
 ];
 
@@ -25,6 +25,8 @@ describe("Pal Builder", () => {
           origin: "inventory",
           level: 24,
           gender: "F",
+          location: "palbox",
+          palboxSlotIndex: 65,
           passives: { kind: "known", ids: ["CraftSpeed_up2"] },
         },
         secondParent: {
@@ -157,7 +159,8 @@ describe("Pal Builder", () => {
     expect(result.status).toBe("found");
     if (result.status === "found") {
       expect(result.steps).toHaveLength(3);
-      expect(result.steps[result.steps.length - 1]).toMatchObject({
+      const finalStep = result.steps[result.steps.length - 1];
+      expect(finalStep).toMatchObject({
         result: "tarantriss",
         firstParent: { origin: "planned" },
         secondParent: { origin: "planned" },
@@ -166,6 +169,9 @@ describe("Pal Builder", () => {
           ids: ["wanted-0", "wanted-1", "wanted-2", "wanted-3"],
         },
       });
+      expect(typeof finalStep.firstParentStepId).toBe("string");
+      expect(typeof finalStep.secondParentStepId).toBe("string");
+      expect(new Set(result.steps.map(({ id }) => id)).size).toBe(result.steps.length);
       expect(result.expectedCakes).toBeCloseTo(26.666666667);
     }
   });

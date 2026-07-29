@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { Button, Dialog, DialogTrigger, OverlayArrow, Popover } from "react-aria-components";
+import PalAvatar from "../../components/PalAvatar";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { BuilderParent } from "../../services/builder/palBuilder";
@@ -12,17 +13,18 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
     ? parent.passives.ids.map((id) => passiveRepository.get(id)?.name ?? id)
     : [];
   const passiveSummary = getPassiveSummary(parent, passiveNames);
+  const compactDetails = getCompactDetails(parent, genderLabel, passiveSummary);
+  const location = getLocationLabel(parent);
   const titleId = useId();
 
   return (
     <DialogTrigger>
       <Button className="builder-parent-trigger" aria-label={`View details for ${name}`}>
-        <span className="builder-parent-name"><strong>{name}</strong><InfoIcon /></span>
-        <small>
-          <span>{parent.level === undefined ? "Lv —" : `Lv ${parent.level}`}</span>
-          <span>{genderLabel}</span>
-          <span>{passiveSummary}</span>
-        </small>
+        {species ? <PalAvatar pal={species} className="builder-parent-avatar" /> : null}
+        <span className="builder-parent-copy">
+          <span className="builder-parent-name"><strong>{name}</strong><InfoIcon /></span>
+          <small>{compactDetails.map((detail) => <span key={detail}>{detail}</span>)}</small>
+        </span>
       </Button>
       <Popover className="builder-parent-popover" placement="top">
         <OverlayArrow className="builder-parent-popover-arrow">
@@ -37,9 +39,13 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
           </div>
           <strong className="builder-parent-popover-name" id={titleId}>{name}</strong>
           <dl className="builder-parent-popover-facts">
-            <div><dt>Level</dt><dd>{parent.level ?? "Unknown"}</dd></div>
             <div><dt>Sex</dt><dd>{genderLabel}</dd></div>
+            {parent.level !== undefined ? <div><dt>Level</dt><dd>{parent.level}</dd></div> : null}
           </dl>
+          <div className="builder-parent-popover-location">
+            <span>Where to find</span>
+            <strong>{location}</strong>
+          </div>
           <div className="builder-parent-popover-passives">
             <span>Passives</span>
             {parent.passives.kind === "any" ? (
@@ -58,6 +64,29 @@ export default function BuilderParentPreview({ parent }: { parent: BuilderParent
       </Popover>
     </DialogTrigger>
   );
+}
+
+function getCompactDetails(
+  parent: BuilderParent,
+  genderLabel: string,
+  passiveSummary: string,
+) {
+  const details = [genderLabel];
+  if (parent.origin === "inventory") details.push(getLocationLabel(parent));
+  details.push(passiveSummary);
+  return details;
+}
+
+function getLocationLabel(parent: BuilderParent) {
+  if (parent.origin === "planned") return "Breed earlier in this route";
+  if (parent.location === "palbox") {
+    if (parent.palboxSlotIndex === undefined) return "Palbox";
+    const page = Math.floor(parent.palboxSlotIndex / 30) + 1;
+    const slot = (parent.palboxSlotIndex % 30) + 1;
+    return `Palbox · Page ${page} · Slot ${slot}`;
+  }
+  if (parent.location === "global-storage") return "Global storage";
+  return parent.location === "party" ? "Party" : "Base";
 }
 
 function getGenderLabel(gender: BuilderParent["gender"]) {

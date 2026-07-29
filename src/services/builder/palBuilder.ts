@@ -4,7 +4,7 @@ import {
   runtimePals,
 } from "../../data/breedingRuntime";
 import { getPalGenderProbability } from "../../data/palStatsRepository";
-import type { OwnedPal } from "../../domain/inventory";
+import type { OwnedPal, PalLocation } from "../../domain/inventory";
 import type { PalGender, PalId } from "../../domain/pal";
 import type { PassiveGoal, PassiveId } from "../../domain/passive";
 import { estimatePassiveOdds } from "./passiveProbability";
@@ -23,12 +23,20 @@ type BuilderParentBase = {
 };
 
 export type BuilderParent =
-  | BuilderParentBase & { origin: "inventory"; level?: number }
+  | BuilderParentBase & {
+      origin: "inventory";
+      level?: number;
+      location: PalLocation;
+      palboxSlotIndex?: number;
+    }
   | BuilderParentBase & { origin: "planned"; level: 1 };
 
 export type BuilderStep = {
+  id: string;
   firstParent: BuilderParent;
+  firstParentStepId?: string;
   secondParent: BuilderParent;
+  secondParentStepId?: string;
   result: PalId;
   resultPassives: BuilderParentPassives;
   odds: number;
@@ -452,14 +460,14 @@ function reconstruct(
   edgeOdds: Float64Array,
 ) {
   const steps: BuilderStep[] = [];
-  const appendState = (state: number) => {
+  const appendState = (state: number): string => {
     const firstRef = firstParentRef[state];
     const secondRef = secondParentRef[state];
     if (firstRef === UNVISITED_PARENT || secondRef === UNVISITED_PARENT) {
       throw new Error("A planned breeding step is missing its parents.");
     }
-    if (firstRef >= 0) appendState(firstRef);
-    if (secondRef >= 0) appendState(secondRef);
+    const firstParentStepId = firstRef >= 0 ? appendState(firstRef) : undefined;
+    const secondParentStepId = secondRef >= 0 ? appendState(secondRef) : undefined;
 
     const resultState = decodeState(state, maskVariants);
     const resultPassives = passivesForState(
@@ -469,7 +477,9 @@ function reconstruct(
       acceptsAnyPassives,
     );
     const odds = edgeOdds[state];
+    const id = `step-${steps.length + 1}`;
     steps.push({
+      id,
       firstParent: createParentFromRef(
         firstRef,
         maskVariants,
@@ -478,6 +488,7 @@ function reconstruct(
         acceptsAnyPassives,
         firstParentRef,
       ),
+      firstParentStepId,
       secondParent: createParentFromRef(
         secondRef,
         maskVariants,
@@ -486,11 +497,13 @@ function reconstruct(
         acceptsAnyPassives,
         firstParentRef,
       ),
+      secondParentStepId,
       result: runtimePals[resultState.speciesIndex].id,
       resultPassives,
       odds,
       expectedCakes: 1 / odds,
     });
+    return id;
   };
 
   appendState(targetState);
@@ -548,6 +561,8 @@ function createInventoryParent(pal: OwnedPal): BuilderParent {
     level: pal.level,
     gender: pal.gender,
     passives: { kind: "known", ids: [...new Set(pal.passiveIds)] },
+    location: pal.location,
+    palboxSlotIndex: pal.palboxSlotIndex,
   };
 }
 

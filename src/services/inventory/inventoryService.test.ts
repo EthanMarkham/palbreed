@@ -23,6 +23,7 @@ const lamball: OwnedPal = {
   gender: "F",
   passiveIds: [],
   location: "palbox",
+  palboxSlotIndex: 65,
 };
 
 describe("InventoryService persistence boundary", () => {

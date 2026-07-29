@@ -11,14 +11,13 @@ import type { PassiveGoal, PassiveId } from "../../domain/passive";
 import {
   type BuilderInput,
   type BuilderObjective,
-  type BuilderParentPassives,
   type BuilderResult,
 } from "../../services/builder/palBuilder";
 import { usePalBuilder } from "../../services/builder/usePalBuilder";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
 import BuilderHistoryMenu from "./BuilderHistoryMenu";
-import BuilderParentPreview from "./BuilderParentPreview";
+import BuilderRouteTree from "./BuilderRouteTree";
 import type { BuilderHistoryEntry } from "./builderHistory";
 import {
   getBuilderObjective,
@@ -217,44 +216,16 @@ function BuilderResultView({
       </div>
 
       {result.steps.length ? (
-        <div className="build-steps">
-          {result.steps.map((step, index) => {
-            const child = breedingRepository.getPal(step.result);
-            const resultPassives = getResultPassiveSummary(step.resultPassives);
-            return (
-              <article key={`${step.firstParent.speciesId}-${step.secondParent.speciesId}-${index}`}>
-                <span className="step-index">{String(index + 1).padStart(2, "0")}</span>
-                <div className="build-equation">
-                  <div className="build-parent-slot is-first"><BuilderParentPreview parent={step.firstParent} /></div>
-                  <span className="build-equation-operator is-plus">+</span>
-                  <div className="build-parent-slot is-second"><BuilderParentPreview parent={step.secondParent} /></div>
-                  <span className="build-equation-operator is-arrow">→</span>
-                  <strong className="build-equation-result">{child?.name}</strong>
-                </div>
-                <div className="passive-line">Offspring: {resultPassives}</div>
-                <div className="odds-meter"><span style={{ width: `${Math.max(2, step.odds * 100)}%` }} /><small>{formatOdds(step.odds)} estimated chance · about {formatEggs(step.expectedCakes)} eggs</small></div>
-              </article>
-            );
-          })}
-        </div>
+        <BuilderRouteTree steps={result.steps} />
       ) : <div className="status-banner is-success"><span>✓</span><p>You already have this Pal{passiveGoal?.kind === "any" ? "" : " with the passives you chose"} in this world.</p></div>}
     </div>
   );
 }
 
-function formatOdds(value: number) {
-  if (value >= 0.1) return `${Math.round(value * 100)}%`;
-  return `${(value * 100).toFixed(1)}%`;
-}
-
 function formatEggs(value: number) {
-  return value < 10 ? value.toFixed(1) : Math.round(value).toString();
-}
-
-function getResultPassiveSummary(passives: BuilderParentPassives) {
-  if (passives.kind === "any") return "Passives unrestricted";
-  const required = passives.ids.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ");
-  return required || (passives.kind === "bounded" ? "Passives unrestricted" : "No passives");
+  const rounded = Math.round(value);
+  if (Math.abs(value - rounded) < 0.05) return rounded.toString();
+  return value < 10 ? value.toFixed(1) : rounded.toString();
 }
 
 function SparkIcon() {

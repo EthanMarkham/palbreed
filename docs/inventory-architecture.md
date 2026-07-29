@@ -46,7 +46,7 @@ review; this is a release gate, not an optional attribution note.
   are required, while unselected passive slots remain unconstrained.
   “Cleanest” uses estimated expected cakes; probability copy is always labeled
   as estimated.
-- Pal Builder deliberately distinguishes this exact carrier model from a future
-  full breeding-DAG optimizer in which two independently synthesized children
-  can become the final parents. That richer model can be added behind the same
-  service API without changing inventory storage or UI inputs.
+- The search combines compatible planned carriers as well as owned Pals, so
+  both final parents may be independently bred branches. Route reconstruction
+  preserves those dependencies as a parent tree instead of flattening them
+  into an ambiguous sequence.

@@ -3,6 +3,8 @@ export interface RawSavePal {
   gender?: string;
   passiveIds: string[];
   instanceId?: string;
+  containerId?: string;
+  containerSlotIndex?: number;
   nickname?: string;
   level?: number;
   abilityScores?: {
@@ -19,23 +21,84 @@ export interface RawSavePlayer {
   level?: number;
 }
 
+export interface RawPlayerContainers {
+  palboxContainerId?: string;
+  partyContainerId?: string;
+}
+
+export interface RawPalContainerSlot {
+  instanceId: string;
+  slotIndex: number;
+  containerId?: string;
+}
+
 /**
  * Reads the stable Pal fields from uesave's lossless JSON model. Palworld 1.0
  * appends numeric schema suffixes to property names, so every key comparison
  * deliberately ignores a terminal `_N` segment.
  */
 export function normalizePalsFromParsedSave(root: unknown): RawSavePal[] {
-  return findSaveParameters(root).map(({ parameter, context }) => ({
-    speciesId: stringValue(findNamedValue(parameter, "CharacterID")) ?? "",
-    gender: stringValue(findNamedValue(parameter, "Gender")),
-    passiveIds: stringArrayValue(findNamedValue(parameter, "PassiveSkillList")),
-    instanceId: stringValue(findNamedValue(context, "InstanceId")),
-    nickname:
-      stringValue(findNamedValue(parameter, "NickName"))
-      ?? stringValue(findNamedValue(parameter, "Nickname")),
-    level: numberValue(findNamedValue(parameter, "Level")),
-    abilityScores: readAbilityScores(parameter),
-  }));
+  return findSaveParameters(root).map(({ parameter, context }) => {
+    const slotId = findNamedValue(parameter, "SlotId");
+    return {
+      speciesId: stringValue(findNamedValue(parameter, "CharacterID")) ?? "",
+      gender: stringValue(findNamedValue(parameter, "Gender")),
+      passiveIds: stringArrayValue(findNamedValue(parameter, "PassiveSkillList")),
+      instanceId: guidValue(findNamedValue(context, "InstanceId"))
+        ?? stringValue(findNamedValue(context, "InstanceId")),
+      containerId: guidValue(findNamedValue(slotId, "ContainerId")),
+      containerSlotIndex: nonNegativeInteger(findNamedValue(slotId, "SlotIndex")),
+      nickname:
+        stringValue(findNamedValue(parameter, "NickName"))
+        ?? stringValue(findNamedValue(parameter, "Nickname")),
+      level: numberValue(findNamedValue(parameter, "Level")),
+      abilityScores: readAbilityScores(parameter),
+    };
+  });
+}
+
+export function normalizePlayerContainersFromParsedSave(root: unknown): RawPlayerContainers {
+  return {
+    palboxContainerId: guidValue(findNamedValue(root, "PalStorageContainerId")),
+    partyContainerId: guidValue(findNamedValue(root, "OtomoCharacterContainerId")),
+  };
+}
+
+/**
+ * Reads the authoritative container slot table. A Pal's embedded SlotId can
+ * lag behind a move, while CharacterContainerSaveData represents the current
+ * Palbox layout.
+ */
+export function normalizePalContainerSlotsFromParsedSave(root: unknown): RawPalContainerSlot[] {
+  const containerData = findNamedValue(root, "CharacterContainerSaveData");
+  if (!containerData) return [];
+  const slots = new Map<string, RawPalContainerSlot>();
+  const seen = new Set<unknown>();
+  const visit = (value: unknown, depth: number, containerId?: string) => {
+    if (!value || typeof value !== "object" || seen.has(value) || depth > 60) return;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      value.forEach((child) => visit(child, depth + 1, containerId));
+      return;
+    }
+    const record = value as Record<string, unknown>;
+    const recordContainerId = record.key
+      && "value" in record
+      && findNamedValue(record.value, "Slots") !== undefined
+        ? guidValue(record.key)
+        : undefined;
+    const currentContainerId = recordContainerId ?? containerId;
+    const slotIndex = nonNegativeInteger(findDirectNamedValue(record, "SlotIndex"));
+    const instanceId = guidValue(
+      findNamedValue(record, "instance_id") ?? findNamedValue(record, "InstanceId"),
+    );
+    if (slotIndex !== undefined && instanceId) {
+      slots.set(instanceId, { instanceId, slotIndex, containerId: currentContainerId });
+    }
+    Object.values(record).forEach((child) => visit(child, depth + 1, currentContainerId));
+  };
+  visit(containerData, 0);
+  return [...slots.values()];
 }
 
 function readAbilityScores(parameter: unknown): RawSavePal["abilityScores"] {
@@ -180,6 +243,36 @@ function numberValue(value: unknown, depth = 0): number | undefined {
   for (const child of Object.values(value as Record<string, unknown>)) {
     const number = numberValue(child, depth + 1);
     if (number !== undefined) return number;
+  }
+  return undefined;
+}
+
+function findDirectNamedValue(record: Record<string, unknown>, target: string) {
+  for (const [key, value] of Object.entries(record)) {
+    if (normalizeKey(key) === normalizeKey(target)) return value;
+  }
+  const keyName = stringValue(record.key);
+  return keyName && normalizeKey(keyName) === normalizeKey(target) && "value" in record
+    ? record.value
+    : undefined;
+}
+
+function nonNegativeInteger(value: unknown) {
+  const number = numberValue(value);
+  return number !== undefined && Number.isInteger(number) && number >= 0
+    ? number
+    : undefined;
+}
+
+function guidValue(value: unknown, depth = 0): string | undefined {
+  if (typeof value === "string") {
+    const compact = value.replace(/[^a-f\d]/gi, "");
+    return compact.length === 32 ? value.toLocaleLowerCase() : undefined;
+  }
+  if (!value || typeof value !== "object" || depth > 10) return undefined;
+  for (const child of Object.values(value as Record<string, unknown>)) {
+    const guid = guidValue(child, depth + 1);
+    if (guid) return guid;
   }
   return undefined;
 }

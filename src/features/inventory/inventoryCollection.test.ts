@@ -37,4 +37,16 @@ describe("Inventory collection filtering", () => {
     expect(filterInventoryPals(pals, "female wool").map(({ id }) => id)).toEqual(["first"]);
     expect(filterInventoryPals(pals, undefined).map(({ id }) => id)).toEqual(["second", "first"]);
   });
+
+  it("searches imported Palbox page and slot positions", () => {
+    const palboxPal: OwnedPal = {
+      ...pals[0],
+      id: "palbox-pal",
+      sourceInstanceId: "palbox-pal",
+      location: "palbox",
+      palboxSlotIndex: 65,
+    };
+
+    expect(filterInventoryPals([palboxPal], "page 3 slot 6")).toEqual([palboxPal]);
+  });
 });

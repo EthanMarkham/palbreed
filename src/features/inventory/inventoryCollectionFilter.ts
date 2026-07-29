@@ -30,6 +30,9 @@ function getSearchText(pal: OwnedPal): string {
     pal.gender === "F" ? "female" : "male",
     pal.level ? `level ${pal.level}` : "",
     pal.location.replace(/-/g, " "),
+    pal.palboxSlotIndex === undefined
+      ? ""
+      : `palbox page ${Math.floor(pal.palboxSlotIndex / 30) + 1} slot ${(pal.palboxSlotIndex % 30) + 1}`,
     pal.abilityScores
       ? `iv hp ${pal.abilityScores.hp} attack ${pal.abilityScores.ranged} defense ${pal.abilityScores.defense} melee ${pal.abilityScores.melee}`
       : "",

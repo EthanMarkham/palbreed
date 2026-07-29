@@ -22,6 +22,8 @@ export type OwnedPal = {
   gender: PalGender;
   passiveIds: readonly PassiveId[];
   location: PalLocation;
+  /** Zero-based absolute slot in the in-game Palbox. */
+  palboxSlotIndex?: number;
   worldId?: string;
   playerId?: string;
   nickname?: string;
