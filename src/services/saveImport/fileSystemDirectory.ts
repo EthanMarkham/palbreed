@@ -67,6 +67,39 @@ export function fileSignature(file: Pick<File, "lastModified" | "size">) {
   return `${file.lastModified}:${file.size}`;
 }
 
+export function fileSetSignature(files: readonly LogicalSaveFile[]) {
+  return [...files]
+    .sort((left, right) => normalizePath(left.path).localeCompare(normalizePath(right.path)))
+    .map(({ path, file }) =>
+      `${normalizePath(path).toLowerCase()}\0${fileSignature(file)}`,
+    )
+    .join("\n");
+}
+
+export function selectXboxAccountFiles(
+  files: readonly LogicalSaveFile[],
+  accountId: string | undefined,
+) {
+  if (!accountId) return [...files];
+  const normalizedAccountId = accountId.toLowerCase();
+  const accountRoots = files.flatMap(({ path, file }) => {
+    if (file.name.toLowerCase() !== "containers.index") return [];
+    const normalized = normalizePath(path);
+    const parts = normalized.split("/");
+    if (!parts.some((part) => part.toLowerCase() === normalizedAccountId)) return [];
+    return [dirname(normalized)];
+  });
+  if (!accountRoots.length) {
+    throw new SaveImportError(
+      "WRONG_FOLDER",
+      "This Xbox save folder does not contain the imported account.",
+    );
+  }
+  return files.filter(({ path }) =>
+    accountRoots.some((root) => isInsideOrEqual(path, root)),
+  );
+}
+
 export async function querySaveDirectoryPermission(directory: FileSystemDirectoryHandle) {
   const permissionHandle = directory as Partial<PermissionDirectoryHandle>;
   if (!permissionHandle.queryPermission) return "denied" as PermissionState;
@@ -112,4 +145,16 @@ function joinPath(...parts: string[]) {
 
 function normalizePath(path: string) {
   return path.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+}
+
+function dirname(path: string) {
+  const parts = normalizePath(path).split("/");
+  parts.pop();
+  return parts.join("/");
+}
+
+function isInsideOrEqual(path: string, root: string) {
+  const normalizedPath = normalizePath(path).toLowerCase();
+  const normalizedRoot = normalizePath(root).toLowerCase();
+  return normalizedPath === normalizedRoot || normalizedPath.startsWith(`${normalizedRoot}/`);
 }

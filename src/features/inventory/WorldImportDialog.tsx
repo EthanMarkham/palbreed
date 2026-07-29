@@ -178,7 +178,7 @@ export default function WorldImportDialog({
     }
   };
 
-  const keepSlotSynced = async (slot: SaveSlotCandidate, profileId: string) => {
+  const enableAutoRefresh = async (slot: SaveSlotCandidate, profileId: string) => {
     if (!directoryHandle) return;
     setCompletion(undefined);
     setStatus({ kind: "working", message: `Turning on automatic refresh for ${slot.label}…` });
@@ -197,7 +197,7 @@ export default function WorldImportDialog({
     try {
       await saveWatchService.reconnect(profile.id);
       setStatus({ kind: "idle" });
-      setCompletion(`${profile.name} is watching its Steam save while Palpath is open.`);
+      setCompletion(`${profile.name} is watching its ${profile.platform === "xbox" ? "Xbox" : "Steam"} save while Palpath is open.`);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         setStatus({ kind: "idle" });
@@ -246,7 +246,7 @@ export default function WorldImportDialog({
               <div>
                 <span className="section-kicker">WORLDS</span>
                 <Heading slot="title">{profiles.length ? "Manage your worlds" : "Import a world"}</Heading>
-                <p>Import manually, or let Palpath refresh a Steam world while this site is open.</p>
+                <p>Import manually, or let Palpath refresh a world while this site is open.</p>
               </div>
               <Button
                 slot="close"
@@ -277,7 +277,7 @@ export default function WorldImportDialog({
                             <strong>{profile.name}</strong>
                             <small>{worldStatus(profile, watch)}</small>
                           </div>
-                          {profile.platform === "steam" && persistentFoldersSupported ? (
+                          {persistentFoldersSupported ? (
                             watch ? (
                               <div className="managed-world-actions">
                                 {watch.status === "needs-folder" || watch.status === "error" ? (
@@ -314,8 +314,8 @@ export default function WorldImportDialog({
                     })}
                   </div>
                   <p className="watch-lifetime-note">
-                    Automatic refresh checks only each connected world’s <code>Level/01.sav</code> about every 15 seconds
-                    and stops when all Palpath tabs close.
+                    Automatic refresh checks connected saves about every 15 seconds and stops when all Palpath tabs close.
+                    Manual Refresh remains available.
                   </p>
                 </section>
               ) : null}
@@ -382,8 +382,8 @@ export default function WorldImportDialog({
 
                 {platform === "xbox" ? (
                   <p className="platform-limit-note">
-                    Xbox worlds use manual refresh. Your selected save stays ready while Palpath is open,
-                    so you can reopen this window and click Refresh.
+                    Xbox refresh watches the selected WGS account for stable file changes.
+                    Your selected save also stays ready for manual Refresh.
                   </p>
                 ) : null}
                 {status.kind !== "idle" && status.message ? (
@@ -423,17 +423,16 @@ export default function WorldImportDialog({
                             >
                               {profileId ? "Refresh" : "Import"}
                             </Button>
-                            {platform === "steam"
-                              && persistentFoldersSupported
+                            {persistentFoldersSupported
                               && directoryHandle
                               && profileId
                               && needsConnection ? (
                                 <Button
                                   className="primary-button compact-button"
                                   isDisabled={status.kind === "working"}
-                                  onPress={() => void keepSlotSynced(slot, profileId)}
+                                  onPress={() => void enableAutoRefresh(slot, profileId)}
                                 >
-                                  {watch ? "Reconnect" : "Keep synced"}
+                                  {watch ? "Reconnect" : "Auto refresh"}
                                 </Button>
                               ) : null}
                             {watch && !needsConnection ? <span className="watching-badge"><PulseIcon />Watching</span> : null}
@@ -468,7 +467,6 @@ function worldStatus(
   profile: InventoryProfile,
   watch: ReturnType<typeof useSaveWatch>["worlds"][string] | undefined,
 ) {
-  if (profile.platform === "xbox") return `${profile.pals.length.toLocaleString()} Pals · Manual refresh`;
   if (!watch) return `${profile.pals.length.toLocaleString()} Pals · Not connected`;
   if (watch.status === "checking") return "Checking for changes…";
   if (watch.status === "needs-folder") return "Folder access needs to be reconnected";

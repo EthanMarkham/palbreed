@@ -1,13 +1,20 @@
 import type { InventoryProfile } from "../../domain/inventory";
-import { SaveImportError, type SaveSlotCandidate } from "../../domain/saveImport";
+import {
+  SaveImportError,
+  type LogicalSaveFile,
+  type SavePlatform,
+  type SaveSlotCandidate,
+} from "../../domain/saveImport";
 import { inventoryService } from "../inventory/inventoryService";
 import {
   chooseSaveDirectory,
+  fileSetSignature,
   fileSignature,
   getSteamWorldTrigger,
   getWorldDirectory,
   querySaveDirectoryPermission,
   readSaveDirectory,
+  selectXboxAccountFiles,
   supportsPersistentSaveFolders,
 } from "./fileSystemDirectory";
 import { createImportedProfileInput } from "./importedProfile";
@@ -44,6 +51,11 @@ type WatchMessage =
   | { type: "state"; state: SaveWatchWorldState };
 
 type Listener = () => void;
+
+type SaveSourceSnapshot = {
+  signature: string;
+  files?: readonly LogicalSaveFile[];
+};
 
 export class SaveWatchService {
   private readonly listeners = new Set<Listener>();
@@ -101,34 +113,40 @@ export class SaveWatchService {
   ) {
     const profile = inventoryService.getProfile(profileId);
     if (!profile) throw new Error("Import this world before turning on automatic refresh.");
-    if (profile.platform !== "steam") {
-      throw new Error("Automatic refresh is currently available for Steam worlds.");
-    }
     if (profile.worldId !== slot.worldId) {
       throw new Error("That folder does not match the imported world.");
     }
-    const trigger = slot.files.get("level/01.sav")?.file;
-    await this.saveWatch(profile, directoryHandle, slot, trigger ? fileSignature(trigger) : undefined);
+    const lastSourceSignature = profile.platform === "xbox"
+      ? fileSetSignature(selectXboxAccountFiles(
+          await readSaveDirectory(directoryHandle),
+          profile.accountId,
+        ))
+      : fileSignature(slot.files.get("level/01.sav")?.file ?? missingSteamTrigger());
+    await this.saveWatch(profile, directoryHandle, slot, lastSourceSignature);
   }
 
   async reconnect(profileId: string) {
     const profile = inventoryService.getProfile(profileId);
     if (!profile) throw new Error("That imported world is no longer available.");
-    if (profile.platform !== "steam") {
-      throw new Error("Automatic refresh is currently available for Steam worlds.");
-    }
 
     const directoryHandle = await chooseSaveDirectory();
-    const files = await readSaveDirectory(directoryHandle);
-    const manifest = await scanLogicalSaveSelection(files, "steam");
-    const slot = manifest.slots.find(({ worldId }) => worldId === profile.worldId);
+    const selectedFiles = await readSaveDirectory(directoryHandle);
+    const files = profile.platform === "xbox"
+      ? selectXboxAccountFiles(selectedFiles, profile.accountId)
+      : selectedFiles;
+    const manifest = await scanLogicalSaveSelection(files, profile.platform);
+    const slot = manifest.slots.find(({ worldId }) => worldId === profile.worldId)
+      ?? (manifest.slots.length === 1 ? manifest.slots[0] : undefined);
     if (!slot) {
       throw new SaveImportError(
         "NO_WORLDS",
-        `We couldn't find ${profile.name} in that folder. Choose its world folder or the SaveGames folder that contains it.`,
+        `We couldn't find ${profile.name} in that folder. Choose the save folder that contains it.`,
       );
     }
-    await this.saveWatch(profile, directoryHandle, slot, undefined);
+    const lastSourceSignature = profile.platform === "xbox"
+      ? fileSetSignature(files)
+      : undefined;
+    await this.saveWatch(profile, directoryHandle, slot, lastSourceSignature);
   }
 
   async disable(profileId: string) {
@@ -238,16 +256,16 @@ export class SaveWatchService {
     for (const watch of [...this.watches.values()]) {
       if (!this.started) return;
       const profile = inventoryService.getProfile(watch.profileId);
-      if (!profile || profile.platform !== "steam") {
+      if (!profile) {
         await this.deleteWatch(watch.profileId);
         this.broadcast({ type: "config-changed" });
         continue;
       }
-      await this.pollWorld(watch);
+      await this.pollWorld(watch, profile);
     }
   }
 
-  private async pollWorld(watch: StoredSaveWatch) {
+  private async pollWorld(watch: StoredSaveWatch, profile: InventoryProfile) {
     try {
       const permission = await querySaveDirectoryPermission(watch.directoryHandle);
       if (permission !== "granted") {
@@ -258,14 +276,9 @@ export class SaveWatchService {
         return;
       }
 
-      const triggerHandle = await getSteamWorldTrigger(
-        watch.directoryHandle,
-        watch.worldRootPath,
-      );
-      const firstTrigger = await triggerHandle.getFile();
-      const firstSignature = fileSignature(firstTrigger);
+      const firstSource = await this.readSourceSnapshot(watch, profile);
       const checkedAt = new Date().toISOString();
-      if (watch.lastSourceSignature === firstSignature) {
+      if (watch.lastSourceSignature === firstSource.signature) {
         this.setWorldState(watch, {
           status: "watching",
           message: "Watching while Palpath is open.",
@@ -279,18 +292,16 @@ export class SaveWatchService {
         message: "Checking this world for changes…",
       });
       await delay(SAVE_STABILITY_DELAY_MS);
-      const stableTrigger = await triggerHandle.getFile();
-      const stableSignature = fileSignature(stableTrigger);
-      if (stableSignature !== firstSignature) {
+      const stableSource = await this.readSourceSnapshot(watch, profile);
+      if (stableSource.signature !== firstSource.signature) {
         throw new SaveStillChangingError();
       }
 
-      const worldDirectory = await getWorldDirectory(
-        watch.directoryHandle,
+      const files = stableSource.files ?? await readSaveDirectory(
+        await getWorldDirectory(watch.directoryHandle, watch.worldRootPath),
         watch.worldRootPath,
       );
-      const files = await readSaveDirectory(worldDirectory, watch.worldRootPath);
-      const manifest = await scanLogicalSaveSelection(files, "steam");
+      const manifest = await scanLogicalSaveSelection(files, profile.platform);
       const slot = manifest.slots.find(({ worldId }) => worldId === watch.worldId)
         ?? (manifest.slots.length === 1 ? manifest.slots[0] : undefined);
       if (!slot) throw new Error("We couldn't find the imported world in its saved folder.");
@@ -303,7 +314,7 @@ export class SaveWatchService {
       const updatedAt = new Date().toISOString();
       const nextWatch: StoredSaveWatch = {
         ...watch,
-        lastSourceSignature: stableSignature,
+        lastSourceSignature: stableSource.signature,
         lastCheckedAt: updatedAt,
         lastUpdatedAt: result === "unchanged" ? watch.lastUpdatedAt : updatedAt,
       };
@@ -313,7 +324,7 @@ export class SaveWatchService {
         status: "watching",
         message: result === "unchanged"
           ? "Save checked. Your imported Pals are already current."
-          : "Updated from your Steam save.",
+          : `Updated from your ${profile.platform === "xbox" ? "Xbox" : "Steam"} save.`,
         lastCheckedAt: updatedAt,
         lastUpdatedAt: nextWatch.lastUpdatedAt,
       });
@@ -321,8 +332,7 @@ export class SaveWatchService {
         this.broadcast({ type: "profile-updated", profileId: watch.profileId });
       }
     } catch (error) {
-      const stillSaving = error instanceof SaveStillChangingError
-        || error instanceof SaveImportError && error.code === "CORRUPT_SAVE";
+      const stillSaving = isTransientWatchError(error, profile.platform);
       this.setWorldState(watch, {
         status: stillSaving ? "watching" : "error",
         message: stillSaving
@@ -330,6 +340,24 @@ export class SaveWatchService {
           : watchErrorMessage(error),
       });
     }
+  }
+
+  private async readSourceSnapshot(
+    watch: StoredSaveWatch,
+    profile: InventoryProfile,
+  ): Promise<SaveSourceSnapshot> {
+    if (profile.platform === "steam") {
+      const trigger = await getSteamWorldTrigger(
+        watch.directoryHandle,
+        watch.worldRootPath,
+      );
+      return { signature: fileSignature(await trigger.getFile()) };
+    }
+    const files = selectXboxAccountFiles(
+      await readSaveDirectory(watch.directoryHandle),
+      profile.accountId ?? watch.accountId,
+    );
+    return { signature: fileSetSignature(files), files };
   }
 
   private setWorldState(
@@ -395,17 +423,47 @@ export class SaveWatchService {
 
 class SaveStillChangingError extends Error {}
 
+export function isTransientWatchError(error: unknown, platform: SavePlatform) {
+  if (error instanceof SaveStillChangingError) return true;
+  if (
+    platform === "xbox"
+    && error instanceof DOMException
+    && error.name === "NotFoundError"
+  ) {
+    return true;
+  }
+  if (!(error instanceof SaveImportError)) return false;
+  if (
+    error.code === "CORRUPT_SAVE"
+    || error.code === "INCOMPLETE_CLOUD_SYNC"
+    || error.code === "NO_WORLDS"
+  ) {
+    return true;
+  }
+  return platform === "xbox" && (
+    error.code === "WRONG_FOLDER"
+    || error.code === "UNSUPPORTED_1_0_REVISION"
+  );
+}
+
 function delay(milliseconds: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 function watchErrorMessage(error: unknown) {
   if (error instanceof DOMException && error.name === "NotFoundError") {
-    return "We can't find Level/01.sav. Reconnect this world's save folder.";
+    return "We can't find the watched save. Reconnect this world's save folder.";
   }
   return error instanceof Error
     ? error.message
     : "We couldn't check this world. Reconnect its save folder.";
+}
+
+function missingSteamTrigger(): never {
+  throw new SaveImportError(
+    "INCOMPLETE_CLOUD_SYNC",
+    "This Steam world is missing Level/01.sav.",
+  );
 }
 
 export const saveWatchService = new SaveWatchService();

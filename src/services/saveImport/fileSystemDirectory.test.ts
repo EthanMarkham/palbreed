@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  fileSetSignature,
   fileSignature,
   getSteamWorldTrigger,
   readSaveDirectory,
+  selectXboxAccountFiles,
 } from "./fileSystemDirectory";
 
 describe("persistent Steam folder access", () => {
@@ -32,6 +34,58 @@ describe("persistent Steam folder access", () => {
       `SaveGames/account/${worldId}`,
     );
     expect(fileSignature(await trigger.getFile())).toBe("100:42");
+  });
+});
+
+describe("persistent Xbox folder access", () => {
+  it("fingerprints every file for only the imported WGS account", async () => {
+    const firstAccount = fakeDirectory("account_one", {
+      index: fakeFileHandle("containers.index", 20, 100),
+      save: fakeDirectory("save-guid", {
+        container: fakeFileHandle("container.1", 30, 101),
+        blob: fakeFileHandle("blob-guid", 40, 102),
+      }),
+    });
+    const secondAccount = fakeDirectory("account_two", {
+      index: fakeFileHandle("containers.index", 50, 200),
+      blob: fakeFileHandle("other-blob", 60, 201),
+    });
+    const root = fakeDirectory("wgs", { firstAccount, secondAccount });
+
+    const files = await readSaveDirectory(root);
+    const selected = selectXboxAccountFiles(files, "account_one");
+
+    expect(selected.map(({ path }) => path).sort()).toEqual([
+      "wgs/account_one/containers.index",
+      "wgs/account_one/save-guid/blob-guid",
+      "wgs/account_one/save-guid/container.1",
+    ]);
+    expect(fileSetSignature(selected)).not.toContain("account_two");
+  });
+
+  it("changes the fingerprint when an opaque WGS blob rotates", () => {
+    const before = [{
+      path: "wgs/account_one/save-guid/old-blob",
+      file: { name: "old-blob", size: 40, lastModified: 100 } as File,
+    }];
+    const after = [{
+      path: "wgs/account_one/save-guid/new-blob",
+      file: { name: "new-blob", size: 40, lastModified: 100 } as File,
+    }];
+
+    expect(fileSetSignature(after)).not.toBe(fileSetSignature(before));
+  });
+
+  it("rejects a reconnect to a different Xbox account", async () => {
+    const files = await readSaveDirectory(fakeDirectory("wgs", {
+      account: fakeDirectory("account_two", {
+        index: fakeFileHandle("containers.index", 20, 100),
+      }),
+    }));
+
+    expect(() => selectXboxAccountFiles(files, "account_one")).toThrow(
+      "does not contain the imported account",
+    );
   });
 });
 
