@@ -5,6 +5,7 @@ import PalAvatar from "../../components/PalAvatar";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { BuilderParent } from "../../services/builder/palBuilder";
+import { getBuilderParentLocationLabel } from "./builderParentLocation";
 
 export default function BuilderParentPreview({
   parent,
@@ -19,7 +20,7 @@ export default function BuilderParentPreview({
   const passiveNames = parent.passives.kind !== "any"
     ? parent.passives.ids.map((id) => passiveRepository.get(id)?.name ?? id)
     : [];
-  const location = getLocationLabel(parent);
+  const location = getBuilderParentLocationLabel(parent);
   const titleId = useId();
   const reduceMotion = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
@@ -121,18 +122,6 @@ export default function BuilderParentPreview({
       </Popover>
     </DialogTrigger>
   );
-}
-
-function getLocationLabel(parent: BuilderParent) {
-  if (parent.origin === "planned") return "Breed earlier in this route";
-  if (parent.location === "palbox") {
-    if (parent.palboxSlotIndex === undefined) return "Palbox · Page unavailable — re-import this world";
-    const page = Math.floor(parent.palboxSlotIndex / 30) + 1;
-    const slot = (parent.palboxSlotIndex % 30) + 1;
-    return `Palbox · Page ${page} · Slot ${slot}`;
-  }
-  if (parent.location === "global-storage") return "Global storage";
-  return parent.location === "party" ? "Party" : "Base";
 }
 
 function getGenderLabel(gender: BuilderParent["gender"]) {

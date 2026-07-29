@@ -114,7 +114,7 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
       const containerOwner = containerId
         ? containerOwners.get(normalizeGuid(containerId))
         : undefined;
-      const location = inferLocation(path, containerOwner?.location);
+      const location = classifyPalLocation(path, containerOwner?.location);
       const playerId = pathPlayerId ?? containerOwner?.playerId;
       const normalizedInstance = instanceId.toLowerCase();
       const nextPal: OwnedPal = {
@@ -124,11 +124,11 @@ export async function extractPalsFromSlot(slot: SaveSlotCandidate): Promise<Impo
         gender,
         passiveIds,
         location,
-        palboxSlotIndex:
-          containerOwner?.location === "palbox"
-          && (authoritativeSlot?.slotIndex ?? candidate.containerSlotIndex) !== undefined
-            ? authoritativeSlot?.slotIndex ?? candidate.containerSlotIndex
-            : undefined,
+        palboxSlotIndex: resolvePalboxSlotIndex(
+          location,
+          authoritativeSlot?.slotIndex,
+          candidate.containerSlotIndex,
+        ),
         worldId: slot.worldId,
         playerId,
         nickname: candidate.nickname || undefined,
@@ -236,11 +236,24 @@ function parseGender(value?: string): PalGender | undefined {
   return value === "F" || value === "M" ? value : undefined;
 }
 
-function inferLocation(path: string, containerLocation?: "party" | "palbox"): PalLocation {
+export function classifyPalLocation(
+  path: string,
+  containerLocation?: "party" | "palbox",
+): PalLocation {
   if (/globalpalstorage/i.test(path)) return "global-storage";
   if (/players\//i.test(path)) return "party";
   if (containerLocation) return containerLocation;
-  return "palbox";
+  return "base";
+}
+
+export function resolvePalboxSlotIndex(
+  location: PalLocation,
+  authoritativeSlotIndex?: number,
+  embeddedSlotIndex?: number,
+) {
+  return location === "palbox"
+    ? authoritativeSlotIndex ?? embeddedSlotIndex
+    : undefined;
 }
 
 function addContainerOwner(
