@@ -2717,16 +2717,9 @@
 
 .breeding-route {
   margin-top: 12px;
-  padding: 10px;
   display: grid;
   grid-auto-rows: 112px;
   gap: 10px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.48), rgba(244, 249, 246, 0.62)),
-    rgba(255, 255, 255, 0.42);
 }
 
 .breeding-route-row {
@@ -3266,7 +3259,6 @@
   .build-metrics { grid-column: 1 / -1; }
   .build-metrics span { flex: 1; }
   .breeding-route {
-    padding: 6px;
     gap: 6px;
   }
   .breeding-route-row {
