@@ -115,7 +115,7 @@ describe("Builder search history", () => {
     service.record({
       target,
       passives: `${firstPassive},${secondPassive}`,
-      objective: "cleanest",
+      objective: "ivs",
     }, "2026-02-03T04:05:06.000Z");
     await service.whenIdle();
 
@@ -123,14 +123,14 @@ describe("Builder search history", () => {
     expect(service.getSnapshot()[0]).toMatchObject({
       targetId: target,
       passives: [firstPassive, secondPassive].sort(),
-      objective: "cleanest",
+      objective: "ivs",
       allowedExtras: 0,
       searchedAt: "2026-02-03T04:05:06.000Z",
     });
     expect(builderHistoryEntryToSearch(service.getSnapshot()[0])).toEqual({
       target,
       passives: [firstPassive, secondPassive].sort().join(","),
-      objective: "cleanest",
+      objective: "ivs",
       run: true,
     });
   });

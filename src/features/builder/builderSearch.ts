@@ -33,7 +33,9 @@ export function parseBuilderSearch(search: Record<string, unknown>): BuilderSear
   const target = normalizePalSearch(raw.target, raw.targetQuery);
   const passiveSelection = normalizePassiveSelection(raw.passives);
   const passiveQuery = normalizeSearchQuery(raw.passiveQuery);
-  const objective = raw.objective === "fewest" || raw.objective === "cleanest"
+  const objective = raw.objective === "fewest"
+    || raw.objective === "cleanest"
+    || raw.objective === "ivs"
     ? raw.objective
     : undefined;
   const run = raw.run === true || raw.run === "true" || raw.run === "1" ? true : undefined;

@@ -53,6 +53,7 @@ describe("route-backed search state", () => {
     });
     expect(getBuilderPassiveIds(search)).toEqual(passiveIds.slice(0, 4));
     expect(parseBuilderSearch({ passives: "any", extras: "2", run: true })).toEqual({ run: true });
+    expect(parseBuilderSearch({ objective: "ivs" })).toEqual({ objective: "ivs" });
     expect(parseBuilderSearch({ passives: [`${passiveIds[0]},${passiveIds[1]}`, passiveIds[2]] })).toEqual({
       passives: passiveIds.slice(0, 3).join(","),
     });

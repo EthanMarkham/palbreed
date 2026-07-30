@@ -130,6 +130,7 @@ export default function BuilderPage({
                   <option value="recommended">Balanced route</option>
                   <option value="fewest">Fewer breedings</option>
                   <option value="cleanest">Better hatch odds</option>
+                  <option value="ivs">Better offspring IVs</option>
                 </select>
                 <SelectChevron />
               </span>
@@ -147,7 +148,7 @@ export default function BuilderPage({
             {isSolving ? "Finding route…" : "Find a breeding route"}
             {isSolving ? <span className="sr-only" role="status">Finding a breeding route. Activate to cancel.</span> : null}
           </button>
-          <p className="model-note">Odds include inherited passives and any required offspring sex. Random Lucky rolls aren't included.</p>
+          <p className="model-note">Odds include inherited passives and any required offspring sex. Random Lucky rolls aren't included. IV priority keeps breeding count first, then estimates HP, Attack, and Defense inheritance.</p>
         </form>
 
         <div className="feature-card builder-result-card" aria-live="polite">

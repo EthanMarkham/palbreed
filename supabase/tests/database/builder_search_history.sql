@@ -16,10 +16,10 @@ select lives_ok(
 
 select lives_ok(
   $$ select public.record_builder_search(
-    'lamball', array['Swift', 'Legend'], 'cleanest', 2,
+    'lamball', array['Swift', 'Legend'], 'ivs', 2,
     'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
   ) $$,
-  'setting variants update the same canonical search'
+  'IV-priority settings update the same canonical search'
 );
 
 select is(
@@ -35,7 +35,7 @@ select results_eq(
     from public.list_recent_builder_searches(
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 8
     ) $$,
-  $$ values ('lamball'::text, array['Legend', 'Swift']::text[], 'cleanest'::text, 2::smallint) $$,
+  $$ values ('lamball'::text, array['Legend', 'Swift']::text[], 'ivs'::text, 2::smallint) $$,
   'the latest settings replace the prior variant and passive IDs are canonicalized'
 );
 

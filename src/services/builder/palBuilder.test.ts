@@ -8,6 +8,10 @@ const inventory: OwnedPal[] = [
   { id: "cattiva-1", sourceInstanceId: "cattiva-1", speciesId: "cattiva", gender: "M", passiveIds: [], level: 17, location: "palbox" },
 ];
 
+function abilityScores(value: number) {
+  return { hp: value, melee: value, ranged: value, defense: value };
+}
+
 describe("Pal Builder", () => {
   it("carries an owned passive to the requested child", () => {
     const result = buildPal({
@@ -38,6 +42,112 @@ describe("Pal Builder", () => {
           passives: { kind: "known", ids: [] },
         },
       });
+    }
+  });
+
+  it("uses HP, Attack, and Defense as the final tie-break between equivalent owned Pals", () => {
+    const result = buildPal({
+      inventory: [
+        {
+          ...inventory[0],
+          id: "lamball-low-ivs",
+          sourceInstanceId: "lamball-low-ivs",
+          abilityScores: abilityScores(0),
+        },
+        {
+          ...inventory[0],
+          id: "lamball-high-ivs",
+          sourceInstanceId: "lamball-high-ivs",
+          abilityScores: abilityScores(100),
+        },
+        {
+          ...inventory[1],
+          abilityScores: abilityScores(100),
+        },
+      ],
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "recommended",
+    });
+
+    expect(result.status).toBe("found");
+    if (result.status === "found") {
+      expect(result.steps).toHaveLength(1);
+      const lamball = [
+        result.steps[0].firstParent,
+        result.steps[0].secondParent,
+      ].find(({ speciesId }) => speciesId === "lamball");
+      expect(lamball?.ivScores).toEqual({ hp: 100, attack: 100, defense: 100 });
+      expect(result.steps[0].resultIvScores).toEqual({ hp: 80, attack: 80, defense: 80 });
+    }
+  });
+
+  it("can prioritize stronger expected offspring IVs without adding a breeding generation", () => {
+    const baseInput = {
+      inventory: [
+        {
+          id: "cattiva-clean-low",
+          sourceInstanceId: "cattiva-clean-low",
+          speciesId: "cattiva",
+          gender: "F" as const,
+          passiveIds: ["CraftSpeed_up2"],
+          location: "palbox" as const,
+          abilityScores: abilityScores(0),
+        },
+        {
+          id: "lamball-clean-low",
+          sourceInstanceId: "lamball-clean-low",
+          speciesId: "lamball",
+          gender: "M" as const,
+          passiveIds: [],
+          location: "palbox" as const,
+          abilityScores: abilityScores(0),
+        },
+        {
+          id: "celaray-dirty-high",
+          sourceInstanceId: "celaray-dirty-high",
+          speciesId: "celaray",
+          gender: "F" as const,
+          passiveIds: ["CraftSpeed_up2"],
+          location: "palbox" as const,
+          abilityScores: abilityScores(100),
+        },
+        {
+          id: "chikipi-dirty-high",
+          sourceInstanceId: "chikipi-dirty-high",
+          speciesId: "chikipi",
+          gender: "M" as const,
+          passiveIds: ["unwanted"],
+          location: "palbox" as const,
+          abilityScores: abilityScores(100),
+        },
+      ],
+      targetId: "daedream",
+      passiveGoal: {
+        kind: "specific" as const,
+        requiredIds: ["CraftSpeed_up2"],
+        allowedExtras: 0,
+      },
+    };
+
+    const fewest = buildPal({ ...baseInput, objective: "fewest" });
+    const ivs = buildPal({ ...baseInput, objective: "ivs" });
+
+    expect(fewest.status).toBe("found");
+    expect(ivs.status).toBe("found");
+    if (fewest.status === "found" && ivs.status === "found") {
+      expect(fewest.steps).toHaveLength(1);
+      expect(ivs.steps).toHaveLength(1);
+      expect(new Set([
+        fewest.steps[0].firstParent.speciesId,
+        fewest.steps[0].secondParent.speciesId,
+      ])).toEqual(new Set(["cattiva", "lamball"]));
+      expect(new Set([
+        ivs.steps[0].firstParent.speciesId,
+        ivs.steps[0].secondParent.speciesId,
+      ])).toEqual(new Set(["celaray", "chikipi"]));
+      expect(ivs.steps[0].resultIvScores).toEqual({ hp: 80, attack: 80, defense: 80 });
+      expect(ivs.expectedCakes).toBeGreaterThan(fewest.expectedCakes);
     }
   });
 
@@ -177,7 +287,7 @@ describe("Pal Builder", () => {
     }
   });
 
-  it("keeps a full Palbox search bounded", () => {
+  it.each(["cleanest", "ivs"] as const)("keeps a full Palbox $objective search bounded", (objective) => {
     const requiredIds = [
       "CraftSpeed_up2",
       "CraftSpeed_up3",
@@ -203,7 +313,7 @@ describe("Pal Builder", () => {
         requiredIds,
         allowedExtras: 0,
       },
-      objective: "cleanest",
+      objective,
     });
 
     expect(result.status).toBe("found");

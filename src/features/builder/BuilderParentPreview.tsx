@@ -5,6 +5,7 @@ import PalAvatar from "../../components/PalAvatar";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { BuilderParent } from "../../services/builder/palBuilder";
+import BuilderIvScores from "./BuilderIvScores";
 import { getBuilderParentLocationLabel } from "./builderParentLocation";
 
 export default function BuilderParentPreview({
@@ -103,6 +104,12 @@ export default function BuilderParentPreview({
                   <div><dt>Required sex</dt><dd>{genderLabel}</dd></div>
                   {parent.level !== undefined ? <div><dt>Level</dt><dd>{parent.level}</dd></div> : null}
                 </dl>
+                {parent.ivScores ? (
+                  <BuilderIvScores
+                    scores={parent.ivScores}
+                    label={parent.origin === "inventory" ? "Hidden scores" : "Expected IVs"}
+                  />
+                ) : null}
                 <div className="builder-parent-popover-passives">
                   <span>Passives</span>
                   {parent.passives.kind === "any" ? (

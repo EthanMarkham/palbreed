@@ -116,6 +116,8 @@ function formatSettings(entry: BuilderHistoryEntry) {
     ? "Fewer breedings"
     : entry.objective === "cleanest"
       ? "Better hatch odds"
+      : entry.objective === "ivs"
+        ? "Better offspring IVs"
       : "Balanced route";
 }
 
