@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(32);
 
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
@@ -20,6 +20,14 @@ select lives_ok(
     'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
   ) $$,
   'IV-priority settings update the same canonical search'
+);
+
+select lives_ok(
+  $$ select public.record_builder_search(
+    'lamball', array['Legend', 'Swift'], 'ivs', 2,
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  ) from generate_series(1, 18) $$,
+  'the same session can repeat one search twenty times'
 );
 
 select is(
@@ -68,13 +76,13 @@ reset role;
 select is(
   (select total_searches from public.builder_search_definitions
     where target_pal_id = 'lamball' and passive_ids = array['Legend', 'Swift']),
-  2::bigint,
-  'canonical definitions retain aggregate search counts for future analytics'
+  1::bigint,
+  'repeat searches from one anonymous session count once in aggregate analytics'
 );
 
 select is(
   (select search_count from public.builder_search_history),
-  2::bigint,
+  20::bigint,
   'recent history tracks repeat usage without duplicating rows'
 );
 
@@ -115,6 +123,13 @@ select is(
 
 reset role;
 
+select is(
+  (select total_searches from public.builder_search_definitions
+    where target_pal_id = 'lamball' and passive_ids = array['Legend', 'Swift']),
+  1::bigint,
+  'claiming a session already searched by the account merges its aggregate contribution'
+);
+
 select results_eq(
   $$ select search_count, user_id, anonymous_session_hash is null
     from public.builder_search_history
@@ -122,7 +137,7 @@ select results_eq(
       select id from public.builder_search_definitions
       where target_pal_id = 'lamball' and passive_ids = array['Legend', 'Swift']
     ) $$,
-  $$ values (3::bigint, '44444444-4444-4444-4444-444444444444'::uuid, true) $$,
+  $$ values (21::bigint, '44444444-4444-4444-4444-444444444444'::uuid, true) $$,
   'claiming merges duplicates, preserves counts, and removes anonymous ownership'
 );
 
@@ -176,13 +191,42 @@ select is(
   'clearing removes all account history rows'
 );
 
+reset role;
+
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+
+select lives_ok(
+  $$ select public.record_builder_search(
+    'lamball', array['Legend', 'Swift'], 'recommended', 0,
+    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+  ) $$,
+  'a different anonymous session can contribute to the same search'
+);
+
+reset role;
+
+select is(
+  (select total_searches from public.builder_search_definitions
+    where target_pal_id = 'lamball' and passive_ids = array['Legend', 'Swift']),
+  2::bigint,
+  'distinct accounts and sessions each increment the aggregate once'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"44444444-4444-4444-4444-444444444444","role":"authenticated"}',
+  true
+);
+
 select ok(
   exists (
     select 1
     from public.list_popular_builder_searches(8)
     where target_pal_id = 'lamball'
       and passive_ids = array['Legend', 'Swift']
-      and search_count = 3
+      and search_count = 2
   ),
   'cleared recent searches remain in aggregate popularity results'
 );
@@ -206,6 +250,13 @@ select throws_ok(
   '42501',
   'permission denied for table builder_search_history',
   'browser roles cannot bypass the RPC boundary'
+);
+
+select throws_ok(
+  $$ select count(*) from public.builder_search_unique_searchers $$,
+  '42501',
+  'permission denied for table builder_search_unique_searchers',
+  'browser roles cannot read the aggregate identity ledger'
 );
 
 reset role;
