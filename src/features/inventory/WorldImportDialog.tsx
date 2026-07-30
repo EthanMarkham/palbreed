@@ -42,6 +42,11 @@ type ImportStatus = {
   message?: string;
 };
 
+type RefreshSelection = {
+  manifest: SaveManifest;
+  slot: SaveSlotCandidate;
+};
+
 type WorldImportDialogProps = {
   profiles: readonly InventoryProfile[];
   onImported: (profileId: string, message: string) => void;
@@ -115,10 +120,16 @@ export default function WorldImportDialog({
     }
   };
 
-  const importSlot = async (slot: SaveSlotCandidate) => {
-    if (!activeManifest) return;
+  const importSlot = async (
+    slot: SaveSlotCandidate,
+    refreshSelection?: RefreshSelection,
+  ) => {
+    const selectedManifest = refreshSelection?.manifest ?? activeManifest;
+    if (!selectedManifest) return;
     const isRefresh = Boolean(
-      importedBySlot[slot.id] ?? findImportedProfile(profiles, activeManifest, slot)?.id,
+      refreshSelection
+      ?? importedBySlot[slot.id]
+      ?? findImportedProfile(profiles, selectedManifest, slot)?.id,
     );
     setCompletion(undefined);
     setStatus({
@@ -126,15 +137,17 @@ export default function WorldImportDialog({
       message: `${isRefresh ? "Refreshing" : "Importing"} ${slot.label}…`,
     });
     try {
-      let importManifest = activeManifest;
-      let importSlot = slot;
-      if (isRefresh && directoryHandle) {
+      let importManifest = selectedManifest;
+      let importSlot = refreshSelection?.slot ?? slot;
+      if (refreshSelection) {
+        setManifest(importManifest);
+      } else if (isRefresh && directoryHandle) {
         const files = await readStableSaveDirectory(directoryHandle, {
-          platform: activeManifest.platform,
-          accountId: activeManifest.accountId,
+          platform: selectedManifest.platform,
+          accountId: selectedManifest.accountId,
           worldRootPath: slot.rootPath,
         });
-        importManifest = await scanLogicalSaveSelection(files, activeManifest.platform);
+        importManifest = await scanLogicalSaveSelection(files, selectedManifest.platform);
         const refreshedSlot = importManifest.slots.find(({ worldId }) => worldId === slot.worldId)
           ?? (importManifest.slots.length === 1 ? importManifest.slots[0] : undefined);
         if (!refreshedSlot) {
@@ -173,6 +186,39 @@ export default function WorldImportDialog({
       setStatus({ kind: "idle" });
       setCompletion(message);
       onImported(profile.id, message);
+    } catch (error) {
+      setStatus({ kind: "error", message: importMessage(error) });
+    }
+  };
+
+  const refreshFallbackSlot = async (
+    files: FileList | null,
+    previousSlot: SaveSlotCandidate,
+  ) => {
+    const selection = [...(files ?? [])];
+    if (!selection.length || !activeManifest) return;
+    setCompletion(undefined);
+    setStatus({ kind: "working", message: `Refreshing ${previousSlot.label}…` });
+    try {
+      const refreshedManifest = await scanSaveSelection(
+        selection,
+        activeManifest.platform,
+      );
+      const refreshedSlot = refreshedManifest.slots.find(
+        ({ worldId }) => worldId === previousSlot.worldId,
+      ) ?? (refreshedManifest.slots.length === 1
+        ? refreshedManifest.slots[0]
+        : undefined);
+      if (!refreshedSlot) {
+        throw new SaveImportError(
+          "NO_WORLDS",
+          `We couldn't find ${previousSlot.label} in the selected folder.`,
+        );
+      }
+      await importSlot(previousSlot, {
+        manifest: refreshedManifest,
+        slot: refreshedSlot,
+      });
     } catch (error) {
       setStatus({ kind: "error", message: importMessage(error) });
     }
@@ -415,14 +461,32 @@ export default function WorldImportDialog({
                             {supported ? "Palworld 1.0" : slot.format === "pre-1.0" ? "Older save" : "Not supported"}
                           </span>
                           <div className="world-row-actions">
-                            <Button
-                              className="secondary-button compact-button"
-                              isDisabled={!supported || status.kind === "working"}
-                              aria-label={supported ? `Import ${slot.label}` : `${slot.label} requires Palworld 1.0`}
-                              onPress={() => void importSlot(slot)}
-                            >
-                              {profileId ? "Refresh" : "Import"}
-                            </Button>
+                            {profileId && !directoryHandle ? (
+                              <FileTrigger
+                                acceptDirectory
+                                allowsMultiple
+                                onSelect={(files) => void refreshFallbackSlot(files, slot)}
+                              >
+                                <Button
+                                  className="secondary-button compact-button"
+                                  isDisabled={!supported || status.kind === "working"}
+                                  aria-label={supported
+                                    ? `Choose ${slot.label} again to refresh it`
+                                    : `${slot.label} requires Palworld 1.0`}
+                                >
+                                  Refresh
+                                </Button>
+                              </FileTrigger>
+                            ) : (
+                              <Button
+                                className="secondary-button compact-button"
+                                isDisabled={!supported || status.kind === "working"}
+                                aria-label={supported ? `Import ${slot.label}` : `${slot.label} requires Palworld 1.0`}
+                                onPress={() => void importSlot(slot)}
+                              >
+                                {profileId ? "Refresh" : "Import"}
+                              </Button>
+                            )}
                             {persistentFoldersSupported
                               && directoryHandle
                               && profileId
