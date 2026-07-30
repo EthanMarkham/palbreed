@@ -37,11 +37,13 @@
 }
 
 .site-header {
-  width: min(calc(100% - 3rem), 1180px);
+  width: min(100%, calc(1180px + 3rem));
   margin: 0 auto;
+  padding-inline: 1.5rem;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
+  box-sizing: border-box;
   position: sticky;
   top: 0;
   z-index: 5;
@@ -3166,8 +3168,7 @@
 
 @media (max-width: 900px) {
   .site-header {
-    width: min(calc(100% - 1.5rem), 1180px);
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
   .version-label { display: none; }
   .site-nav { justify-self: end; }
@@ -3187,9 +3188,8 @@
     grid-template-rows: 56px auto 28px;
   }
   .site-header {
-    width: min(calc(100% - 1.2rem), 1180px);
     min-width: 0;
-    padding: 6px 0;
+    padding: 6px 0.6rem;
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-rows: 44px;
     gap: 8px;
