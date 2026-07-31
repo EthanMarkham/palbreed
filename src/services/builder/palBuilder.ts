@@ -8,18 +8,15 @@ import { getPalGenderProbability } from "../../data/palStatsRepository";
 import type { OwnedPal, PalLocation } from "../../domain/inventory";
 import type { PalGender, PalId } from "../../domain/pal";
 import type { PassiveGoal, PassiveId } from "../../domain/passive";
-import {
-  estimateOffspringIvOutcome,
-  getIvQualificationKey,
-  meetsMinimumIv,
-  normalizeMinimumIv,
-  type IvScores,
-} from "./ivProbability";
 import { estimatePassiveOdds } from "./passiveProbability";
 
-export type BuilderObjective = "recommended" | "fewest" | "cleanest" | "ivs";
+export type BuilderObjective = "recommended" | "fewest" | "cleanest";
 
-export type BuilderIvScores = IvScores;
+export type BuilderIvScores = Readonly<{
+  hp: number;
+  attack: number;
+  defense: number;
+}>;
 
 export type BuilderParentPassives =
   | { kind: "known"; ids: readonly PassiveId[] }
@@ -50,9 +47,6 @@ export type BuilderStep = {
   secondParentStepId?: string;
   result: PalId;
   resultPassives: BuilderParentPassives;
-  resultIvScores?: BuilderIvScores;
-  minimumIv?: number;
-  ivOdds: number;
   odds: number;
   expectedCakes: number;
 };
@@ -75,7 +69,6 @@ export type BuilderInput = {
   targetId: PalId;
   passiveGoal: PassiveGoal;
   objective: BuilderObjective;
-  minimumIv?: number;
 };
 
 type EncodedOwnedPal = {
@@ -84,7 +77,6 @@ type EncodedOwnedPal = {
   passiveIds: readonly PassiveId[];
   requiredMask: number;
   extraCount: number;
-  ivScores?: BuilderIvScores;
 };
 
 type PartnerAction = {
@@ -103,12 +95,6 @@ type QueueEntry = {
   state: number;
   steps: number;
   expectedCakes: number;
-};
-
-type IvScoreArrays = {
-  hp: Float64Array;
-  attack: Float64Array;
-  defense: Float64Array;
 };
 
 const MAX_PASSIVES = 4;
@@ -136,7 +122,6 @@ for (let parentUnionSize = 0; parentUnionSize <= MAX_CACHED_PARENT_UNION; parent
 
 export function buildPal(input: BuilderInput): BuilderResult {
   const inventory = input.inventory;
-  const minimumIv = normalizeMinimumIv(input.minimumIv);
   const passiveGoal = input.passiveGoal;
   const acceptsAnyPassives = passiveGoal.kind === "any";
   const required: PassiveId[] = passiveGoal.kind === "any"
@@ -172,14 +157,12 @@ export function buildPal(input: BuilderInput): BuilderResult {
       passiveIds,
       requiredMask,
       extraCount,
-      ivScores: getInventoryIvScores(pal),
     };
   });
 
-  const ownedTarget = encodedInventory.some(({ pal, requiredMask, extraCount, ivScores }) =>
+  const ownedTarget = encodedInventory.some(({ pal, requiredMask, extraCount }) =>
     pal.speciesId === input.targetId
-    && (acceptsAnyPassives || (requiredMask === fullMask && extraCount <= allowedExtras))
-    && meetsMinimumIv(ivScores, minimumIv),
+    && (acceptsAnyPassives || (requiredMask === fullMask && extraCount <= allowedExtras)),
   );
   if (ownedTarget) return { status: "found", steps: [], expectedCakes: 0 };
 
@@ -191,36 +174,27 @@ export function buildPal(input: BuilderInput): BuilderResult {
     encodedInventory,
     maskVariants,
     acceptsAnyPassives,
-    input.objective,
-    minimumIv,
   );
   const stateCount = runtimePals.length * maskVariants * EXTRA_VARIANTS * GENDER_VARIANTS;
   const bestSteps = new Uint16Array(stateCount).fill(UNREACHED_STEPS);
   const bestExpectedCakes = new Float64Array(stateCount).fill(Number.POSITIVE_INFINITY);
-  const bestIvScores = createIvScoreArrays(stateCount);
   const firstParentRef = new Int32Array(stateCount).fill(UNVISITED_PARENT);
   const secondParentRef = new Int32Array(stateCount).fill(UNVISITED_PARENT);
   const edgeOdds = new Float64Array(stateCount);
-  const edgeIvOdds = new Float64Array(stateCount).fill(1);
   const settled = new Uint8Array(stateCount);
   const settledBySpeciesAndGender: number[][] = Array.from(
     { length: runtimePals.length * 2 },
     () => [],
   );
-  const queue = new StatePriorityQueue(input.objective, stateCount, bestIvScores);
-  const ivScoresFromRef = (ref: number) => ref < 0
-    ? encodedInventory[decodeInventoryRef(ref)].ivScores
-    : getStateIvScores(bestIvScores, ref);
+  const queue = new StatePriorityQueue(input.objective, stateCount);
 
   const recordFinalState = (
     maxUnknownExtraCount: number,
     odds: number,
-    ivOdds: number,
     steps: number,
     expectedCakes: number,
     firstRef: number,
     secondRef: number,
-    resultIvScores: BuilderIvScores | undefined,
   ) => {
     if (odds <= 0) return;
     const state = encodeState(
@@ -236,21 +210,17 @@ export function buildPal(input: BuilderInput): BuilderResult {
       nextSteps,
       nextExpectedCakes,
       maxUnknownExtraCount,
-      resultIvScores,
       bestSteps[state],
       bestExpectedCakes[state],
       maxUnknownExtraCount,
-      getStateIvScores(bestIvScores, state),
       input.objective,
     ) >= 0) return;
 
     bestSteps[state] = nextSteps;
     bestExpectedCakes[state] = nextExpectedCakes;
-    setStateIvScores(bestIvScores, state, resultIvScores);
     firstParentRef[state] = firstRef;
     secondParentRef[state] = secondRef;
     edgeOdds[state] = odds;
-    edgeIvOdds[state] = ivOdds;
   };
 
   const relaxState = (
@@ -259,12 +229,10 @@ export function buildPal(input: BuilderInput): BuilderResult {
     maxUnknownExtraCount: number,
     gender: PalGender | undefined,
     odds: number,
-    ivOdds: number,
     steps: number,
     expectedCakes: number,
     firstRef: number,
     secondRef: number,
-    resultIvScores: BuilderIvScores | undefined,
   ) => {
     if (odds <= 0) return;
     const state = encodeState(
@@ -279,21 +247,17 @@ export function buildPal(input: BuilderInput): BuilderResult {
       steps,
       expectedCakes,
       maxUnknownExtraCount,
-      resultIvScores,
       bestSteps[state],
       bestExpectedCakes[state],
       maxUnknownExtraCount,
-      getStateIvScores(bestIvScores, state),
       input.objective,
     ) >= 0) return;
 
     bestSteps[state] = steps;
     bestExpectedCakes[state] = expectedCakes;
-    setStateIvScores(bestIvScores, state, resultIvScores);
     firstParentRef[state] = firstRef;
     secondParentRef[state] = secondRef;
     edgeOdds[state] = odds;
-    edgeIvOdds[state] = ivOdds;
     queue.push(state, steps, expectedCakes);
   };
 
@@ -302,30 +266,26 @@ export function buildPal(input: BuilderInput): BuilderResult {
     nextMask: number,
     maxUnknownExtraCount: number,
     passiveChance: number,
-    ivChance: number,
     isFinalHatch: boolean,
     currentSteps: number,
     currentExpectedCakes: number,
     firstRef: number,
     secondRef: number,
-    resultIvScores: BuilderIvScores | undefined,
   ) => {
     if (isFinalHatch) {
       recordFinalState(
         maxUnknownExtraCount,
-        passiveChance * ivChance,
-        ivChance,
+        passiveChance,
         currentSteps,
         currentExpectedCakes,
         firstRef,
         secondRef,
-        resultIvScores,
       );
       return;
     }
 
     for (const gender of ["F", "M"] as const) {
-      const odds = passiveChance * ivChance * getPalGenderProbability(
+      const odds = passiveChance * getPalGenderProbability(
         runtimePals[childIndex].id,
         gender,
       );
@@ -335,12 +295,10 @@ export function buildPal(input: BuilderInput): BuilderResult {
         maxUnknownExtraCount,
         gender,
         odds,
-        ivChance,
         currentSteps + 1,
         currentExpectedCakes + 1 / odds,
         firstRef,
         secondRef,
-        resultIvScores,
       );
     }
   };
@@ -354,11 +312,6 @@ export function buildPal(input: BuilderInput): BuilderResult {
     firstRef: number,
     secondRef: number,
   ) => {
-    const ivOutcome = estimateOffspringIvOutcome(
-      ivScoresFromRef(firstRef),
-      ivScoresFromRef(secondRef),
-      minimumIv,
-    );
     const desiredCount = countBits(nextMask);
     const availableExtraSlots = MAX_PASSIVES - desiredCount;
     const isFinalHatch = childIndex === targetIndex && nextMask === fullMask;
@@ -368,13 +321,11 @@ export function buildPal(input: BuilderInput): BuilderResult {
         nextMask,
         0,
         1,
-        ivOutcome.odds,
         isFinalHatch,
         currentSteps,
         currentExpectedCakes,
         firstRef,
         secondRef,
-        ivOutcome.scores,
       );
       return;
     }
@@ -394,13 +345,11 @@ export function buildPal(input: BuilderInput): BuilderResult {
         nextMask,
         acceptedExtras,
         passiveChance,
-        ivOutcome.odds,
         isFinalHatch,
         currentSteps,
         currentExpectedCakes,
         firstRef,
         secondRef,
-        ivOutcome.scores,
       );
     }
   };
@@ -529,11 +478,9 @@ export function buildPal(input: BuilderInput): BuilderResult {
         bestSteps[state],
         bestExpectedCakes[state],
         extraCount,
-        getStateIvScores(bestIvScores, state),
         bestSteps[bestTargetState],
         bestExpectedCakes[bestTargetState],
         stateExtraCount(bestTargetState),
-        getStateIvScores(bestIvScores, bestTargetState),
         input.objective,
       ) < 0
     ) {
@@ -554,9 +501,6 @@ export function buildPal(input: BuilderInput): BuilderResult {
           firstParentRef,
           secondParentRef,
           edgeOdds,
-          edgeIvOdds,
-          bestIvScores,
-          minimumIv,
         ),
         expectedCakes: bestExpectedCakes[bestTargetState],
       };
@@ -583,12 +527,9 @@ function buildPartnerActions(
   inventory: readonly EncodedOwnedPal[],
   maskVariants: number,
   acceptsAnyPassives: boolean,
-  objective: BuilderObjective,
-  minimumIv: number | undefined,
 ) {
   return runtimePals.map((_, firstParentIndex): readonly PartnerAction[] => {
     const bestPartnerByOutcome = new Map<number, number>();
-    const ivVariants = minimumIv === undefined ? 1 : 9;
 
     for (let partnerIndex = 0; partnerIndex < inventory.length; partnerIndex += 1) {
       const partner = inventory[partnerIndex];
@@ -599,27 +540,19 @@ function buildPartnerActions(
         partner.pal.gender,
       );
       if (childIndex < 0) continue;
-      const actionKey = ((
+      const actionKey = (
         (childIndex * maskVariants + partner.requiredMask) * 2
-        + (partner.pal.gender === "M" ? 1 : 0)
-      ) * ivVariants) + getIvQualificationKey(partner.ivScores, minimumIv);
+      ) + (partner.pal.gender === "M" ? 1 : 0);
       const existingIndex = bestPartnerByOutcome.get(actionKey);
-      if (existingIndex !== undefined) {
-        const existing = inventory[existingIndex];
-        const extraComparison = acceptsAnyPassives
-          ? 0
-          : existing.extraCount - partner.extraCount;
-        const ivComparison = compareIvScores(existing.ivScores, partner.ivScores);
-        const comparison = objective === "ivs"
-          ? ivComparison || extraComparison
-          : extraComparison || ivComparison;
-        if (comparison <= 0) continue;
-      }
+      if (
+        existingIndex !== undefined
+        && (acceptsAnyPassives || inventory[existingIndex].extraCount <= partner.extraCount)
+      ) continue;
       bestPartnerByOutcome.set(actionKey, partnerIndex);
     }
 
     return [...bestPartnerByOutcome].map(([actionKey, partnerIndex]) => ({
-      childIndex: Math.floor(actionKey / (maskVariants * 2 * ivVariants)),
+      childIndex: Math.floor(actionKey / (maskVariants * 2)),
       partnerIndex,
     }));
   });
@@ -634,9 +567,6 @@ function reconstruct(
   firstParentRef: Int32Array,
   secondParentRef: Int32Array,
   edgeOdds: Float64Array,
-  edgeIvOdds: Float64Array,
-  ivScores: IvScoreArrays,
-  minimumIv: number | undefined,
 ) {
   const steps: BuilderStep[] = [];
   const appendState = (state: number): string => {
@@ -666,7 +596,6 @@ function reconstruct(
         required,
         acceptsAnyPassives,
         firstParentRef,
-        ivScores,
       ),
       firstParentStepId,
       secondParent: createParentFromRef(
@@ -676,14 +605,10 @@ function reconstruct(
         required,
         acceptsAnyPassives,
         firstParentRef,
-        ivScores,
       ),
       secondParentStepId,
       result: runtimePals[resultState.speciesIndex].id,
       resultPassives,
-      resultIvScores: getStateIvScores(ivScores, state),
-      minimumIv,
-      ivOdds: edgeIvOdds[state],
       odds,
       expectedCakes: 1 / odds,
     });
@@ -701,7 +626,6 @@ function createParentFromRef(
   required: readonly PassiveId[],
   acceptsAnyPassives: boolean,
   firstParentRef: Int32Array,
-  ivScores: IvScoreArrays,
 ) {
   if (ref < 0) return createInventoryParent(inventory[decodeInventoryRef(ref)].pal);
   if (firstParentRef[ref] === UNVISITED_PARENT) {
@@ -711,7 +635,6 @@ function createParentFromRef(
     decodeState(ref, maskVariants),
     required,
     acceptsAnyPassives,
-    getStateIvScores(ivScores, ref),
   );
 }
 
@@ -724,7 +647,6 @@ function createPlannedParent(
   },
   required: readonly PassiveId[],
   acceptsAnyPassives: boolean,
-  ivScores: BuilderIvScores | undefined,
 ): BuilderParent {
   if (!state.gender) throw new Error("A planned breeding parent must have a gender.");
   return {
@@ -732,7 +654,6 @@ function createPlannedParent(
     origin: "planned",
     level: 1,
     gender: state.gender,
-    ivScores,
     passives: passivesForState(
       state.mask,
       state.maxUnknownExtraCount,
@@ -772,36 +693,25 @@ function compareLabels(
   firstSteps: number,
   firstExpectedCakes: number,
   firstExtraCount: number,
-  firstIvScores: BuilderIvScores | undefined,
   secondSteps: number,
   secondExpectedCakes: number,
   secondExtraCount: number,
-  secondIvScores: BuilderIvScores | undefined,
   objective: BuilderObjective,
 ) {
-  if (objective === "ivs") {
-    return firstSteps - secondSteps
-      || compareIvScores(firstIvScores, secondIvScores)
-      || firstExpectedCakes - secondExpectedCakes
-      || firstExtraCount - secondExtraCount;
-  }
   if (objective === "cleanest") {
     return firstExpectedCakes - secondExpectedCakes
       || firstSteps - secondSteps
-      || firstExtraCount - secondExtraCount
-      || compareIvScores(firstIvScores, secondIvScores);
+      || firstExtraCount - secondExtraCount;
   }
   if (objective === "recommended") {
     return (firstExpectedCakes + firstSteps * 8) - (secondExpectedCakes + secondSteps * 8)
       || firstSteps - secondSteps
       || firstExpectedCakes - secondExpectedCakes
-      || firstExtraCount - secondExtraCount
-      || compareIvScores(firstIvScores, secondIvScores);
+      || firstExtraCount - secondExtraCount;
   }
   return firstSteps - secondSteps
     || firstExpectedCakes - secondExpectedCakes
-    || firstExtraCount - secondExtraCount
-    || compareIvScores(firstIvScores, secondIvScores);
+    || firstExtraCount - secondExtraCount;
 }
 
 function getInventoryIvScores(pal: OwnedPal): BuilderIvScores | undefined {
@@ -811,48 +721,6 @@ function getInventoryIvScores(pal: OwnedPal): BuilderIvScores | undefined {
     attack: pal.abilityScores.ranged,
     defense: pal.abilityScores.defense,
   };
-}
-
-function compareIvScores(
-  first: BuilderIvScores | undefined,
-  second: BuilderIvScores | undefined,
-) {
-  if (!first || !second) return first ? -1 : second ? 1 : 0;
-  return ivTotal(second) - ivTotal(first);
-}
-
-function ivTotal(scores: BuilderIvScores) {
-  return scores.hp + scores.attack + scores.defense;
-}
-
-function createIvScoreArrays(stateCount: number): IvScoreArrays {
-  return {
-    hp: new Float64Array(stateCount).fill(Number.NaN),
-    attack: new Float64Array(stateCount).fill(Number.NaN),
-    defense: new Float64Array(stateCount).fill(Number.NaN),
-  };
-}
-
-function getStateIvScores(
-  scores: IvScoreArrays,
-  state: number,
-): BuilderIvScores | undefined {
-  const hp = scores.hp[state];
-  const attack = scores.attack[state];
-  const defense = scores.defense[state];
-  return Number.isNaN(hp) || Number.isNaN(attack) || Number.isNaN(defense)
-    ? undefined
-    : { hp, attack, defense };
-}
-
-function setStateIvScores(
-  scores: IvScoreArrays,
-  state: number,
-  value: BuilderIvScores | undefined,
-) {
-  scores.hp[state] = value?.hp ?? Number.NaN;
-  scores.attack[state] = value?.attack ?? Number.NaN;
-  scores.defense[state] = value?.defense ?? Number.NaN;
 }
 
 function getPassiveOdds(parentUnionSize: number, desiredCount: number, allowedExtras: number) {
@@ -946,7 +814,6 @@ class StatePriorityQueue {
   constructor(
     private readonly objective: BuilderObjective,
     stateCount: number,
-    private readonly ivScores: IvScoreArrays,
   ) {
     this.positions = new Int32Array(stateCount).fill(-1);
   }
@@ -1090,11 +957,9 @@ class StatePriorityQueue {
       firstSteps,
       firstExpectedCakes,
       stateExtraCount(firstState),
-      getStateIvScores(this.ivScores, firstState),
       secondSteps,
       secondExpectedCakes,
       stateExtraCount(secondState),
-      getStateIvScores(this.ivScores, secondState),
       this.objective,
     );
   }

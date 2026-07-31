@@ -36,7 +36,6 @@ export type Database = {
           search_passive_ids: string[];
           search_objective: string;
           search_allowed_extra_passives: number;
-          search_minimum_iv?: number | null;
           anonymous_session_token?: string | null;
         };
         Returns: undefined;
@@ -51,7 +50,6 @@ export type Database = {
           passive_ids: string[];
           objective: string;
           allowed_extra_passives: number;
-          minimum_iv: number | null;
           searched_at: string;
         }>;
       };

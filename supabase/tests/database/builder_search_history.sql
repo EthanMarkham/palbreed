@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(33);
+select plan(34);
 
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
@@ -16,16 +16,16 @@ select lives_ok(
 
 select lives_ok(
   $$ select public.record_builder_search(
-    'lamball', array['Swift', 'Legend'], 'ivs', 2,
-    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 90
+    'lamball', array['Swift', 'Legend'], 'cleanest', 2,
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
   ) $$,
-  'IV-priority settings update the same canonical search'
+  'route settings update the same canonical search'
 );
 
 select lives_ok(
   $$ select public.record_builder_search(
-    'lamball', array['Legend', 'Swift'], 'ivs', 2,
-    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 90
+    'lamball', array['Legend', 'Swift'], 'cleanest', 2,
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
   ) from generate_series(1, 18) $$,
   'the same session can repeat one search twenty times'
 );
@@ -39,22 +39,29 @@ select is(
 );
 
 select results_eq(
-  $$ select target_pal_id, passive_ids, objective, allowed_extra_passives, minimum_iv
+  $$ select target_pal_id, passive_ids, objective, allowed_extra_passives
     from public.list_recent_builder_searches(
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 8
     ) $$,
-  $$ values ('lamball'::text, array['Legend', 'Swift']::text[], 'ivs'::text, 2::smallint, 90::smallint) $$,
-  'the latest settings, IV floor, and canonical passive IDs are restored'
+  $$ values ('lamball'::text, array['Legend', 'Swift']::text[], 'cleanest'::text, 2::smallint) $$,
+  'the latest settings and canonical passive IDs are restored'
 );
 
 select throws_ok(
   $$ select public.record_builder_search(
-    'lamball', '{}'::text[], 'recommended', 0,
-    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 101
+    'lamball', '{}'::text[], 'ivs', 0,
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
   ) $$,
   '22023',
-  'Minimum IV must be between one and one hundred.',
-  'minimum IVs outside the hidden-stat range are rejected'
+  'The builder objective is invalid.',
+  'the removed IV objective is rejected'
+);
+
+select hasnt_column(
+  'public',
+  'builder_search_history',
+  'minimum_iv',
+  'the removed IV floor is absent from recent-search storage'
 );
 
 select throws_ok(

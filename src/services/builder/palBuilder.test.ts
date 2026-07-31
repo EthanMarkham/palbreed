@@ -45,25 +45,11 @@ describe("Pal Builder", () => {
     }
   });
 
-  it("uses HP, Attack, and Defense as the final tie-break between equivalent owned Pals", () => {
+  it("exposes exact hidden scores for owned parents without calculating offspring scores", () => {
     const result = buildPal({
       inventory: [
-        {
-          ...inventory[0],
-          id: "lamball-low-ivs",
-          sourceInstanceId: "lamball-low-ivs",
-          abilityScores: abilityScores(0),
-        },
-        {
-          ...inventory[0],
-          id: "lamball-high-ivs",
-          sourceInstanceId: "lamball-high-ivs",
-          abilityScores: abilityScores(100),
-        },
-        {
-          ...inventory[1],
-          abilityScores: abilityScores(100),
-        },
+        { ...inventory[0], abilityScores: abilityScores(37) },
+        { ...inventory[1], abilityScores: abilityScores(82) },
       ],
       targetId: "daedream",
       passiveGoal: { kind: "any" },
@@ -73,126 +59,9 @@ describe("Pal Builder", () => {
     expect(result.status).toBe("found");
     if (result.status === "found") {
       expect(result.steps).toHaveLength(1);
-      const lamball = [
-        result.steps[0].firstParent,
-        result.steps[0].secondParent,
-      ].find(({ speciesId }) => speciesId === "lamball");
-      expect(lamball?.ivScores).toEqual({ hp: 100, attack: 100, defense: 100 });
-      expect(result.steps[0].resultIvScores).toEqual({ hp: 80, attack: 80, defense: 80 });
-    }
-  });
-
-  it("requires and prices an inclusive minimum across all three final IVs", () => {
-    const result = buildPal({
-      inventory: inventory.map((pal) => ({ ...pal, abilityScores: abilityScores(100) })),
-      targetId: "daedream",
-      passiveGoal: { kind: "any" },
-      objective: "recommended",
-      minimumIv: 90,
-    });
-    const perStatChance = 0.6 + 0.4 * (11 / 101);
-
-    expect(result.status).toBe("found");
-    if (result.status === "found") {
-      expect(result.steps).toHaveLength(1);
-      expect(result.steps[0].minimumIv).toBe(90);
-      expect(result.steps[0].ivOdds).toBeCloseTo(perStatChance ** 3);
-      expect(result.steps[0].odds).toBeCloseTo(perStatChance ** 3);
-      expect(result.steps[0].expectedCakes).toBeCloseTo(1 / (perStatChance ** 3));
-      expect(result.steps[0].resultIvScores?.hp).toBeGreaterThanOrEqual(90);
-    }
-  });
-
-  it("does not accept an owned target whose IVs miss the configured floor", () => {
-    const result = buildPal({
-      inventory: [
-        ...inventory.map((pal) => ({ ...pal, abilityScores: abilityScores(100) })),
-        {
-          id: "daedream-low",
-          sourceInstanceId: "daedream-low",
-          speciesId: "daedream",
-          gender: "F",
-          passiveIds: [],
-          location: "palbox",
-          abilityScores: abilityScores(89),
-        },
-      ],
-      targetId: "daedream",
-      passiveGoal: { kind: "any" },
-      objective: "recommended",
-      minimumIv: 90,
-    });
-
-    expect(result.status).toBe("found");
-    if (result.status === "found") expect(result.steps).toHaveLength(1);
-  });
-
-  it("can prioritize stronger expected offspring IVs without adding a breeding generation", () => {
-    const baseInput = {
-      inventory: [
-        {
-          id: "cattiva-clean-low",
-          sourceInstanceId: "cattiva-clean-low",
-          speciesId: "cattiva",
-          gender: "F" as const,
-          passiveIds: ["CraftSpeed_up2"],
-          location: "palbox" as const,
-          abilityScores: abilityScores(0),
-        },
-        {
-          id: "lamball-clean-low",
-          sourceInstanceId: "lamball-clean-low",
-          speciesId: "lamball",
-          gender: "M" as const,
-          passiveIds: [],
-          location: "palbox" as const,
-          abilityScores: abilityScores(0),
-        },
-        {
-          id: "celaray-dirty-high",
-          sourceInstanceId: "celaray-dirty-high",
-          speciesId: "celaray",
-          gender: "F" as const,
-          passiveIds: ["CraftSpeed_up2"],
-          location: "palbox" as const,
-          abilityScores: abilityScores(100),
-        },
-        {
-          id: "chikipi-dirty-high",
-          sourceInstanceId: "chikipi-dirty-high",
-          speciesId: "chikipi",
-          gender: "M" as const,
-          passiveIds: ["unwanted"],
-          location: "palbox" as const,
-          abilityScores: abilityScores(100),
-        },
-      ],
-      targetId: "daedream",
-      passiveGoal: {
-        kind: "specific" as const,
-        requiredIds: ["CraftSpeed_up2"],
-        allowedExtras: 0,
-      },
-    };
-
-    const fewest = buildPal({ ...baseInput, objective: "fewest" });
-    const ivs = buildPal({ ...baseInput, objective: "ivs" });
-
-    expect(fewest.status).toBe("found");
-    expect(ivs.status).toBe("found");
-    if (fewest.status === "found" && ivs.status === "found") {
-      expect(fewest.steps).toHaveLength(1);
-      expect(ivs.steps).toHaveLength(1);
-      expect(new Set([
-        fewest.steps[0].firstParent.speciesId,
-        fewest.steps[0].secondParent.speciesId,
-      ])).toEqual(new Set(["cattiva", "lamball"]));
-      expect(new Set([
-        ivs.steps[0].firstParent.speciesId,
-        ivs.steps[0].secondParent.speciesId,
-      ])).toEqual(new Set(["celaray", "chikipi"]));
-      expect(ivs.steps[0].resultIvScores).toEqual({ hp: 80, attack: 80, defense: 80 });
-      expect(ivs.expectedCakes).toBeGreaterThan(fewest.expectedCakes);
+      expect(result.steps[0].firstParent.ivScores).toEqual({ hp: 37, attack: 37, defense: 37 });
+      expect(result.steps[0].secondParent.ivScores).toEqual({ hp: 82, attack: 82, defense: 82 });
+      expect(result.steps[0]).not.toHaveProperty("resultIvScores");
     }
   });
 
@@ -332,7 +201,7 @@ describe("Pal Builder", () => {
     }
   });
 
-  it.each(["cleanest", "ivs"] as const)("keeps a full Palbox $objective search bounded", (objective) => {
+  it("keeps a full Palbox cleanest search bounded", () => {
     const requiredIds = [
       "CraftSpeed_up2",
       "CraftSpeed_up3",
@@ -358,7 +227,7 @@ describe("Pal Builder", () => {
         requiredIds,
         allowedExtras: 0,
       },
-      objective,
+      objective: "cleanest",
     });
 
     expect(result.status).toBe("found");

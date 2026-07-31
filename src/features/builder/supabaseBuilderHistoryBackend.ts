@@ -10,9 +10,8 @@ import type {
 const historyRowSchema = z.object({
   target_pal_id: z.string(),
   passive_ids: z.array(z.string()),
-  objective: z.enum(["recommended", "fewest", "cleanest", "ivs"]),
+  objective: z.enum(["recommended", "fewest", "cleanest"]),
   allowed_extra_passives: z.union([z.literal(0), z.literal(1), z.literal(2)]),
-  minimum_iv: z.number().int().min(1).max(100).nullish(),
   searched_at: z.string(),
 });
 
@@ -58,7 +57,6 @@ export class SupabaseBuilderHistoryBackend implements BuilderHistoryBackend {
       passives: row.passive_ids.length ? row.passive_ids : "any",
       objective: "recommended",
       allowedExtras: 0,
-      minimumIv: undefined,
       searchedAt: row.searched_at,
       searchCount: row.search_count,
     }));
@@ -70,7 +68,6 @@ export class SupabaseBuilderHistoryBackend implements BuilderHistoryBackend {
       search_passive_ids: entry.passives === "any" ? [] : [...entry.passives],
       search_objective: entry.objective,
       search_allowed_extra_passives: entry.allowedExtras,
-      search_minimum_iv: entry.minimumIv ?? null,
       anonymous_session_token: anonymousSessionToken ?? null,
     });
     if (error) throw requestError("save the recent build", error);
@@ -107,7 +104,6 @@ function toHistoryEntry(row: z.infer<typeof historyRowSchema>): BuilderHistoryEn
     passives: row.passive_ids.length ? row.passive_ids : "any",
     objective: row.objective,
     allowedExtras: row.allowed_extra_passives,
-    minimumIv: row.minimum_iv ?? undefined,
     searchedAt: row.searched_at,
   };
 }

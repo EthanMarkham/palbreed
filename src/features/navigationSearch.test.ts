@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { passiveRepository } from "../data/passiveRepository";
 import {
   runBuilderSearch,
-  setBuilderMinimumIv,
   setBuilderPassiveQuery,
   setBuilderPassives,
 } from "./builder/builderNavigation";
@@ -51,14 +50,11 @@ describe("route-backed search state", () => {
       target: "lamball",
       passiveQuery: "work speed",
       objective: "cleanest",
-      minIv: 90,
       run: true,
     });
     expect(getBuilderPassiveIds(search)).toEqual(passiveIds.slice(0, 4));
     expect(parseBuilderSearch({ passives: "any", extras: "2", run: true })).toEqual({ run: true });
-    expect(parseBuilderSearch({ objective: "ivs" })).toEqual({ objective: "ivs" });
-    expect(parseBuilderSearch({ minIv: "101" })).toEqual({ minIv: 100 });
-    expect(parseBuilderSearch({ minIv: "0" })).toEqual({});
+    expect(parseBuilderSearch({ objective: "ivs", minIv: "90" })).toEqual({});
     expect(parseBuilderSearch({ passives: [`${passiveIds[0]},${passiveIds[1]}`, passiveIds[2]] })).toEqual({
       passives: passiveIds.slice(0, 3).join(","),
     });
@@ -77,7 +73,6 @@ describe("route-backed search state", () => {
     expect(setBuilderPassives(typed, [])).toEqual({
       target: "lamball",
     });
-    expect(setBuilderMinimumIv(running, 90)).toEqual({ target: "lamball", minIv: 90 });
   });
 
   it("keeps both condensed tools serializable in one route", () => {

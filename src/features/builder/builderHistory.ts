@@ -5,7 +5,6 @@ import type { PalId } from "../../domain/pal";
 import type { PassiveId } from "../../domain/passive";
 import type { BuilderObjective } from "../../services/builder/palBuilder";
 import {
-  getBuilderMinimumIv,
   getBuilderObjective,
   getBuilderPassiveGoal,
   type BuilderSearchState,
@@ -18,7 +17,6 @@ export type BuilderHistoryEntry = Readonly<{
   passives: "any" | readonly PassiveId[];
   objective: BuilderObjective;
   allowedExtras: 0 | 1 | 2;
-  minimumIv?: number;
   searchedAt: string;
 }>;
 
@@ -194,7 +192,6 @@ export function createBuilderHistoryEntry(
     passives,
     objective: getBuilderObjective(search),
     allowedExtras: 0,
-    minimumIv: getBuilderMinimumIv(search),
     searchedAt: normalizedDate,
   };
 }
@@ -204,7 +201,6 @@ export function builderHistoryEntryToSearch(entry: BuilderHistoryEntry): Builder
     target: entry.targetId,
     passives: entry.passives === "any" ? undefined : entry.passives.join(","),
     objective: entry.objective === "recommended" ? undefined : entry.objective,
-    minIv: entry.minimumIv,
     run: true,
   };
 }
@@ -244,7 +240,6 @@ export function normalizeBuilderHistory(
       passives,
       objective: entry.objective,
       allowedExtras: 0,
-      minimumIv: getBuilderMinimumIv({ minIv: entry.minimumIv }),
       searchedAt,
     };
     const key = getBuilderHistoryKey(candidate);
