@@ -49,6 +49,7 @@ export default function BuilderOffspringPreview({
     >
       <Button
         className="breeding-route-result"
+        data-goal={isGoal || undefined}
         aria-label={`View offspring details for ${name}`}
         onHoverStart={keepOpen}
         onHoverEnd={scheduleClose}
@@ -105,10 +106,16 @@ export default function BuilderOffspringPreview({
                   </div>
                 ) : null}
                 {step.resultIvScores ? (
-                  <BuilderIvScores scores={step.resultIvScores} label="Expected IVs" />
+                  <BuilderIvScores
+                    scores={step.resultIvScores}
+                    label={step.minimumIv ? "Expected kept IVs" : "Expected IVs"}
+                  />
                 ) : null}
                 <dl className="builder-parent-popover-facts">
-                  <div><dt>Breed chance</dt><dd>{formatOdds(step.odds)}</dd></div>
+                  <div><dt>Overall chance</dt><dd>{formatOdds(step.odds)}</dd></div>
+                  {step.minimumIv ? (
+                    <div><dt>All IVs {step.minimumIv}+</dt><dd>{formatOdds(step.ivOdds)}</dd></div>
+                  ) : null}
                   <div><dt>Eggs on average</dt><dd>{formatEggs(step.expectedCakes)}</dd></div>
                 </dl>
                 <div className="builder-parent-popover-passives">
@@ -138,8 +145,12 @@ export default function BuilderOffspringPreview({
 }
 
 function formatOdds(value: number) {
-  if (value >= 0.1) return `${Math.round(value * 100)}%`;
-  return `${(value * 100).toFixed(1)}%`;
+  const percentage = value * 100;
+  if (percentage >= 10) return `${Math.round(percentage)}%`;
+  if (percentage >= 1) return `${percentage.toFixed(1)}%`;
+  if (percentage >= 0.1) return `${percentage.toFixed(2)}%`;
+  if (percentage >= 0.01) return `${percentage.toFixed(3)}%`;
+  return `${percentage.toPrecision(2)}%`;
 }
 
 function formatEggs(value: number) {

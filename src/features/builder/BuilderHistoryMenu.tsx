@@ -112,13 +112,14 @@ function HistoryRow({
 }
 
 function formatSettings(entry: BuilderHistoryEntry) {
-  return entry.objective === "fewest"
+  const objective = entry.objective === "fewest"
     ? "Fewer breedings"
     : entry.objective === "cleanest"
       ? "Better hatch odds"
       : entry.objective === "ivs"
         ? "Better offspring IVs"
       : "Balanced route";
+  return entry.minimumIv ? `${objective} / IV ${entry.minimumIv}+` : objective;
 }
 
 function formatDate(value: string) {

@@ -2302,6 +2302,51 @@
 
 .builder-settings {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.builder-settings .form-field > small {
+  color: var(--text-subtle);
+  font-size: 0.52rem;
+  line-height: 1.35;
+}
+
+.number-control {
+  min-width: 0;
+  height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+  overflow: hidden;
+}
+
+.number-control:focus-within {
+  border-color: rgba(35, 133, 109, 0.54);
+  box-shadow: 0 0 0 3px rgba(35, 133, 109, 0.1);
+}
+
+.number-control input {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 0 6px 0 13px;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
+  font: 650 0.75rem/1 "Inter", sans-serif;
+  outline: 0;
+}
+
+.number-control > span {
+  padding-right: 11px;
+  flex: none;
+  color: var(--text-subtle);
+  font: 700 0.58rem/1 "Space Grotesk", sans-serif;
 }
 
 .danger-button {
@@ -2791,91 +2836,156 @@
 .build-metrics strong { color: var(--lime); font: 700 1.1rem/1 "Space Grotesk", sans-serif; }
 
 .breeding-route {
-  margin-top: 12px;
+  margin-top: 14px;
   display: grid;
-  grid-auto-rows: 112px;
-  gap: 10px;
+  gap: 9px;
 }
 
 .breeding-route-row {
   min-width: 0;
-  height: 112px;
-  padding: 8px 10px 8px 8px;
+  min-height: 104px;
+  padding: 10px;
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) 112px;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   border: 1px solid rgba(27, 48, 38, 0.1);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 4px 14px rgba(18, 34, 27, 0.035);
+  border-radius: 15px;
+  background:
+    linear-gradient(90deg, rgba(35, 133, 109, 0.035), transparent 18%),
+    rgba(255, 255, 255, 0.64);
+  box-shadow:
+    0 7px 20px rgba(18, 34, 27, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .breeding-route-number {
-  align-self: stretch;
+  width: 42px;
+  height: 42px;
   display: grid;
-  place-items: start center;
-  padding-top: 5px;
-  border-right: 1px solid rgba(35, 133, 109, 0.14);
+  place-content: center;
+  gap: 3px;
+  border: 1px solid rgba(35, 133, 109, 0.14);
+  border-radius: 11px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.72);
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.breeding-route-number small {
   color: var(--text-subtle);
-  font: 750 0.5rem/1 "Space Grotesk", sans-serif;
-  letter-spacing: 0.05em;
+  font: 800 0.38rem/1 "Space Grotesk", sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.breeding-route-number strong {
+  font: 750 0.72rem/1 "Space Grotesk", sans-serif;
+  letter-spacing: -0.015em;
 }
 
 .breeding-route-formula {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(64px, 1fr) 14px minmax(64px, 1fr) 18px minmax(64px, 1fr);
+  grid-template-columns: minmax(112px, 1fr) 26px minmax(112px, 1fr) 30px minmax(112px, 1fr);
   align-items: center;
-  justify-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .breeding-route-formula .builder-parent-trigger {
   width: 100%;
-  min-height: 86px;
+  min-height: 78px;
+  padding: 9px;
+  grid-template-columns: 54px minmax(0, 1fr);
+  grid-template-rows: min-content min-content;
+  align-content: center;
+  justify-items: start;
+  column-gap: 10px;
+  row-gap: 4px;
+  border: 1px solid rgba(27, 48, 38, 0.105);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.68);
+  text-align: left;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
 
 .breeding-route-formula .builder-parent-portrait {
-  width: 54px;
-  height: 54px;
+  width: 52px;
+  height: 52px;
+  grid-row: 1 / 3;
 }
 
 .breeding-route-formula .builder-parent-avatar {
-  width: 47px;
-  height: 47px;
+  width: 45px;
+  height: 45px;
+}
+
+.breeding-route-formula .builder-parent-trigger > strong {
+  grid-column: 2;
+  align-self: end;
+  font-size: 0.68rem;
+  text-align: left;
+}
+
+.breeding-route-formula .builder-parent-trigger > small {
+  grid-column: 2;
+  align-self: start;
+}
+
+.breeding-route-formula .builder-parent-trigger[data-hovered],
+.breeding-route-formula .builder-parent-trigger[data-focus-visible],
+.breeding-route-formula .builder-parent-trigger[data-pressed] {
+  border-color: rgba(35, 133, 109, 0.3);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 9px 20px rgba(18, 34, 27, 0.07);
+  transform: translateY(-1px);
 }
 
 .breeding-route-operator {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(27, 48, 38, 0.1);
+  border-radius: 50%;
   color: var(--text-subtle);
-  font: 600 0.82rem/1 "Space Grotesk", sans-serif;
+  background: rgba(255, 255, 255, 0.64);
+  font: 650 0.78rem/1 "Space Grotesk", sans-serif;
 }
 
 .breeding-route-operator.is-arrow {
+  width: 28px;
+  border-color: rgba(35, 133, 109, 0.16);
   color: var(--teal);
-  font-size: 1rem;
+  background: var(--teal-soft);
+  font-size: 0.88rem;
 }
 
 .breeding-route-result {
   width: 100%;
   min-width: 0;
-  min-height: 86px;
-  padding: 0;
+  min-height: 78px;
+  padding: 9px;
   display: grid;
-  justify-items: center;
-  align-content: start;
-  gap: 4px;
-  border: 0;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  justify-items: start;
+  gap: 10px;
+  border: 1px solid rgba(35, 133, 109, 0.2);
+  border-radius: 13px;
   color: var(--ink);
-  background: transparent;
-  text-align: center;
+  background: linear-gradient(135deg, rgba(226, 241, 235, 0.92), rgba(247, 250, 244, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  text-align: left;
   cursor: pointer;
   outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
 
 .breeding-route-result-portrait {
-  width: 54px;
-  height: 54px;
+  width: 52px;
+  height: 52px;
   position: relative;
   display: grid;
   place-items: center;
@@ -2888,19 +2998,22 @@
 }
 
 .breeding-route-result-avatar {
-  width: 47px;
-  height: 47px;
+  width: 45px;
+  height: 45px;
   filter: drop-shadow(0 4px 5px rgba(18, 34, 27, 0.1));
 }
 
-.breeding-route-result[data-hovered] .breeding-route-result-portrait,
-.breeding-route-result[data-focus-visible] .breeding-route-result-portrait,
-.breeding-route-result[data-pressed] .breeding-route-result-portrait {
+.breeding-route-result[data-hovered],
+.breeding-route-result[data-focus-visible],
+.breeding-route-result[data-pressed] {
   border-color: rgba(35, 133, 109, 0.48);
-  box-shadow:
-    0 0 0 5px rgba(35, 133, 109, 0.1),
-    0 10px 22px rgba(18, 34, 27, 0.13);
-  transform: translateY(-2px);
+  box-shadow: 0 9px 20px rgba(18, 34, 27, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  transform: translateY(-1px);
+}
+
+.breeding-route-result[data-goal] {
+  border-color: rgba(35, 133, 109, 0.34);
+  background: linear-gradient(135deg, rgba(216, 242, 154, 0.32), rgba(226, 241, 235, 0.96));
 }
 
 .breeding-route-result-portrait small {
@@ -2921,7 +3034,7 @@
   width: 100%;
   overflow: hidden;
   color: var(--ink);
-  font: 700 0.58rem/1.2 "Space Grotesk", sans-serif;
+  font: 700 0.68rem/1.2 "Space Grotesk", sans-serif;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2971,18 +3084,38 @@
 }
 
 .breeding-route-odds {
-  min-width: 88px;
-  padding: 0.38rem 0.5rem;
+  min-width: 0;
+  min-height: 78px;
+  padding: 10px 11px;
   display: grid;
-  place-items: center;
-  border: 1px solid rgba(35, 133, 109, 0.14);
-  border-radius: 999px;
+  align-content: center;
+  justify-items: start;
+  gap: 4px;
+  border: 1px solid rgba(35, 133, 109, 0.16);
+  border-radius: 13px;
   color: var(--teal-dark);
-  background: var(--paper-strong);
+  background:
+    radial-gradient(circle at top right, rgba(216, 242, 154, 0.38), transparent 52%),
+    rgba(247, 250, 244, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.breeding-route-odds span {
+  color: var(--text-muted);
+  font: 800 0.42rem/1 "Space Grotesk", sans-serif;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
 }
 
 .breeding-route-odds strong {
-  font: 750 0.54rem/1 "Space Grotesk", sans-serif;
+  color: var(--teal-dark);
+  font: 750 1rem/1 "Space Grotesk", sans-serif;
+  white-space: nowrap;
+}
+
+.breeding-route-odds small {
+  color: var(--text-muted);
+  font: 650 0.5rem/1.15 "Space Grotesk", sans-serif;
   white-space: nowrap;
 }
 
@@ -3239,6 +3372,11 @@
 .policy-card a { color: var(--teal-dark); }
 .policy-card nav { display: flex; gap: 14px; font-size: 0.62rem; }
 
+@media (max-width: 1120px) {
+  .builder-layout { grid-template-columns: 1fr; }
+  .builder-form-card { position: static; }
+}
+
 @media (max-width: 900px) {
   .site-header {
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -3246,8 +3384,6 @@
   .version-label { display: none; }
   .site-nav { justify-self: end; }
   .site-nav a { padding-inline: 0.58rem; }
-  .builder-layout { grid-template-columns: 1fr; }
-  .builder-form-card { position: static; }
   .inventory-browser-toolbar { grid-template-columns: minmax(230px, 0.75fr) minmax(220px, 1fr) auto; }
 }
 
@@ -3335,34 +3471,79 @@
     gap: 6px;
   }
   .breeding-route-row {
+    min-height: 145px;
+    padding: 8px;
     position: relative;
-    padding: 7px 5px;
-    grid-template-columns: 22px minmax(0, 1fr);
-    gap: 4px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    align-items: start;
+    gap: 6px;
   }
-  .breeding-route-number { padding-top: 4px; font-size: 0.43rem; }
+  .breeding-route-number {
+    width: 30px;
+    height: 30px;
+    margin-top: 4px;
+    border-radius: 8px;
+  }
+  .breeding-route-number small { display: none; }
+  .breeding-route-number strong { font-size: 0.55rem; }
   .breeding-route-formula {
-    padding-bottom: 14px;
-    grid-template-columns: minmax(48px, 1fr) 9px minmax(48px, 1fr) 12px minmax(48px, 1fr);
-    gap: 1px;
+    padding-bottom: 35px;
+    grid-template-columns: minmax(54px, 1fr) 18px minmax(54px, 1fr) 20px minmax(54px, 1fr);
+    gap: 3px;
   }
   .breeding-route-formula .builder-parent-trigger,
-  .breeding-route-result { min-height: 76px; }
+  .breeding-route-result {
+    min-height: 92px;
+    padding: 7px 3px;
+    grid-template-columns: 1fr;
+    grid-template-rows: 48px auto auto;
+    justify-items: center;
+    align-content: start;
+    gap: 4px;
+    border-radius: 11px;
+    text-align: center;
+  }
   .breeding-route-formula .builder-parent-portrait,
-  .breeding-route-result-portrait { width: 46px; height: 46px; }
+  .breeding-route-result-portrait {
+    width: 46px;
+    height: 46px;
+    grid-row: 1;
+  }
   .breeding-route-formula .builder-parent-avatar,
   .breeding-route-result-avatar { width: 40px; height: 40px; }
   .breeding-route-formula .builder-parent-trigger > strong,
-  .breeding-route-result > strong { font-size: 0.5rem; }
-  .breeding-route-formula .builder-parent-trigger > small { font-size: 0.31rem; }
-  .breeding-route-operator { font-size: 0.66rem; }
-  .breeding-route-operator.is-arrow { font-size: 0.78rem; }
-  .breeding-route-odds {
-    min-width: 0;
-    padding: 0.25rem 0.38rem;
-    position: absolute;
-    right: 5px;
-    bottom: 5px;
+  .breeding-route-result > strong {
+    grid-column: 1;
+    align-self: start;
+    font-size: 0.52rem;
+    text-align: center;
   }
-  .breeding-route-odds strong { font-size: 0.46rem; }
+  .breeding-route-formula .builder-parent-trigger > small {
+    grid-column: 1;
+    align-self: start;
+    font-size: 0.31rem;
+  }
+  .breeding-route-operator {
+    width: 18px;
+    height: 18px;
+    font-size: 0.62rem;
+  }
+  .breeding-route-operator.is-arrow {
+    width: 20px;
+    font-size: 0.7rem;
+  }
+  .breeding-route-odds {
+    min-height: 26px;
+    padding: 0.32rem 0.45rem;
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 8px;
+  }
+  .breeding-route-odds span { font-size: 0.35rem; }
+  .breeding-route-odds strong { font-size: 0.58rem; }
+  .breeding-route-odds small { font-size: 0.42rem; }
 }

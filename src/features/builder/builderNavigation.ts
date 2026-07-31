@@ -48,6 +48,13 @@ export function setBuilderObjective(search: BuilderSearchState, objective: Build
   return compactSearch({ ...search, objective: objective === "recommended" ? undefined : objective, run: undefined });
 }
 
+export function setBuilderMinimumIv(
+  search: BuilderSearchState,
+  minimumIv: number | undefined,
+): BuilderSearchState {
+  return compactSearch({ ...search, minIv: minimumIv, run: undefined });
+}
+
 export function runBuilderSearch(search: BuilderSearchState): BuilderSearchState {
   return compactSearch({ ...search, run: true });
 }

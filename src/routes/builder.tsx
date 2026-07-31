@@ -6,6 +6,7 @@ import {
 } from "../features/builder/builderHistory";
 import {
   runBuilderSearch,
+  setBuilderMinimumIv,
   setBuilderObjective,
   setBuilderPassiveQuery,
   setBuilderPassives,
@@ -38,6 +39,7 @@ function BuilderRoute() {
       onPassivesChange={(value) => updateSearch(setBuilderPassives(search, value), "push")}
       onPassiveQueryChange={(value) => updateSearch(setBuilderPassiveQuery(search, value))}
       onObjectiveChange={(value) => updateSearch(setBuilderObjective(search, value), "push")}
+      onMinimumIvChange={(value) => updateSearch(setBuilderMinimumIv(search, value))}
       onHistorySelect={(entry) => {
         const restoredSearch = builderHistoryEntryToSearch(entry);
         builderHistoryService.record(restoredSearch);

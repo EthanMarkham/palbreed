@@ -82,6 +82,51 @@ describe("Pal Builder", () => {
     }
   });
 
+  it("requires and prices an inclusive minimum across all three final IVs", () => {
+    const result = buildPal({
+      inventory: inventory.map((pal) => ({ ...pal, abilityScores: abilityScores(100) })),
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "recommended",
+      minimumIv: 90,
+    });
+    const perStatChance = 0.6 + 0.4 * (11 / 101);
+
+    expect(result.status).toBe("found");
+    if (result.status === "found") {
+      expect(result.steps).toHaveLength(1);
+      expect(result.steps[0].minimumIv).toBe(90);
+      expect(result.steps[0].ivOdds).toBeCloseTo(perStatChance ** 3);
+      expect(result.steps[0].odds).toBeCloseTo(perStatChance ** 3);
+      expect(result.steps[0].expectedCakes).toBeCloseTo(1 / (perStatChance ** 3));
+      expect(result.steps[0].resultIvScores?.hp).toBeGreaterThanOrEqual(90);
+    }
+  });
+
+  it("does not accept an owned target whose IVs miss the configured floor", () => {
+    const result = buildPal({
+      inventory: [
+        ...inventory.map((pal) => ({ ...pal, abilityScores: abilityScores(100) })),
+        {
+          id: "daedream-low",
+          sourceInstanceId: "daedream-low",
+          speciesId: "daedream",
+          gender: "F",
+          passiveIds: [],
+          location: "palbox",
+          abilityScores: abilityScores(89),
+        },
+      ],
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "recommended",
+      minimumIv: 90,
+    });
+
+    expect(result.status).toBe("found");
+    if (result.status === "found") expect(result.steps).toHaveLength(1);
+  });
+
   it("can prioritize stronger expected offspring IVs without adding a breeding generation", () => {
     const baseInput = {
       inventory: [

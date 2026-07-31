@@ -3,6 +3,7 @@ import { passiveRepository } from "../../data/passiveRepository";
 import type { PalId } from "../../domain/pal";
 import type { PassiveGoal, PassiveId } from "../../domain/passive";
 import type { BuilderObjective } from "../../services/builder/palBuilder";
+import { normalizeMinimumIv } from "../../services/builder/ivProbability";
 import {
   compactSearch,
   normalizePalSearch,
@@ -16,6 +17,7 @@ const rawBuilderSearchSchema = z.object({
   passives: z.union([z.string(), z.array(z.string())]).optional().catch(undefined),
   passiveQuery: optionalStringSearchParam,
   objective: optionalStringSearchParam,
+  minIv: z.union([z.string(), z.number(), z.array(z.string())]).optional().catch(undefined),
   run: z.union([z.string(), z.boolean()]).optional().catch(undefined),
 });
 
@@ -25,6 +27,7 @@ export type BuilderSearchState = {
   passives?: string;
   passiveQuery?: string;
   objective?: Exclude<BuilderObjective, "recommended">;
+  minIv?: number;
   run?: true;
 };
 
@@ -38,6 +41,7 @@ export function parseBuilderSearch(search: Record<string, unknown>): BuilderSear
     || raw.objective === "ivs"
     ? raw.objective
     : undefined;
+  const minIv = normalizeMinimumIvSearch(raw.minIv);
   const run = raw.run === true || raw.run === "true" || raw.run === "1" ? true : undefined;
   const serializedPassives = passiveSelection.join(",") || undefined;
 
@@ -47,6 +51,7 @@ export function parseBuilderSearch(search: Record<string, unknown>): BuilderSear
     passives: serializedPassives,
     passiveQuery,
     objective,
+    minIv,
     run,
   });
 }
@@ -69,6 +74,10 @@ export function getBuilderObjective(search: BuilderSearchState): BuilderObjectiv
   return search.objective ?? "recommended";
 }
 
+export function getBuilderMinimumIv(search: BuilderSearchState): number | undefined {
+  return normalizeMinimumIv(search.minIv);
+}
+
 function normalizePassiveSelection(value: string | readonly string[] | undefined): PassiveId[] {
   const values = (typeof value === "string" ? [value] : value ?? [])
     .flatMap((entry) => entry.split(","))
@@ -77,4 +86,11 @@ function normalizePassiveSelection(value: string | readonly string[] | undefined
   const validIds = values
     .filter((id) => passiveRepository.get(id));
   return [...new Set(validIds)].slice(0, 4);
+}
+
+function normalizeMinimumIvSearch(value: string | number | readonly string[] | undefined) {
+  const scalar = typeof value === "string" || typeof value === "number" ? value : value?.[0];
+  if (scalar === undefined || (typeof scalar === "string" && !scalar.trim())) return undefined;
+  const parsed = typeof scalar === "number" ? scalar : Number(scalar);
+  return normalizeMinimumIv(parsed);
 }

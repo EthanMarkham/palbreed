@@ -116,6 +116,7 @@ describe("Builder search history", () => {
       target,
       passives: `${firstPassive},${secondPassive}`,
       objective: "ivs",
+      minIv: 90,
     }, "2026-02-03T04:05:06.000Z");
     await service.whenIdle();
 
@@ -125,12 +126,14 @@ describe("Builder search history", () => {
       passives: [firstPassive, secondPassive].sort(),
       objective: "ivs",
       allowedExtras: 0,
+      minimumIv: 90,
       searchedAt: "2026-02-03T04:05:06.000Z",
     });
     expect(builderHistoryEntryToSearch(service.getSnapshot()[0])).toEqual({
       target,
       passives: [firstPassive, secondPassive].sort().join(","),
       objective: "ivs",
+      minIv: 90,
       run: true,
     });
   });

@@ -67,6 +67,13 @@ review; this is a release gate, not an optional attribution note.
   are required, while unselected passive slots remain unconstrained.
   “Cleanest” uses estimated expected cakes; probability copy is always labeled
   as estimated.
+- An optional inclusive IV floor applies to HP, Attack, and Defense together.
+  Each stat independently copies the first parent 30% of the time, copies the
+  second parent 30% of the time, or receives a uniform integer roll from 0 to
+  100 for the remaining 40%. The solver multiplies that probability into each
+  step's passive and required-gender odds. Any planned offspring used as a
+  later parent is filtered against the same floor, so downstream odds never
+  assume an unqualified breeder was kept.
 - The search combines compatible planned carriers as well as owned Pals, so
   both final parents may be independently bred branches. Route reconstruction
   preserves those dependencies as a parent tree instead of flattening them

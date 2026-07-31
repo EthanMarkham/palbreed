@@ -20,6 +20,7 @@ import BuilderHistoryMenu from "./BuilderHistoryMenu";
 import BuilderRouteTree from "./BuilderRouteTree";
 import type { BuilderHistoryEntry } from "./builderHistory";
 import {
+  getBuilderMinimumIv,
   getBuilderObjective,
   getBuilderPassiveGoal,
   getBuilderPassiveIds,
@@ -33,6 +34,7 @@ type BuilderPageProps = {
   onPassivesChange: (value: readonly PassiveId[]) => void;
   onPassiveQueryChange: (value: string) => void;
   onObjectiveChange: (value: BuilderObjective) => void;
+  onMinimumIvChange: (value: number | undefined) => void;
   onHistorySelect: (entry: BuilderHistoryEntry) => void;
   onRun: () => void;
 };
@@ -46,6 +48,7 @@ export default function BuilderPage({
   onPassivesChange,
   onPassiveQueryChange,
   onObjectiveChange,
+  onMinimumIvChange,
   onHistorySelect,
   onRun,
 }: BuilderPageProps) {
@@ -63,6 +66,7 @@ export default function BuilderPage({
     [passiveSelection],
   );
   const objective = getBuilderObjective(search);
+  const minimumIv = getBuilderMinimumIv(search);
   const solveInput = useMemo<BuilderInput | undefined>(() => {
     if (!search.run || !targetId || inventorySnapshot.status === "loading") return undefined;
     return {
@@ -70,9 +74,11 @@ export default function BuilderPage({
       targetId,
       passiveGoal,
       objective,
+      minimumIv,
     };
   }, [
     inventorySnapshot.status,
+    minimumIv,
     objective,
     inventory,
     passiveGoal,
@@ -135,6 +141,27 @@ export default function BuilderPage({
                 <SelectChevron />
               </span>
             </label>
+            <label className="form-field">
+              <span>Minimum IVs</span>
+              <span className="number-control">
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="1"
+                  inputMode="numeric"
+                  placeholder="Any"
+                  value={minimumIv ?? ""}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    onMinimumIvChange(value ? Number(value) : undefined);
+                  }}
+                  aria-describedby="builder-minimum-iv-help"
+                />
+                <span aria-hidden="true">/ 100</span>
+              </span>
+              <small id="builder-minimum-iv-help">All three must be at least this value</small>
+            </label>
           </div>
           <button
             className="primary-button builder-run"
@@ -148,7 +175,7 @@ export default function BuilderPage({
             {isSolving ? "Finding route…" : "Find a breeding route"}
             {isSolving ? <span className="sr-only" role="status">Finding a breeding route. Activate to cancel.</span> : null}
           </button>
-          <p className="model-note">Odds include inherited passives and any required offspring sex. Random Lucky rolls aren't included. IV priority keeps breeding count first, then estimates HP, Attack, and Defense inheritance.</p>
+          <p className="model-note">Odds include inherited passives and required offspring sex; when set, they include your IV floor too. Each IV independently has a 30% chance from either parent and a 40% fresh 0-100 roll. With a floor, every planned breeder is kept only when all three IVs meet it.</p>
         </form>
 
         <div className="feature-card builder-result-card" aria-live="polite">
@@ -159,6 +186,7 @@ export default function BuilderPage({
               solveError={solveError}
               targetId={targetId}
               passiveGoal={passiveGoal}
+              minimumIv={minimumIv}
             />
           </div>
         </div>
@@ -172,11 +200,13 @@ function BuilderResultView({
   solveError,
   targetId,
   passiveGoal,
+  minimumIv,
 }: {
   result?: BuilderResult;
   solveError?: string;
   targetId?: PalId;
   passiveGoal?: PassiveGoal;
+  minimumIv?: number;
 }) {
   if (solveError) {
     return <div className="empty-state is-error"><strong>We couldn't finish that route</strong><span>{solveError}</span></div>;
@@ -208,17 +238,20 @@ function BuilderResultView({
   const passiveSummary = passiveGoal?.kind === "any"
     ? "No passive preference"
     : passiveGoal?.requiredIds.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ") ?? "";
+  const buildSummary = minimumIv
+    ? `${passiveSummary} / HP, Attack, Defense ${minimumIv}+`
+    : passiveSummary;
   return (
     <div className="build-result">
       <div className="build-summary">
         {target ? <PalAvatar pal={target} className="build-summary-avatar" /> : null}
-        <div><span className="result-eyebrow">BREEDING ROUTE</span><h2>{target?.name}</h2><p>{passiveSummary}</p></div>
+        <div><span className="result-eyebrow">BREEDING ROUTE</span><h2>{target?.name}</h2><p>{buildSummary}</p></div>
         <div className="build-metrics"><span><strong>{result.steps.length}</strong>breedings</span><span><strong>{formatEggs(result.expectedCakes)}</strong>eggs on average</span></div>
       </div>
 
       {result.steps.length ? (
         <BuilderRouteTree steps={result.steps} />
-      ) : <div className="status-banner is-success"><span>✓</span><p>You already have this Pal{passiveGoal?.kind === "any" ? "" : " with the passives you chose"} in this world.</p></div>}
+      ) : <div className="status-banner is-success"><span>✓</span><p>You already have this Pal{passiveGoal?.kind === "any" ? "" : " with the passives you chose"}{minimumIv ? ` and all three IVs at ${minimumIv}+` : ""} in this world.</p></div>}
     </div>
   );
 }

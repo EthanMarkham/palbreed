@@ -52,17 +52,20 @@ function BreedingRow({
       aria-label={`Breed ${stepNumber}: ${formatOdds(step.odds)}, ${formatEggs(step.expectedCakes)} eggs`}
     >
       <span className="breeding-route-number" aria-hidden="true">
-        {String(stepNumber).padStart(2, "0")}
+        <small>Step</small>
+        <strong>{String(stepNumber).padStart(2, "0")}</strong>
       </span>
       <div className="breeding-route-formula">
         <BuilderParentPreview parent={step.firstParent} sourceStepNumber={firstSource} />
         <span className="breeding-route-operator" aria-hidden="true">+</span>
         <BuilderParentPreview parent={step.secondParent} sourceStepNumber={secondSource} />
-        <span className="breeding-route-operator is-arrow" aria-hidden="true">→</span>
+        <span className="breeding-route-operator is-arrow" aria-hidden="true">&rarr;</span>
         <BuilderOffspringPreview step={step} isGoal={isGoal} />
       </div>
-      <div className="breeding-route-odds">
-        <strong>{formatOdds(step.odds)} / {formatEggs(step.expectedCakes)} eggs</strong>
+      <div className="breeding-route-odds" aria-hidden="true">
+        <span>Per-egg chance</span>
+        <strong>{formatOdds(step.odds)}</strong>
+        <small>about {formatEggs(step.expectedCakes)} eggs</small>
       </div>
     </article>
   );
@@ -77,8 +80,12 @@ function getSourceStepNumber(
 }
 
 function formatOdds(value: number) {
-  if (value >= 0.1) return `${Math.round(value * 100)}%`;
-  return `${(value * 100).toFixed(1)}%`;
+  const percentage = value * 100;
+  if (percentage >= 10) return `${Math.round(percentage)}%`;
+  if (percentage >= 1) return `${percentage.toFixed(1)}%`;
+  if (percentage >= 0.1) return `${percentage.toFixed(2)}%`;
+  if (percentage >= 0.01) return `${percentage.toFixed(3)}%`;
+  return `${percentage.toPrecision(2)}%`;
 }
 
 function formatEggs(value: number) {
