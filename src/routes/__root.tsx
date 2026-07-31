@@ -1,5 +1,6 @@
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { useEffect, useState } from "react";
 import "../App.css";
 import { breedingRepository } from "../data/breedingRepository";
 import SyncSignIn from "../features/account/SyncSignIn";
@@ -15,13 +16,22 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   const brandMarkUrl = `${import.meta.env.BASE_URL}brand/palpath-mark-512.png`;
+  const [hasHeaderBackdrop, setHasHeaderBackdrop] = useState(false);
+
+  useEffect(() => {
+    const updateHeaderBackdrop = () => setHasHeaderBackdrop(window.scrollY > 8);
+
+    updateHeaderBackdrop();
+    window.addEventListener("scroll", updateHeaderBackdrop, { passive: true });
+    return () => window.removeEventListener("scroll", updateHeaderBackdrop);
+  }, []);
 
   return (
     <div className="site-frame">
       <div className="ambient ambient-one" aria-hidden="true" />
       <div className="ambient ambient-two" aria-hidden="true" />
 
-      <header className="site-header">
+      <header className={`site-header${hasHeaderBackdrop ? " is-scrolled" : ""}`}>
         <Link className="brand" to="/" aria-label="Palpath home">
           <picture className="brand-logo-frame" aria-hidden="true">
             <img className="brand-logo" src={brandMarkUrl} width="512" height="384" alt="" />
