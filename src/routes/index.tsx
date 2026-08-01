@@ -1,4 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import Seo from "../components/Seo";
+import { SEO_PAGES } from "../config/seo";
 import InventoryPage from "../features/inventory/InventoryPage";
 import {
   parseInventorySearch,
@@ -20,10 +22,13 @@ function InventoryRoute() {
   };
 
   return (
-    <InventoryPage
-      search={search}
-      onWorldChange={(value, mode = "push") => updateSearch(setInventoryWorld(search, value), mode)}
-      onQueryChange={(value) => updateSearch(setInventoryQuery(search, value))}
-    />
+    <>
+      <Seo {...SEO_PAGES.inventory} />
+      <InventoryPage
+        search={search}
+        onWorldChange={(value, mode = "push") => updateSearch(setInventoryWorld(search, value), mode)}
+        onQueryChange={(value) => updateSearch(setInventoryQuery(search, value))}
+      />
+    </>
   );
 }

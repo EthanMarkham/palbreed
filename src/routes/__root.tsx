@@ -2,6 +2,7 @@ import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useEffect, useState } from "react";
 import "../App.css";
+import Seo from "../components/Seo";
 import { breedingRepository } from "../data/breedingRepository";
 import SyncSignIn from "../features/account/SyncSignIn";
 import WorldImportDialog from "../features/inventory/WorldImportDialog";
@@ -41,7 +42,7 @@ function RootLayout() {
         <nav className="site-nav" aria-label="Primary navigation">
           <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "is-active" }}>Inventory</Link>
           <Link to="/builder" activeProps={{ className: "is-active" }}>Builder</Link>
-          <Link to="/tools" activeProps={{ className: "is-active" }}>Tools</Link>
+          <Link to="/tools" activeProps={{ className: "is-active" }}>Calculator</Link>
         </nav>
         <div className="header-actions">
           <WorldManager />
@@ -77,11 +78,14 @@ function WorldManager() {
 
 function NotFoundPage() {
   return (
-    <main className="workspace feature-workspace">
-      <section className="feature-card empty-state">
-        <strong>We couldn't find that page</strong>
-        <span>Use the navigation above to head back to Palpath.</span>
-      </section>
-    </main>
+    <>
+      <Seo title="Page Not Found | Palpath" description="This Palpath page could not be found." noIndex />
+      <main className="workspace feature-workspace">
+        <section className="feature-card empty-state">
+          <strong>We couldn't find that page</strong>
+          <span>Use the navigation above to head back to Palpath.</span>
+        </section>
+      </main>
+    </>
   );
 }

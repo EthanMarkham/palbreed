@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import { canonicalUrl, INDEX_ROBOTS, SEO_PAGES, type SeoPage } from "./src/config/seo";
 
 export default defineConfig(({ mode }) => {
   return {
@@ -13,6 +14,7 @@ export default defineConfig(({ mode }) => {
         autoCodeSplitting: true,
       }),
       react(),
+      routeHtmlArtifacts(),
       releaseArtifacts(),
     ],
     build: {
@@ -54,6 +56,69 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
+
+function routeHtmlArtifacts(): Plugin {
+  return {
+    name: "palpath-route-html-artifacts",
+    generateBundle: {
+      order: "post",
+      handler(_, bundle) {
+        const indexAsset = bundle["index.html"];
+        if (!indexAsset || indexAsset.type !== "asset" || typeof indexAsset.source !== "string") {
+          this.error("Vite did not emit the index.html shell needed for route SEO artifacts.");
+        }
+
+        for (const page of Object.values(SEO_PAGES) as readonly SeoPage[]) {
+          if (page.path === "/") continue;
+          this.emitFile({
+            type: "asset",
+            fileName: `${page.path.slice(1)}/index.html`,
+            source: renderRouteHtml(indexAsset.source, page),
+          });
+        }
+      },
+    },
+  };
+}
+
+function renderRouteHtml(source: string, page: SeoPage) {
+  const title = escapeHtml(page.title);
+  const description = escapeHtml(page.description);
+  const robots = page.noIndex ? "noindex, follow" : INDEX_ROBOTS;
+  let html = source
+    .replace(/<title>.*?<\/title>/s, `<title>${title}</title>`)
+    .replace(metaTagPattern("name", "description"), `<meta name="description" content="${description}" />`)
+    .replace(metaTagPattern("name", "robots"), `<meta name="robots" content="${robots}" />`)
+    .replace(metaTagPattern("property", "og:title"), `<meta property="og:title" content="${title}" />`)
+    .replace(metaTagPattern("property", "og:description"), `<meta property="og:description" content="${description}" />`)
+    .replace(metaTagPattern("name", "twitter:title"), `<meta name="twitter:title" content="${title}" />`)
+    .replace(metaTagPattern("name", "twitter:description"), `<meta name="twitter:description" content="${description}" />`);
+
+  if (page.noIndex) {
+    html = html
+      .replace(/\s*<link rel="canonical"[^>]*\/>/, "")
+      .replace(/\s*<meta property="og:url"[^>]*\/>/, "");
+  } else {
+    const url = escapeHtml(canonicalUrl(page.path));
+    html = html
+      .replace(/<link rel="canonical"[^>]*\/>/, `<link rel="canonical" href="${url}" />`)
+      .replace(metaTagPattern("property", "og:url"), `<meta property="og:url" content="${url}" />`);
+  }
+
+  return html;
+}
+
+function metaTagPattern(attribute: "name" | "property", value: string) {
+  return new RegExp(`<meta ${attribute}="${value}" content="[^"]*" \\/>`);
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
 
 function releaseArtifacts(): Plugin {
   return {
