@@ -619,20 +619,17 @@ function buildPartnerActions(
         continue;
       }
 
-      if (existingIndices.some((index) => partnerDominates(
-        inventory[index],
-        partner,
-        acceptsAnyPassives,
-      ))) continue;
+      if (!acceptsAnyPassives && existingIndices.length) {
+        const cleanestExtraCount = inventory[existingIndices[0]].extraCount;
+        if (cleanestExtraCount < partner.extraCount) continue;
+        if (partner.extraCount < cleanestExtraCount) {
+          bestPartnersByOutcome.set(actionKey, [partnerIndex]);
+          continue;
+        }
+      }
       bestPartnersByOutcome.set(
         actionKey,
-        existingIndices
-          .filter((index) => !partnerDominates(
-            partner,
-            inventory[index],
-            acceptsAnyPassives,
-          ))
-          .concat(partnerIndex),
+        selectIvPartnerRepresentatives(existingIndices.concat(partnerIndex), inventory),
       );
     }
 
@@ -817,17 +814,20 @@ function compareIvQuality(first: number, second: number) {
   return first - second;
 }
 
-function partnerDominates(
-  first: EncodedOwnedPal,
-  second: EncodedOwnedPal,
-  acceptsAnyPassives: boolean,
+function selectIvPartnerRepresentatives(
+  candidates: readonly number[],
+  inventory: readonly EncodedOwnedPal[],
 ) {
-  if (!acceptsAnyPassives && first.extraCount > second.extraCount) return false;
-  if (!first.ivScores) return !second.ivScores;
-  if (!second.ivScores) return true;
-  return first.ivScores.hp >= second.ivScores.hp
-    && first.ivScores.attack >= second.ivScores.attack
-    && first.ivScores.defense >= second.ivScores.defense;
+  const knownCandidates = candidates.filter((index) => inventory[index].ivScores);
+  if (!knownCandidates.length) return candidates.slice(0, 1);
+  // Every direct owned pair is still scored exactly. For intermediate hot-loop
+  // actions, keep one all-around representative so IV rerolls stay browser-fast.
+  return [knownCandidates.reduce((best, candidate) => (
+    getIvScoreTotal(inventory[candidate].ivScores)
+      > getIvScoreTotal(inventory[best].ivScores)
+      ? candidate
+      : best
+  ))];
 }
 
 function getPairingIvQuality(

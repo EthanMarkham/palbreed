@@ -270,6 +270,45 @@ describe("Pal Builder", () => {
     expect(performance.now() - startedAt).toBeLessThan(3_000);
   }, 5_000);
 
+  it("keeps a mixed full-Palbox owned-target reroll bounded", () => {
+    const requiredIds = [
+      "CraftSpeed_up2",
+      "CraftSpeed_up3",
+      "MutationPal_Babysitter",
+      "Vampire",
+    ];
+    const otherSpecies = runtimePals.filter(({ id }) => id !== "dynamoff");
+    const largeInventory: OwnedPal[] = Array.from({ length: 690 }, (_, index) => ({
+      id: `mixed-reroll-${index}`,
+      sourceInstanceId: `mixed-reroll-${index}`,
+      speciesId: index === 0 ? "dynamoff" : otherSpecies[index % otherSpecies.length].id,
+      gender: index % 2 === 0 ? "F" : "M",
+      passiveIds: index > 0 && index <= requiredIds.length ? [requiredIds[index - 1]] : [],
+      abilityScores: statScores(
+        1 + ((index * 17) % 100),
+        1 + ((index * 43) % 100),
+        1 + ((index * 71) % 100),
+      ),
+      location: "palbox",
+      palboxSlotIndex: index,
+    }));
+    const startedAt = performance.now();
+
+    const result = buildPal({
+      inventory: largeInventory,
+      targetId: "dynamoff",
+      passiveGoal: {
+        kind: "specific",
+        requiredIds,
+        allowedExtras: 0,
+      },
+      objective: "cleanest",
+    });
+
+    expect(result).toMatchObject({ status: "found", strategy: "iv-reroll" });
+    expect(performance.now() - startedAt).toBeLessThan(3_000);
+  }, 5_000);
+
   it("never proposes a same-sex parent pair", () => {
     const result = buildPal({
       inventory: [inventory[0], { ...inventory[1], gender: "F" }],
