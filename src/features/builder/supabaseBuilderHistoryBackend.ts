@@ -12,6 +12,9 @@ const historyRowSchema = z.object({
   passive_ids: z.array(z.string()),
   objective: z.enum(["recommended", "fewest", "cleanest"]),
   allowed_extra_passives: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  minimum_hp_iv: z.number().int().min(1).max(100).nullish(),
+  minimum_attack_iv: z.number().int().min(1).max(100).nullish(),
+  minimum_defense_iv: z.number().int().min(1).max(100).nullish(),
   searched_at: z.string(),
 });
 
@@ -68,6 +71,9 @@ export class SupabaseBuilderHistoryBackend implements BuilderHistoryBackend {
       search_passive_ids: entry.passives === "any" ? [] : [...entry.passives],
       search_objective: entry.objective,
       search_allowed_extra_passives: entry.allowedExtras,
+      search_minimum_hp_iv: entry.ivGoal?.hp ?? null,
+      search_minimum_attack_iv: entry.ivGoal?.attack ?? null,
+      search_minimum_defense_iv: entry.ivGoal?.defense ?? null,
       anonymous_session_token: anonymousSessionToken ?? null,
     });
     if (error) throw requestError("save the recent build", error);
@@ -104,6 +110,13 @@ function toHistoryEntry(row: z.infer<typeof historyRowSchema>): BuilderHistoryEn
     passives: row.passive_ids.length ? row.passive_ids : "any",
     objective: row.objective,
     allowedExtras: row.allowed_extra_passives,
+    ivGoal: row.minimum_hp_iv || row.minimum_attack_iv || row.minimum_defense_iv
+      ? {
+          ...(row.minimum_hp_iv ? { hp: row.minimum_hp_iv } : {}),
+          ...(row.minimum_attack_iv ? { attack: row.minimum_attack_iv } : {}),
+          ...(row.minimum_defense_iv ? { defense: row.minimum_defense_iv } : {}),
+        }
+      : undefined,
     searchedAt: row.searched_at,
   };
 }

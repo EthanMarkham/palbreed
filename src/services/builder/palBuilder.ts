@@ -8,15 +8,23 @@ import { getPalGenderProbability } from "../../data/palStatsRepository";
 import type { OwnedPal, PalLocation } from "../../domain/inventory";
 import type { PalGender, PalId } from "../../domain/pal";
 import type { PassiveGoal, PassiveId } from "../../domain/passive";
+import {
+  createIvInheritanceOddsTable,
+  getIvGoalDefinitions,
+  getIvQualificationMask,
+  ivGoalForMask,
+  normalizeIvGoal,
+  type IvGoal,
+  type IvGoalDefinition,
+  type IvScores,
+  type IvStat,
+} from "./ivProbability";
 import { estimatePassiveOdds } from "./passiveProbability";
 
 export type BuilderObjective = "recommended" | "fewest" | "cleanest";
 
-export type BuilderIvScores = Readonly<{
-  hp: number;
-  attack: number;
-  defense: number;
-}>;
+export type BuilderIvScores = IvScores;
+export type BuilderIvGoal = IvGoal;
 
 export type BuilderParentPassives =
   | { kind: "known"; ids: readonly PassiveId[] }
@@ -28,6 +36,7 @@ type BuilderParentBase = {
   gender: PalGender;
   passives: BuilderParentPassives;
   ivScores?: BuilderIvScores;
+  ivRequirements?: BuilderIvGoal;
 };
 
 export type BuilderParent =
@@ -47,6 +56,8 @@ export type BuilderStep = {
   secondParentStepId?: string;
   result: PalId;
   resultPassives: BuilderParentPassives;
+  resultIvRequirements?: BuilderIvGoal;
+  ivOdds: number;
   odds: number;
   expectedCakes: number;
 };
@@ -62,6 +73,12 @@ export type BuilderResult =
       missingPassiveIds: readonly PassiveId[];
       reason: string;
     }
+  | {
+      status: "missing-ivs";
+      missingIvStats: readonly IvStat[];
+      ivGoal: BuilderIvGoal;
+      reason: string;
+    }
   | { status: "no-route"; reason: string };
 
 export type BuilderInput = {
@@ -69,6 +86,7 @@ export type BuilderInput = {
   targetId: PalId;
   passiveGoal: PassiveGoal;
   objective: BuilderObjective;
+  ivGoal?: BuilderIvGoal;
 };
 
 type EncodedOwnedPal = {
@@ -77,12 +95,18 @@ type EncodedOwnedPal = {
   passiveIds: readonly PassiveId[];
   requiredMask: number;
   extraCount: number;
+  ivMask: number;
 };
 
 type PartnerAction = {
   childIndex: number;
   partnerIndex: number;
 };
+
+type PartnerActionsByGender = readonly [
+  readonly PartnerAction[],
+  readonly PartnerAction[],
+];
 
 type TargetPairing = {
   firstSpeciesIndex: number;
@@ -105,9 +129,23 @@ const UNVISITED_PARENT = -0x80000000;
 const UNREACHED_STEPS = 0xffff;
 const MAX_CACHED_PARENT_UNION = MAX_PASSIVES * 3;
 const ODDS_DIMENSION = MAX_PASSIVES + 1;
+const passiveMaskBitCounts = new Uint8Array(1 << MAX_PASSIVES);
+const hatchGenderOdds = new Float64Array(runtimePals.length * 2);
 const passiveOdds = new Float64Array(
   (MAX_CACHED_PARENT_UNION + 1) * ODDS_DIMENSION * ODDS_DIMENSION,
 );
+
+for (let mask = 1; mask < passiveMaskBitCounts.length; mask += 1) {
+  passiveMaskBitCounts[mask] = passiveMaskBitCounts[mask >> 1] + (mask & 1);
+}
+
+for (let speciesIndex = 0; speciesIndex < runtimePals.length; speciesIndex += 1) {
+  hatchGenderOdds[speciesIndex * 2] = getPalGenderProbability(runtimePals[speciesIndex].id, "F");
+  hatchGenderOdds[speciesIndex * 2 + 1] = getPalGenderProbability(
+    runtimePals[speciesIndex].id,
+    "M",
+  );
+}
 
 for (let parentUnionSize = 0; parentUnionSize <= MAX_CACHED_PARENT_UNION; parentUnionSize += 1) {
   for (let desiredCount = 0; desiredCount <= MAX_PASSIVES; desiredCount += 1) {
@@ -122,6 +160,11 @@ for (let parentUnionSize = 0; parentUnionSize <= MAX_CACHED_PARENT_UNION; parent
 
 export function buildPal(input: BuilderInput): BuilderResult {
   const inventory = input.inventory;
+  const ivGoal = normalizeIvGoal(input.ivGoal);
+  const ivDefinitions = getIvGoalDefinitions(ivGoal);
+  const fullIvMask = (1 << ivDefinitions.length) - 1;
+  const ivVariants = 1 << ivDefinitions.length;
+  const ivOddsByParentMasks = createIvInheritanceOddsTable(ivDefinitions);
   const passiveGoal = input.passiveGoal;
   const acceptsAnyPassives = passiveGoal.kind === "any";
   const required: PassiveId[] = passiveGoal.kind === "any"
@@ -157,12 +200,27 @@ export function buildPal(input: BuilderInput): BuilderResult {
       passiveIds,
       requiredMask,
       extraCount,
+      ivMask: getIvQualificationMask(getInventoryIvScores(pal), ivDefinitions),
     };
   });
 
-  const ownedTarget = encodedInventory.some(({ pal, requiredMask, extraCount }) =>
+  const availableIvMask = encodedInventory.reduce((mask, pal) => mask | pal.ivMask, 0);
+  if (availableIvMask !== fullIvMask) {
+    const missingIvStats = ivDefinitions
+      .filter(({ bit }) => (availableIvMask & bit) === 0)
+      .map(({ stat }) => stat);
+    return {
+      status: "missing-ivs",
+      missingIvStats,
+      ivGoal,
+      reason: "This world doesn't have a known qualifying source for every hidden-stat target. Random-only mutation routes aren't proposed; add or hatch a Pal that meets each missing target, then try again.",
+    };
+  }
+
+  const ownedTarget = encodedInventory.some(({ pal, requiredMask, extraCount, ivMask }) =>
     pal.speciesId === input.targetId
-    && (acceptsAnyPassives || (requiredMask === fullMask && extraCount <= allowedExtras)),
+    && (acceptsAnyPassives || (requiredMask === fullMask && extraCount <= allowedExtras))
+    && ivMask === fullIvMask,
   );
   if (ownedTarget) return { status: "found", steps: [], expectedCakes: 0 };
 
@@ -173,9 +231,15 @@ export function buildPal(input: BuilderInput): BuilderResult {
   const actionsBySpecies = buildPartnerActions(
     encodedInventory,
     maskVariants,
+    ivVariants,
+    ivOddsByParentMasks,
     acceptsAnyPassives,
   );
-  const stateCount = runtimePals.length * maskVariants * EXTRA_VARIANTS * GENDER_VARIANTS;
+  const stateCount = runtimePals.length
+    * maskVariants
+    * ivVariants
+    * EXTRA_VARIANTS
+    * GENDER_VARIANTS;
   const bestSteps = new Uint16Array(stateCount).fill(UNREACHED_STEPS);
   const bestExpectedCakes = new Float64Array(stateCount).fill(Number.POSITIVE_INFINITY);
   const firstParentRef = new Int32Array(stateCount).fill(UNVISITED_PARENT);
@@ -187,6 +251,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
     () => [],
   );
   const queue = new StatePriorityQueue(input.objective, stateCount);
+  let bestTargetState: number | undefined;
 
   const recordFinalState = (
     maxUnknownExtraCount: number,
@@ -200,9 +265,11 @@ export function buildPal(input: BuilderInput): BuilderResult {
     const state = encodeState(
       targetIndex,
       fullMask,
+      fullIvMask,
       maxUnknownExtraCount,
       undefined,
       maskVariants,
+      ivVariants,
     );
     const nextSteps = steps + 1;
     const nextExpectedCakes = expectedCakes + 1 / odds;
@@ -221,11 +288,24 @@ export function buildPal(input: BuilderInput): BuilderResult {
     firstParentRef[state] = firstRef;
     secondParentRef[state] = secondRef;
     edgeOdds[state] = odds;
+    if (
+      bestTargetState === undefined
+      || compareLabels(
+        nextSteps,
+        nextExpectedCakes,
+        maxUnknownExtraCount,
+        bestSteps[bestTargetState],
+        bestExpectedCakes[bestTargetState],
+        stateExtraCount(bestTargetState),
+        input.objective,
+      ) < 0
+    ) bestTargetState = state;
   };
 
   const relaxState = (
     childIndex: number,
     nextMask: number,
+    nextIvMask: number,
     maxUnknownExtraCount: number,
     gender: PalGender | undefined,
     odds: number,
@@ -235,12 +315,37 @@ export function buildPal(input: BuilderInput): BuilderResult {
     secondRef: number,
   ) => {
     if (odds <= 0) return;
+    for (let cleanerExtraCount = 0; cleanerExtraCount < maxUnknownExtraCount; cleanerExtraCount += 1) {
+      const cleanerState = encodeState(
+        childIndex,
+        nextMask,
+        nextIvMask,
+        cleanerExtraCount,
+        gender,
+        maskVariants,
+        ivVariants,
+      );
+      if (
+        bestSteps[cleanerState] !== UNREACHED_STEPS
+        && compareLabels(
+          bestSteps[cleanerState],
+          bestExpectedCakes[cleanerState],
+          cleanerExtraCount,
+          steps,
+          expectedCakes,
+          maxUnknownExtraCount,
+          input.objective,
+        ) <= 0
+      ) return;
+    }
     const state = encodeState(
       childIndex,
       nextMask,
+      nextIvMask,
       maxUnknownExtraCount,
       gender,
       maskVariants,
+      ivVariants,
     );
     if (settled[state]) return;
     if (bestSteps[state] !== UNREACHED_STEPS && compareLabels(
@@ -258,14 +363,46 @@ export function buildPal(input: BuilderInput): BuilderResult {
     firstParentRef[state] = firstRef;
     secondParentRef[state] = secondRef;
     edgeOdds[state] = odds;
+    for (
+      let dirtierExtraCount = maxUnknownExtraCount + 1;
+      dirtierExtraCount <= MAX_PASSIVES;
+      dirtierExtraCount += 1
+    ) {
+      const dirtierState = encodeState(
+        childIndex,
+        nextMask,
+        nextIvMask,
+        dirtierExtraCount,
+        gender,
+        maskVariants,
+        ivVariants,
+      );
+      if (
+        !settled[dirtierState]
+        && bestSteps[dirtierState] !== UNREACHED_STEPS
+        && compareLabels(
+          steps,
+          expectedCakes,
+          maxUnknownExtraCount,
+          bestSteps[dirtierState],
+          bestExpectedCakes[dirtierState],
+          dirtierExtraCount,
+          input.objective,
+        ) <= 0
+      ) {
+        settled[dirtierState] = 1;
+      }
+    }
     queue.push(state, steps, expectedCakes);
   };
 
   const relaxHatchGenders = (
     childIndex: number,
     nextMask: number,
+    nextIvMask: number,
     maxUnknownExtraCount: number,
     passiveChance: number,
+    ivChance: number,
     isFinalHatch: boolean,
     currentSteps: number,
     currentExpectedCakes: number,
@@ -275,7 +412,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
     if (isFinalHatch) {
       recordFinalState(
         maxUnknownExtraCount,
-        passiveChance,
+        passiveChance * ivChance,
         currentSteps,
         currentExpectedCakes,
         firstRef,
@@ -285,13 +422,13 @@ export function buildPal(input: BuilderInput): BuilderResult {
     }
 
     for (const gender of ["F", "M"] as const) {
-      const odds = passiveChance * getPalGenderProbability(
-        runtimePals[childIndex].id,
-        gender,
-      );
+      const odds = passiveChance * ivChance * hatchGenderOdds[
+        childIndex * 2 + (gender === "M" ? 1 : 0)
+      ];
       relaxState(
         childIndex,
         nextMask,
+        nextIvMask,
         maxUnknownExtraCount,
         gender,
         odds,
@@ -306,21 +443,29 @@ export function buildPal(input: BuilderInput): BuilderResult {
   const relaxOutcome = (
     childIndex: number,
     nextMask: number,
+    firstIvMask: number,
+    secondIvMask: number,
     parentUnionSize: number,
     currentSteps: number,
     currentExpectedCakes: number,
     firstRef: number,
     secondRef: number,
   ) => {
+    const nextIvMask = firstIvMask | secondIvMask;
+    const ivChance = ivOddsByParentMasks[firstIvMask * ivVariants + secondIvMask];
     const desiredCount = countBits(nextMask);
     const availableExtraSlots = MAX_PASSIVES - desiredCount;
-    const isFinalHatch = childIndex === targetIndex && nextMask === fullMask;
+    const isFinalHatch = childIndex === targetIndex
+      && nextMask === fullMask
+      && nextIvMask === fullIvMask;
     if (acceptsAnyPassives) {
       relaxHatchGenders(
         childIndex,
         nextMask,
+        nextIvMask,
         0,
         1,
+        ivChance,
         isFinalHatch,
         currentSteps,
         currentExpectedCakes,
@@ -343,8 +488,10 @@ export function buildPal(input: BuilderInput): BuilderResult {
       relaxHatchGenders(
         childIndex,
         nextMask,
+        nextIvMask,
         acceptedExtras,
         passiveChance,
+        ivChance,
         isFinalHatch,
         currentSteps,
         currentExpectedCakes,
@@ -374,6 +521,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
       relaxOutcome(
         childIndex,
         first.requiredMask | second.requiredMask,
+        first.ivMask,
+        second.ivMask,
         acceptsAnyPassives ? 0 : passiveUnionSize(first.passiveIds, second.passiveIds),
         0,
         0,
@@ -392,20 +541,22 @@ export function buildPal(input: BuilderInput): BuilderResult {
       || settled[current.state]
     ) continue;
 
-    const decoded = decodeState(current.state, maskVariants);
+    const decoded = decodeState(current.state, maskVariants, ivVariants);
     settled[current.state] = 1;
     if (decoded.gender !== undefined) {
       settledBySpeciesAndGender[
         speciesGenderOffset(decoded.speciesIndex, decoded.gender)
       ].push(current.state);
     }
-    for (const action of actionsBySpecies[decoded.speciesIndex]) {
+    const partnerGenderIndex = decoded.gender === "F" ? 1 : 0;
+    for (const action of actionsBySpecies[decoded.speciesIndex][decoded.ivMask][partnerGenderIndex]) {
       const partner = encodedInventory[action.partnerIndex];
-      if (decoded.gender === undefined || decoded.gender === partner.pal.gender) continue;
       const nextMask = decoded.mask | partner.requiredMask;
       relaxOutcome(
         action.childIndex,
         nextMask,
+        decoded.ivMask,
+        partner.ivMask,
         acceptsAnyPassives
           ? 0
           : countBits(nextMask) + partner.extraCount + decoded.maxUnknownExtraCount,
@@ -417,27 +568,52 @@ export function buildPal(input: BuilderInput): BuilderResult {
     }
   }
 
+  const joinBucketsByGroup = new Map<readonly number[], readonly number[][]>();
+  const getJoinBuckets = (states: readonly number[]) => {
+    const existing = joinBucketsByGroup.get(states);
+    if (existing) return existing;
+    const buckets: number[][] = Array.from({ length: maskVariants * ivVariants }, () => []);
+    for (const state of states) {
+      const decoded = decodeState(state, maskVariants, ivVariants);
+      buckets[decoded.mask * ivVariants + decoded.ivMask].push(state);
+    }
+    joinBucketsByGroup.set(states, buckets);
+    return buckets;
+  };
+
   const combineGroups = (firstStates: readonly number[], secondStates: readonly number[]) => {
+    const secondBuckets = getJoinBuckets(secondStates);
     for (const firstState of firstStates) {
-      const first = decodeState(firstState, maskVariants);
-      for (const secondState of secondStates) {
-        const second = decodeState(secondState, maskVariants);
-        const nextMask = first.mask | second.mask;
-        if (nextMask !== fullMask) continue;
-        relaxOutcome(
-          targetIndex,
-          nextMask,
-          acceptsAnyPassives
-            ? 0
-            : countBits(nextMask)
-              + first.maxUnknownExtraCount
-              + second.maxUnknownExtraCount,
-          bestSteps[firstState] + bestSteps[secondState],
-          bestExpectedCakes[firstState] + bestExpectedCakes[secondState],
-          firstState,
-          secondState,
-        );
-      }
+      const first = decodeState(firstState, maskVariants, ivVariants);
+      const missingPassiveMask = fullMask & ~first.mask;
+      const optionalPassiveMask = fullMask & ~missingPassiveMask;
+      const missingIvMask = fullIvMask & ~first.ivMask;
+      const optionalIvMask = fullIvMask & ~missingIvMask;
+
+      forEachSubmask(optionalPassiveMask, (passiveAddition) => {
+        const secondPassiveMask = missingPassiveMask | passiveAddition;
+        forEachSubmask(optionalIvMask, (ivAddition) => {
+          const secondIvMask = missingIvMask | ivAddition;
+          const bucket = secondBuckets[secondPassiveMask * ivVariants + secondIvMask];
+          for (const secondState of bucket) {
+            relaxOutcome(
+              targetIndex,
+              fullMask,
+              first.ivMask,
+              secondIvMask,
+              acceptsAnyPassives
+                ? 0
+                : required.length
+                  + first.maxUnknownExtraCount
+                  + stateExtraCount(secondState),
+              bestSteps[firstState] + bestSteps[secondState],
+              bestExpectedCakes[firstState] + bestExpectedCakes[secondState],
+              firstState,
+              secondState,
+            );
+          }
+        });
+      });
     }
   };
 
@@ -468,26 +644,6 @@ export function buildPal(input: BuilderInput): BuilderResult {
     }
   }
 
-  let bestTargetState: number | undefined;
-  for (let extraCount = 0; extraCount <= allowedExtras; extraCount += 1) {
-    const state = encodeState(targetIndex, fullMask, extraCount, undefined, maskVariants);
-    if (bestSteps[state] === UNREACHED_STEPS) continue;
-    if (
-      bestTargetState === undefined
-      || compareLabels(
-        bestSteps[state],
-        bestExpectedCakes[state],
-        extraCount,
-        bestSteps[bestTargetState],
-        bestExpectedCakes[bestTargetState],
-        stateExtraCount(bestTargetState),
-        input.objective,
-      ) < 0
-    ) {
-      bestTargetState = state;
-    }
-  }
-
   return bestTargetState === undefined
     ? noRoute()
     : {
@@ -495,12 +651,15 @@ export function buildPal(input: BuilderInput): BuilderResult {
         steps: reconstruct(
           bestTargetState,
           maskVariants,
+          ivVariants,
           encodedInventory,
           required,
+          ivDefinitions,
           acceptsAnyPassives,
           firstParentRef,
           secondParentRef,
           edgeOdds,
+          ivOddsByParentMasks,
         ),
         expectedCakes: bestExpectedCakes[bestTargetState],
       };
@@ -526,49 +685,77 @@ function getTargetPairings(targetId: PalId) {
 function buildPartnerActions(
   inventory: readonly EncodedOwnedPal[],
   maskVariants: number,
+  ivVariants: number,
+  ivOddsByParentMasks: Float64Array,
   acceptsAnyPassives: boolean,
 ) {
-  return runtimePals.map((_, firstParentIndex): readonly PartnerAction[] => {
-    const bestPartnerByOutcome = new Map<number, number>();
+  return runtimePals.map((_, firstParentIndex): readonly PartnerActionsByGender[] => (
+    Array.from({ length: ivVariants }, (_, firstIvMask) => {
+      const bestPartnersByOutcome = new Map<number, number[]>();
 
-    for (let partnerIndex = 0; partnerIndex < inventory.length; partnerIndex += 1) {
-      const partner = inventory[partnerIndex];
-      if (partner.speciesIndex < 0) continue;
-      const childIndex = getRuntimeChildIndex(
-        firstParentIndex,
-        partner.speciesIndex,
-        partner.pal.gender,
-      );
-      if (childIndex < 0) continue;
-      const actionKey = (
-        (childIndex * maskVariants + partner.requiredMask) * 2
-      ) + (partner.pal.gender === "M" ? 1 : 0);
-      const existingIndex = bestPartnerByOutcome.get(actionKey);
-      if (
-        existingIndex !== undefined
-        && (acceptsAnyPassives || inventory[existingIndex].extraCount <= partner.extraCount)
-      ) continue;
-      bestPartnerByOutcome.set(actionKey, partnerIndex);
-    }
+      for (let partnerIndex = 0; partnerIndex < inventory.length; partnerIndex += 1) {
+        const partner = inventory[partnerIndex];
+        if (partner.speciesIndex < 0) continue;
+        const childIndex = getRuntimeChildIndex(
+          firstParentIndex,
+          partner.speciesIndex,
+          partner.pal.gender,
+        );
+        if (childIndex < 0) continue;
+        const nextIvMask = firstIvMask | partner.ivMask;
+        const actionKey = (((
+          childIndex * maskVariants + partner.requiredMask
+        ) * ivVariants + nextIvMask) * 2) + (partner.pal.gender === "M" ? 1 : 0);
+        const existingIndices = bestPartnersByOutcome.get(actionKey) ?? [];
+        const partnerIvOdds = ivOddsByParentMasks[firstIvMask * ivVariants + partner.ivMask];
+        const isDominated = existingIndices.some((existingIndex) => {
+          const existing = inventory[existingIndex];
+          return (acceptsAnyPassives || existing.extraCount <= partner.extraCount)
+            && ivOddsByParentMasks[firstIvMask * ivVariants + existing.ivMask] >= partnerIvOdds;
+        });
+        if (isDominated) continue;
 
-    return [...bestPartnerByOutcome].map(([actionKey, partnerIndex]) => ({
-      childIndex: Math.floor(actionKey / (maskVariants * 2)),
-      partnerIndex,
-    }));
-  });
+        bestPartnersByOutcome.set(
+          actionKey,
+          existingIndices.filter((existingIndex) => {
+            const existing = inventory[existingIndex];
+            return (!acceptsAnyPassives && partner.extraCount > existing.extraCount)
+              || partnerIvOdds
+                < ivOddsByParentMasks[firstIvMask * ivVariants + existing.ivMask];
+          }).concat(partnerIndex),
+        );
+      }
+
+      const actionsByGender: [PartnerAction[], PartnerAction[]] = [[], []];
+      for (const [actionKey, partnerIndices] of bestPartnersByOutcome) {
+        const childIndex = Math.floor(actionKey / (maskVariants * ivVariants * 2));
+        for (const partnerIndex of partnerIndices) {
+          const genderIndex = inventory[partnerIndex].pal.gender === "M" ? 1 : 0;
+          actionsByGender[genderIndex].push({ childIndex, partnerIndex });
+        }
+      }
+      return actionsByGender;
+    })
+  ));
 }
 
 function reconstruct(
   targetState: number,
   maskVariants: number,
+  ivVariants: number,
   inventory: readonly EncodedOwnedPal[],
   required: readonly PassiveId[],
+  ivDefinitions: readonly IvGoalDefinition[],
   acceptsAnyPassives: boolean,
   firstParentRef: Int32Array,
   secondParentRef: Int32Array,
   edgeOdds: Float64Array,
+  ivOddsByParentMasks: Float64Array,
 ) {
   const steps: BuilderStep[] = [];
+  const ivMaskFromRef = (ref: number) => ref < 0
+    ? inventory[decodeInventoryRef(ref)].ivMask
+    : decodeState(ref, maskVariants, ivVariants).ivMask;
   const appendState = (state: number): string => {
     const firstRef = firstParentRef[state];
     const secondRef = secondParentRef[state];
@@ -578,7 +765,7 @@ function reconstruct(
     const firstParentStepId = firstRef >= 0 ? appendState(firstRef) : undefined;
     const secondParentStepId = secondRef >= 0 ? appendState(secondRef) : undefined;
 
-    const resultState = decodeState(state, maskVariants);
+    const resultState = decodeState(state, maskVariants, ivVariants);
     const resultPassives = passivesForState(
       resultState.mask,
       resultState.maxUnknownExtraCount,
@@ -592,8 +779,10 @@ function reconstruct(
       firstParent: createParentFromRef(
         firstRef,
         maskVariants,
+        ivVariants,
         inventory,
         required,
+        ivDefinitions,
         acceptsAnyPassives,
         firstParentRef,
       ),
@@ -601,14 +790,20 @@ function reconstruct(
       secondParent: createParentFromRef(
         secondRef,
         maskVariants,
+        ivVariants,
         inventory,
         required,
+        ivDefinitions,
         acceptsAnyPassives,
         firstParentRef,
       ),
       secondParentStepId,
       result: runtimePals[resultState.speciesIndex].id,
       resultPassives,
+      resultIvRequirements: ivGoalForMask(resultState.ivMask, ivDefinitions),
+      ivOdds: ivOddsByParentMasks[
+        ivMaskFromRef(firstRef) * ivVariants + ivMaskFromRef(secondRef)
+      ],
       odds,
       expectedCakes: 1 / odds,
     });
@@ -622,8 +817,10 @@ function reconstruct(
 function createParentFromRef(
   ref: number,
   maskVariants: number,
+  ivVariants: number,
   inventory: readonly EncodedOwnedPal[],
   required: readonly PassiveId[],
+  ivDefinitions: readonly IvGoalDefinition[],
   acceptsAnyPassives: boolean,
   firstParentRef: Int32Array,
 ) {
@@ -632,8 +829,9 @@ function createParentFromRef(
     throw new Error("A planned breeding parent has no production step.");
   }
   return createPlannedParent(
-    decodeState(ref, maskVariants),
+    decodeState(ref, maskVariants, ivVariants),
     required,
+    ivDefinitions,
     acceptsAnyPassives,
   );
 }
@@ -642,10 +840,12 @@ function createPlannedParent(
   state: {
     speciesIndex: number;
     mask: number;
+    ivMask: number;
     maxUnknownExtraCount: number;
     gender: PalGender | undefined;
   },
   required: readonly PassiveId[],
+  ivDefinitions: readonly IvGoalDefinition[],
   acceptsAnyPassives: boolean,
 ): BuilderParent {
   if (!state.gender) throw new Error("A planned breeding parent must have a gender.");
@@ -654,6 +854,7 @@ function createPlannedParent(
     origin: "planned",
     level: 1,
     gender: state.gender,
+    ivRequirements: ivGoalForMask(state.ivMask, ivDefinitions),
     passives: passivesForState(
       state.mask,
       state.maxUnknownExtraCount,
@@ -746,33 +947,37 @@ function passiveUnionSize(first: readonly PassiveId[], second: readonly PassiveI
 }
 
 function countBits(value: number) {
-  let count = 0;
-  for (let remaining = value; remaining; remaining &= remaining - 1) count += 1;
-  return count;
+  return passiveMaskBitCounts[value] ?? 0;
 }
 
 function encodeState(
   speciesIndex: number,
   mask: number,
+  ivMask: number,
   maxUnknownExtraCount: number,
   gender: PalGender | undefined,
   maskVariants: number,
+  ivVariants: number,
 ) {
   return (
-    ((speciesIndex * maskVariants + mask) * EXTRA_VARIANTS + maxUnknownExtraCount)
+    (((speciesIndex * maskVariants + mask) * ivVariants + ivMask)
+      * EXTRA_VARIANTS + maxUnknownExtraCount)
     * GENDER_VARIANTS
   ) + encodeGender(gender);
 }
 
-function decodeState(state: number, maskVariants: number) {
+function decodeState(state: number, maskVariants: number, ivVariants: number) {
   const genderIndex = state % GENDER_VARIANTS;
   const withoutGender = (state - genderIndex) / GENDER_VARIANTS;
   const maxUnknownExtraCount = withoutGender % EXTRA_VARIANTS;
   const withoutExtras = (withoutGender - maxUnknownExtraCount) / EXTRA_VARIANTS;
-  const mask = withoutExtras % maskVariants;
+  const ivMask = withoutExtras % ivVariants;
+  const withoutIvMask = (withoutExtras - ivMask) / ivVariants;
+  const mask = withoutIvMask % maskVariants;
   return {
-    speciesIndex: (withoutExtras - mask) / maskVariants,
+    speciesIndex: (withoutIvMask - mask) / maskVariants,
     mask,
+    ivMask,
     maxUnknownExtraCount,
     gender: decodeGender(genderIndex),
   };
@@ -967,6 +1172,15 @@ class StatePriorityQueue {
 
 function stateExtraCount(state: number) {
   return Math.floor(state / GENDER_VARIANTS) % EXTRA_VARIANTS;
+}
+
+function forEachSubmask(mask: number, visit: (submask: number) => void) {
+  let submask = mask;
+  while (true) {
+    visit(submask);
+    if (submask === 0) return;
+    submask = (submask - 1) & mask;
+  }
 }
 
 function speciesGenderOffset(speciesIndex: number, gender: PalGender) {

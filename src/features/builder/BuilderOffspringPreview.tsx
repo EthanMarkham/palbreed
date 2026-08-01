@@ -6,6 +6,7 @@ import { breedingRepository } from "../../data/breedingRepository";
 import { getPalBaseStats } from "../../data/palStatsRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { BuilderStep } from "../../services/builder/palBuilder";
+import BuilderIvScores from "./BuilderIvScores";
 
 export default function BuilderOffspringPreview({
   step,
@@ -104,8 +105,18 @@ export default function BuilderOffspringPreview({
                     </dl>
                   </div>
                 ) : null}
+                {step.resultIvRequirements ? (
+                  <BuilderIvScores
+                    scores={step.resultIvRequirements}
+                    label="Kept hidden-score floors"
+                    minimum
+                  />
+                ) : null}
                 <dl className="builder-parent-popover-facts">
                   <div><dt>Breed chance</dt><dd>{formatOdds(step.odds)}</dd></div>
+                  {step.resultIvRequirements ? (
+                    <div><dt>Hidden-score floor odds</dt><dd>{formatOdds(step.ivOdds)}</dd></div>
+                  ) : null}
                   <div><dt>Eggs on average</dt><dd>{formatEggs(step.expectedCakes)}</dd></div>
                 </dl>
                 <div className="builder-parent-popover-passives">

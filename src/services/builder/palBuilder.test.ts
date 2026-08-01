@@ -65,6 +65,72 @@ describe("Pal Builder", () => {
     }
   });
 
+  it("applies a per-stat floor and rewards two qualifying parents", () => {
+    const bothQualify = buildPal({
+      inventory: inventory.map((pal) => ({ ...pal, abilityScores: abilityScores(90) })),
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "cleanest",
+      ivGoal: { hp: 80 },
+    });
+    const oneQualifies = buildPal({
+      inventory: [
+        { ...inventory[0], abilityScores: abilityScores(90) },
+        { ...inventory[1], abilityScores: abilityScores(20) },
+      ],
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "cleanest",
+      ivGoal: { hp: 80 },
+    });
+
+    expect(bothQualify.status).toBe("found");
+    expect(oneQualifies.status).toBe("found");
+    if (bothQualify.status === "found" && oneQualifies.status === "found") {
+      expect(bothQualify.steps[0].ivOdds).toBeCloseTo(0.684);
+      expect(oneQualifies.steps[0].ivOdds).toBeCloseTo(0.384);
+      expect(bothQualify.steps[0].odds).toBeGreaterThan(oneQualifies.steps[0].odds);
+      expect(bothQualify.steps[0].resultIvRequirements).toEqual({ hp: 80 });
+    }
+  });
+
+  it("keeps threshold-qualified hidden stats on intermediate planned parents", () => {
+    const result = buildPal({
+      inventory: [
+        { ...inventory[0], abilityScores: abilityScores(90) },
+        { ...inventory[1], abilityScores: abilityScores(10) },
+      ],
+      targetId: "fuack",
+      passiveGoal: { kind: "any" },
+      objective: "fewest",
+      ivGoal: { hp: 80 },
+    });
+
+    expect(result.status).toBe("found");
+    if (result.status === "found") {
+      expect(result.steps).toHaveLength(2);
+      expect(result.steps[0].resultIvRequirements).toEqual({ hp: 80 });
+      expect(result.steps[1].firstParent.ivRequirements).toEqual({ hp: 80 });
+      expect(result.steps[1].resultIvRequirements).toEqual({ hp: 80 });
+    }
+  });
+
+  it("reports hidden-stat goals with no known source before route search", () => {
+    const result = buildPal({
+      inventory: inventory.map((pal) => ({ ...pal, abilityScores: abilityScores(70) })),
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "recommended",
+      ivGoal: { hp: 80, defense: 90 },
+    });
+
+    expect(result).toMatchObject({
+      status: "missing-ivs",
+      missingIvStats: ["hp", "defense"],
+      ivGoal: { hp: 80, defense: 90 },
+    });
+  });
+
   it("describes intermediate hatches when they become proposed parents", () => {
     const result = buildPal({
       inventory,
@@ -233,6 +299,45 @@ describe("Pal Builder", () => {
     expect(result.status).toBe("found");
     expect(performance.now() - startedAt).toBeLessThan(3_000);
   }, 5_000);
+
+  it("keeps a full Palbox search with all hidden-stat masks bounded", () => {
+    const requiredIds = [
+      "CraftSpeed_up2",
+      "CraftSpeed_up3",
+      "MutationPal_Babysitter",
+      "Vampire",
+    ];
+    const species = runtimePals.filter(({ id }) => id !== "dynamoff");
+    const largeInventory: OwnedPal[] = Array.from({ length: 690 }, (_, index) => {
+      const ivMask = index % 8;
+      return {
+        id: `iv-large-${index}`,
+        sourceInstanceId: `iv-large-${index}`,
+        speciesId: species[index % species.length].id,
+        gender: index % 2 === 0 ? "F" : "M",
+        passiveIds: index < requiredIds.length ? [requiredIds[index]] : [],
+        abilityScores: {
+          hp: ivMask & 1 ? 90 : 10,
+          melee: 10,
+          ranged: ivMask & 2 ? 90 : 10,
+          defense: ivMask & 4 ? 90 : 10,
+        },
+        location: "palbox",
+      };
+    });
+    const startedAt = performance.now();
+
+    const result = buildPal({
+      inventory: largeInventory,
+      targetId: "dynamoff",
+      passiveGoal: { kind: "specific", requiredIds, allowedExtras: 0 },
+      objective: "cleanest",
+      ivGoal: { hp: 80, attack: 80, defense: 80 },
+    });
+
+    expect(result.status).toBe("found");
+    expect(performance.now() - startedAt).toBeLessThan(4_000);
+  }, 6_000);
 
   it("never proposes a same-sex parent pair", () => {
     const result = buildPal({

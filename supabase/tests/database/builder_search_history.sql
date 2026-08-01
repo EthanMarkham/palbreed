@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(34);
+select plan(39);
 
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
@@ -9,7 +9,8 @@ select set_config('request.jwt.claims', '{"role":"anon"}', true);
 select lives_ok(
   $$ select public.record_builder_search(
     'lamball', array['Legend', 'Swift'], 'fewest', 1,
-    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    80, 85, null
   ) $$,
   'anonymous sessions can record builder searches'
 );
@@ -17,7 +18,8 @@ select lives_ok(
 select lives_ok(
   $$ select public.record_builder_search(
     'lamball', array['Swift', 'Legend'], 'cleanest', 2,
-    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    90, null, 75
   ) $$,
   'route settings update the same canonical search'
 );
@@ -25,7 +27,8 @@ select lives_ok(
 select lives_ok(
   $$ select public.record_builder_search(
     'lamball', array['Legend', 'Swift'], 'cleanest', 2,
-    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    90, null, 75
   ) from generate_series(1, 18) $$,
   'the same session can repeat one search twenty times'
 );
@@ -39,12 +42,14 @@ select is(
 );
 
 select results_eq(
-  $$ select target_pal_id, passive_ids, objective, allowed_extra_passives
+  $$ select target_pal_id, passive_ids, objective, allowed_extra_passives,
+      minimum_hp_iv, minimum_attack_iv, minimum_defense_iv
     from public.list_recent_builder_searches(
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 8
     ) $$,
-  $$ values ('lamball'::text, array['Legend', 'Swift']::text[], 'cleanest'::text, 2::smallint) $$,
-  'the latest settings and canonical passive IDs are restored'
+  $$ values ('lamball'::text, array['Legend', 'Swift']::text[], 'cleanest'::text,
+      2::smallint, 90::smallint, null::smallint, 75::smallint) $$,
+  'the latest settings, hidden-score floors, and canonical passive IDs are restored'
 );
 
 select throws_ok(
@@ -57,11 +62,58 @@ select throws_ok(
   'the removed IV objective is rejected'
 );
 
-select hasnt_column(
+select has_column(
   'public',
   'builder_search_history',
-  'minimum_iv',
-  'the removed IV floor is absent from recent-search storage'
+  'minimum_hp_iv',
+  'recent searches store an optional HP floor'
+);
+
+select has_column(
+  'public',
+  'builder_search_history',
+  'minimum_attack_iv',
+  'recent searches store an optional Attack floor'
+);
+
+select has_column(
+  'public',
+  'builder_search_history',
+  'minimum_defense_iv',
+  'recent searches store an optional Defense floor'
+);
+
+select throws_ok(
+  $$ select public.record_builder_search(
+    'lamball', '{}'::text[], 'recommended', 0,
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    101, null, null
+  ) $$,
+  '22023',
+  'Minimum HP IV must be between one and one hundred.',
+  'HP floors above one hundred are rejected'
+);
+
+select throws_ok(
+  $$ select public.record_builder_search(
+    'lamball', '{}'::text[], 'recommended', 0,
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    null, 0, null
+  ) $$,
+  '22023',
+  'Minimum Attack IV must be between one and one hundred.',
+  'Attack floors below one are rejected'
+);
+
+select throws_ok(
+  $$ select public.record_builder_search(
+    'lamball', '{}'::text[], 'recommended', 0,
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    null, null, 101
+  ) $$,
+  '22023',
+  'Minimum Defense IV must be between one and one hundred.',
+  'Defense floors above one hundred are rejected'
 );
 
 select throws_ok(
@@ -125,7 +177,7 @@ select set_config(
 
 select lives_ok(
   $$ select public.record_builder_search(
-    'lamball', array['Legend', 'Swift'], 'recommended', 0, null
+    'lamball', array['Legend', 'Swift'], 'recommended', 0, null, 95, 96, 97
   ) $$,
   'authenticated users can record directly to their account'
 );
@@ -148,14 +200,16 @@ select is(
 );
 
 select results_eq(
-  $$ select search_count, user_id, anonymous_session_hash is null
+  $$ select search_count, user_id, anonymous_session_hash is null,
+      minimum_hp_iv, minimum_attack_iv, minimum_defense_iv
     from public.builder_search_history
     where definition_id = (
       select id from public.builder_search_definitions
       where target_pal_id = 'lamball' and passive_ids = array['Legend', 'Swift']
     ) $$,
-  $$ values (21::bigint, '44444444-4444-4444-4444-444444444444'::uuid, true) $$,
-  'claiming merges duplicates, preserves counts, and removes anonymous ownership'
+  $$ values (21::bigint, '44444444-4444-4444-4444-444444444444'::uuid, true,
+      95::smallint, 96::smallint, 97::smallint) $$,
+  'claiming merges duplicates, preserves the latest hidden-score floors and counts, and removes anonymous ownership'
 );
 
 set local role authenticated;

@@ -9,10 +9,12 @@ import type { PalId } from "../../domain/pal";
 import type { OwnedPal } from "../../domain/inventory";
 import type { PassiveGoal, PassiveId } from "../../domain/passive";
 import {
+  type BuilderIvGoal,
   type BuilderInput,
   type BuilderObjective,
   type BuilderResult,
 } from "../../services/builder/palBuilder";
+import type { IvStat } from "../../services/builder/ivProbability";
 import { usePalBuilder } from "../../services/builder/usePalBuilder";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
@@ -20,6 +22,7 @@ import BuilderHistoryMenu from "./BuilderHistoryMenu";
 import BuilderRouteTree from "./BuilderRouteTree";
 import type { BuilderHistoryEntry } from "./builderHistory";
 import {
+  getBuilderIvGoal,
   getBuilderObjective,
   getBuilderPassiveGoal,
   getBuilderPassiveIds,
@@ -33,6 +36,7 @@ type BuilderPageProps = {
   onPassivesChange: (value: readonly PassiveId[]) => void;
   onPassiveQueryChange: (value: string) => void;
   onObjectiveChange: (value: BuilderObjective) => void;
+  onIvMinimumChange: (stat: IvStat, value: number | undefined) => void;
   onHistorySelect: (entry: BuilderHistoryEntry) => void;
   onRun: () => void;
 };
@@ -46,6 +50,7 @@ export default function BuilderPage({
   onPassivesChange,
   onPassiveQueryChange,
   onObjectiveChange,
+  onIvMinimumChange,
   onHistorySelect,
   onRun,
 }: BuilderPageProps) {
@@ -63,6 +68,11 @@ export default function BuilderPage({
     [passiveSelection],
   );
   const objective = getBuilderObjective(search);
+  const { ivHp, ivAttack, ivDefense } = search;
+  const ivGoal = useMemo(
+    () => getBuilderIvGoal({ ivHp, ivAttack, ivDefense }),
+    [ivAttack, ivDefense, ivHp],
+  );
   const solveInput = useMemo<BuilderInput | undefined>(() => {
     if (!search.run || !targetId || inventorySnapshot.status === "loading") return undefined;
     return {
@@ -70,9 +80,11 @@ export default function BuilderPage({
       targetId,
       passiveGoal,
       objective,
+      ivGoal,
     };
   }, [
     inventorySnapshot.status,
+    ivGoal,
     objective,
     inventory,
     passiveGoal,
@@ -135,6 +147,15 @@ export default function BuilderPage({
               </span>
             </label>
           </div>
+          <fieldset className="builder-iv-goal">
+            <legend>Hidden score minimums <small>optional</small></legend>
+            <div>
+              <IvMinimumInput stat="hp" label="HP" value={ivGoal.hp} onChange={onIvMinimumChange} />
+              <IvMinimumInput stat="attack" label="Attack" value={ivGoal.attack} onChange={onIvMinimumChange} />
+              <IvMinimumInput stat="defense" label="Defense" value={ivGoal.defense} onChange={onIvMinimumChange} />
+            </div>
+            <p>Set only the stats you care about. A value of 80 means the kept offspring must be 80 or higher.</p>
+          </fieldset>
           <button
             className="primary-button builder-run"
             type={isSolving ? "button" : "submit"}
@@ -147,7 +168,7 @@ export default function BuilderPage({
             {isSolving ? "Finding route…" : "Find a breeding route"}
             {isSolving ? <span className="sr-only" role="status">Finding a breeding route. Activate to cancel.</span> : null}
           </button>
-          <p className="model-note">Odds include inherited passives and any required offspring sex. Random Lucky rolls aren't included.</p>
+          <p className="model-note">Odds include passives, required offspring sex, and selected hidden-score floors. Each hidden stat rolls independently: 30% from each parent and 40% as a fresh 1-100 value. A fresh roll counts when it clears the floor; two qualifying parents raise the inherited share from 30% to 60%.</p>
         </form>
 
         <div className="feature-card builder-result-card" aria-live="polite">
@@ -158,6 +179,7 @@ export default function BuilderPage({
               solveError={solveError}
               targetId={targetId}
               passiveGoal={passiveGoal}
+              ivGoal={ivGoal}
             />
           </div>
         </div>
@@ -171,11 +193,13 @@ function BuilderResultView({
   solveError,
   targetId,
   passiveGoal,
+  ivGoal,
 }: {
   result?: BuilderResult;
   solveError?: string;
   targetId?: PalId;
   passiveGoal?: PassiveGoal;
+  ivGoal: BuilderIvGoal;
 }) {
   if (solveError) {
     return <div className="empty-state is-error"><strong>We couldn't finish that route</strong><span>{solveError}</span></div>;
@@ -199,6 +223,24 @@ function BuilderResultView({
       </div>
     );
   }
+  if (result.status === "missing-ivs") {
+    return (
+      <div className="gap-result">
+        <span className="result-eyebrow">MISSING HIDDEN SCORES</span>
+        <h2>Need {result.missingIvStats.length} more qualifying stat source{result.missingIvStats.length === 1 ? "" : "s"}</h2>
+        <p>{result.reason}</p>
+        <div className="gap-list">
+          {result.missingIvStats.map((stat) => (
+            <span key={stat}>
+              <strong>{formatIvStat(stat)} {result.ivGoal[stat]}+</strong>
+              <small>Add a Pal with a known score at or above this floor.</small>
+            </span>
+          ))}
+        </div>
+        <Link className="secondary-button link-button" to="/">Open inventory</Link>
+      </div>
+    );
+  }
   if (result.status === "no-route") {
     return <div className="empty-state is-error"><strong>No route from this world</strong><span>{result.reason}</span><Link to="/">Check inventory</Link></div>;
   }
@@ -207,19 +249,65 @@ function BuilderResultView({
   const passiveSummary = passiveGoal?.kind === "any"
     ? "No passive preference"
     : passiveGoal?.requiredIds.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ") ?? "";
+  const buildSummary = [passiveSummary, formatIvGoal(ivGoal)].filter(Boolean).join(" / ");
   return (
     <div className="build-result">
       <div className="build-summary">
         {target ? <PalAvatar pal={target} className="build-summary-avatar" /> : null}
-        <div><span className="result-eyebrow">BREEDING ROUTE</span><h2>{target?.name}</h2><p>{passiveSummary}</p></div>
+        <div><span className="result-eyebrow">BREEDING ROUTE</span><h2>{target?.name}</h2><p>{buildSummary}</p></div>
         <div className="build-metrics"><span><strong>{result.steps.length}</strong>breedings</span><span><strong>{formatEggs(result.expectedCakes)}</strong>eggs on average</span></div>
       </div>
 
       {result.steps.length ? (
         <BuilderRouteTree steps={result.steps} />
-      ) : <div className="status-banner is-success"><span>✓</span><p>You already have this Pal{passiveGoal?.kind === "any" ? "" : " with the passives you chose"} in this world.</p></div>}
+      ) : <div className="status-banner is-success"><span>✓</span><p>You already have this Pal with the selected build requirements in this world.</p></div>}
     </div>
   );
+}
+
+function IvMinimumInput({
+  stat,
+  label,
+  value,
+  onChange,
+}: {
+  stat: IvStat;
+  label: string;
+  value?: number;
+  onChange: (stat: IvStat, value: number | undefined) => void;
+}) {
+  return (
+    <label>
+      <span>{label}</span>
+      <span className="builder-iv-number">
+        <input
+          type="number"
+          min="1"
+          max="100"
+          step="1"
+          inputMode="numeric"
+          placeholder="Any"
+          aria-label={`${label} minimum hidden score`}
+          value={value ?? ""}
+          onChange={(event) => {
+            const nextValue = event.currentTarget.valueAsNumber;
+            onChange(stat, Number.isFinite(nextValue) ? nextValue : undefined);
+          }}
+        />
+        <small>/100</small>
+      </span>
+    </label>
+  );
+}
+
+function formatIvGoal(goal: BuilderIvGoal) {
+  return (["hp", "attack", "defense"] as const)
+    .flatMap((stat) => goal[stat] === undefined ? [] : [`${formatIvStat(stat)} ${goal[stat]}+`])
+    .join(" · ");
+}
+
+function formatIvStat(stat: IvStat) {
+  return stat === "hp" ? "HP" : stat === "attack" ? "Attack" : "Defense";
 }
 
 function formatEggs(value: number) {

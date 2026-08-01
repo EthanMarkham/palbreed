@@ -88,6 +88,11 @@ function HistoryRow({
   const passiveSummary = entry.passives === "any"
     ? "No passive preference"
     : entry.passives.map((id) => passiveRepository.get(id)?.name ?? id).join(" · ");
+  const ivSummary = (["hp", "attack", "defense"] as const)
+    .flatMap((stat) => entry.ivGoal?.[stat] === undefined
+      ? []
+      : [`${stat === "hp" ? "HP" : stat === "attack" ? "Attack" : "Defense"} ${entry.ivGoal[stat]}+`])
+    .join(" · ");
 
   return (
     <li>
@@ -95,7 +100,7 @@ function HistoryRow({
         <span className="builder-history-pal">{target ? <PalAvatar pal={target} /> : null}</span>
         <span className="builder-history-copy">
           <strong>{target?.name ?? entry.targetId}</strong>
-          <span>{passiveSummary}</span>
+          <span>{[passiveSummary, ivSummary].filter(Boolean).join(" · ")}</span>
           <small>{formatSettings(entry)} · <time dateTime={entry.searchedAt}>{formatDate(entry.searchedAt)}</time></small>
         </span>
         <ChevronIcon />

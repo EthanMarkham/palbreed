@@ -110,6 +110,13 @@ export default function BuilderParentPreview({
                     label="Hidden scores"
                   />
                 ) : null}
+                {parent.ivRequirements ? (
+                  <BuilderIvScores
+                    scores={parent.ivRequirements}
+                    label="Kept hidden-score floors"
+                    minimum
+                  />
+                ) : null}
                 <div className="builder-parent-popover-passives">
                   <span>Passives</span>
                   {parent.passives.kind === "any" ? (
