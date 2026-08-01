@@ -2,8 +2,7 @@ import { z } from "zod";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { PalId } from "../../domain/pal";
 import type { PassiveGoal, PassiveId } from "../../domain/passive";
-import type { BuilderIvGoal, BuilderObjective } from "../../services/builder/palBuilder";
-import { normalizeIvMinimum } from "../../services/builder/ivProbability";
+import type { BuilderObjective } from "../../services/builder/palBuilder";
 import {
   compactSearch,
   normalizePalSearch,
@@ -17,9 +16,6 @@ const rawBuilderSearchSchema = z.object({
   passives: z.union([z.string(), z.array(z.string())]).optional().catch(undefined),
   passiveQuery: optionalStringSearchParam,
   objective: optionalStringSearchParam,
-  ivHp: z.union([z.string(), z.number(), z.array(z.string())]).optional().catch(undefined),
-  ivAttack: z.union([z.string(), z.number(), z.array(z.string())]).optional().catch(undefined),
-  ivDefense: z.union([z.string(), z.number(), z.array(z.string())]).optional().catch(undefined),
   run: z.union([z.string(), z.boolean()]).optional().catch(undefined),
 });
 
@@ -29,9 +25,6 @@ export type BuilderSearchState = {
   passives?: string;
   passiveQuery?: string;
   objective?: Exclude<BuilderObjective, "recommended">;
-  ivHp?: number;
-  ivAttack?: number;
-  ivDefense?: number;
   run?: true;
 };
 
@@ -44,9 +37,6 @@ export function parseBuilderSearch(search: Record<string, unknown>): BuilderSear
     || raw.objective === "cleanest"
     ? raw.objective
     : undefined;
-  const ivHp = normalizeIvMinimumSearch(raw.ivHp);
-  const ivAttack = normalizeIvMinimumSearch(raw.ivAttack);
-  const ivDefense = normalizeIvMinimumSearch(raw.ivDefense);
   const run = raw.run === true || raw.run === "true" || raw.run === "1" ? true : undefined;
   const serializedPassives = passiveSelection.join(",") || undefined;
 
@@ -56,9 +46,6 @@ export function parseBuilderSearch(search: Record<string, unknown>): BuilderSear
     passives: serializedPassives,
     passiveQuery,
     objective,
-    ivHp,
-    ivAttack,
-    ivDefense,
     run,
   });
 }
@@ -81,14 +68,6 @@ export function getBuilderObjective(search: BuilderSearchState): BuilderObjectiv
   return search.objective ?? "recommended";
 }
 
-export function getBuilderIvGoal(search: BuilderSearchState): BuilderIvGoal {
-  return {
-    ...(search.ivHp === undefined ? {} : { hp: search.ivHp }),
-    ...(search.ivAttack === undefined ? {} : { attack: search.ivAttack }),
-    ...(search.ivDefense === undefined ? {} : { defense: search.ivDefense }),
-  };
-}
-
 function normalizePassiveSelection(value: string | readonly string[] | undefined): PassiveId[] {
   const values = (typeof value === "string" ? [value] : value ?? [])
     .flatMap((entry) => entry.split(","))
@@ -97,10 +76,4 @@ function normalizePassiveSelection(value: string | readonly string[] | undefined
   const validIds = values
     .filter((id) => passiveRepository.get(id));
   return [...new Set(validIds)].slice(0, 4);
-}
-
-function normalizeIvMinimumSearch(value: string | number | readonly string[] | undefined) {
-  const scalar = typeof value === "string" || typeof value === "number" ? value : value?.[0];
-  if (scalar === undefined || (typeof scalar === "string" && !scalar.trim())) return undefined;
-  return normalizeIvMinimum(typeof scalar === "number" ? scalar : Number(scalar));
 }

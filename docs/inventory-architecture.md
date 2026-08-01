@@ -63,22 +63,13 @@ review; this is a release gate, not an optional attribution note.
 - Path Finder uses breadth-first search over the complete table, so its
   continuous-carrier route has the minimum number of breedings.
 - Pal Builder exhaustively searches the finite `(species, gender, required
-  passive mask, carried passives, hidden-score mask)` carrier state space with
-  owned partners.
+  passive mask, carried passives)` carrier state space with owned partners.
   Every proposed pairing enforces one male and one female parent, including
   the oriented gender requirements for species-specific breeding exceptions.
   An empty passive selection removes the passive constraint. Selected passives
   are required, while unselected passive slots remain unconstrained.
   “Cleanest” uses estimated expected cakes; probability copy is always labeled
   as estimated.
-- Optional, independent HP, ranged Attack, and Defense floors extend each
-  carrier with a compact threshold-qualified bit mask. Each selected stat rolls
-  independently: 30% copies the first parent, 30% copies the second, and 40%
-  generates a fresh value from the inclusive 1-100 range. For a floor `t`, the
-  modeled success chance is `0.3 * qualifyingParents + 0.4 * (101 - t) / 100`;
-  independent selected-stat chances are multiplied. The search still requires
-  at least one known qualifying owned source for every selected floor instead
-  of proposing an unbounded mutation-only route.
 - The search combines compatible planned carriers as well as owned Pals, so
   both final parents may be independently bred branches. Route reconstruction
   preserves those dependencies as a parent tree instead of flattening them

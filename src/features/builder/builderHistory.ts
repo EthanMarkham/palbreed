@@ -3,10 +3,8 @@ import { passiveRepository } from "../../data/passiveRepository";
 import { runtimeConfig } from "../../config/runtimeConfig";
 import type { PalId } from "../../domain/pal";
 import type { PassiveId } from "../../domain/passive";
-import type { BuilderIvGoal, BuilderObjective } from "../../services/builder/palBuilder";
-import { normalizeIvGoal } from "../../services/builder/ivProbability";
+import type { BuilderObjective } from "../../services/builder/palBuilder";
 import {
-  getBuilderIvGoal,
   getBuilderObjective,
   getBuilderPassiveGoal,
   type BuilderSearchState,
@@ -19,7 +17,6 @@ export type BuilderHistoryEntry = Readonly<{
   passives: "any" | readonly PassiveId[];
   objective: BuilderObjective;
   allowedExtras: 0 | 1 | 2;
-  ivGoal?: BuilderIvGoal;
   searchedAt: string;
 }>;
 
@@ -195,7 +192,6 @@ export function createBuilderHistoryEntry(
     passives,
     objective: getBuilderObjective(search),
     allowedExtras: 0,
-    ivGoal: optionalIvGoal(getBuilderIvGoal(search)),
     searchedAt: normalizedDate,
   };
 }
@@ -205,9 +201,6 @@ export function builderHistoryEntryToSearch(entry: BuilderHistoryEntry): Builder
     target: entry.targetId,
     passives: entry.passives === "any" ? undefined : entry.passives.join(","),
     objective: entry.objective === "recommended" ? undefined : entry.objective,
-    ivHp: entry.ivGoal?.hp,
-    ivAttack: entry.ivGoal?.attack,
-    ivDefense: entry.ivGoal?.defense,
     run: true,
   };
 }
@@ -247,7 +240,6 @@ export function normalizeBuilderHistory(
       passives,
       objective: entry.objective,
       allowedExtras: 0,
-      ivGoal: optionalIvGoal(entry.ivGoal),
       searchedAt,
     };
     const key = getBuilderHistoryKey(candidate);
@@ -282,11 +274,6 @@ function normalizePassives(value: "any" | readonly string[]): "any" | readonly P
 function normalizeDate(value: string): string | undefined {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : undefined;
-}
-
-function optionalIvGoal(goal: BuilderIvGoal | undefined) {
-  const normalized = normalizeIvGoal(goal);
-  return Object.keys(normalized).length ? normalized : undefined;
 }
 
 async function loadSupabaseBackend(): Promise<BuilderHistoryBackend | undefined> {

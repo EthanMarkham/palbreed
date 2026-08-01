@@ -1,7 +1,6 @@
 import type { PalId } from "../../domain/pal";
 import type { PassiveId } from "../../domain/passive";
 import type { BuilderObjective } from "../../services/builder/palBuilder";
-import { normalizeIvMinimum, type IvStat } from "../../services/builder/ivProbability";
 import {
   compactSearch,
   normalizePalSearch,
@@ -47,15 +46,6 @@ export function setBuilderPassiveQuery(search: BuilderSearchState, value: string
 
 export function setBuilderObjective(search: BuilderSearchState, objective: BuilderObjective): BuilderSearchState {
   return compactSearch({ ...search, objective: objective === "recommended" ? undefined : objective, run: undefined });
-}
-
-export function setBuilderIvMinimum(
-  search: BuilderSearchState,
-  stat: IvStat,
-  minimum: number | undefined,
-): BuilderSearchState {
-  const key = stat === "hp" ? "ivHp" : stat === "attack" ? "ivAttack" : "ivDefense";
-  return compactSearch({ ...search, [key]: normalizeIvMinimum(minimum), run: undefined });
 }
 
 export function runBuilderSearch(search: BuilderSearchState): BuilderSearchState {

@@ -1,26 +1,19 @@
-import type { BuilderIvGoal as BuilderIvScoreValues } from "../../services/builder/palBuilder";
+import type { BuilderIvScores as BuilderIvScoreValues } from "../../services/builder/palBuilder";
 
 export default function BuilderIvScores({
   scores,
   label,
-  minimum = false,
 }: {
   scores: BuilderIvScoreValues;
   label: string;
-  minimum?: boolean;
 }) {
-  const entries = (["hp", "attack", "defense"] as const)
-    .filter((stat) => scores[stat] !== undefined);
   return (
     <div className="builder-offspring-stats">
       <span>{label}</span>
       <dl>
-        {entries.map((stat) => (
-          <div key={stat}>
-            <dt>{stat === "hp" ? "HP" : stat === "attack" ? "Attack" : "Defense"}</dt>
-            <dd>{minimum ? "≥" : ""}{formatIv(scores[stat] ?? 0)}</dd>
-          </div>
-        ))}
+        <div><dt>HP</dt><dd>{formatIv(scores.hp)}</dd></div>
+        <div><dt>Attack</dt><dd>{formatIv(scores.attack)}</dd></div>
+        <div><dt>Defense</dt><dd>{formatIv(scores.defense)}</dd></div>
       </dl>
     </div>
   );
