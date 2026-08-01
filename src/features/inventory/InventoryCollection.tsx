@@ -1,8 +1,12 @@
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Button,
   Dialog,
   DialogTrigger,
   Heading,
+  Modal,
+  ModalOverlay,
   Popover,
 } from "react-aria-components";
 import GenderBadge from "../../components/GenderBadge";
@@ -10,11 +14,15 @@ import PalAvatar from "../../components/PalAvatar";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import { getPalCombatStats } from "../../data/palStatsRepository";
-import type { InventoryProfile, OwnedPal } from "../../domain/inventory";
+import type { InventoryProfile, OwnedPal, PalLocation } from "../../domain/inventory";
 import {
   getAverageCombatIv,
   getInventoryPalName,
   getInventoryPalSpeciesName,
+  groupInventoryPals,
+  sortInventoryCopies,
+  type InventoryCopySort,
+  type InventorySpeciesGroup,
 } from "./inventoryCollectionFilter";
 
 type InventoryCollectionProps = {
@@ -26,6 +34,23 @@ type InventoryCollectionProps = {
   onRemove: () => void;
 };
 
+const MotionModalOverlay = motion.create(ModalOverlay);
+const MotionModal = motion.create(Modal);
+
+const copySortOptions: readonly { id: InventoryCopySort; label: string }[] = [
+  { id: "level-desc", label: "Highest level" },
+  { id: "iv-desc", label: "Best avg IV" },
+  { id: "name", label: "Nickname" },
+  { id: "location", label: "Location / slot" },
+];
+
+const locationLabels: Record<PalLocation, string> = {
+  party: "Party",
+  base: "Base",
+  "global-storage": "Global",
+  palbox: "Palbox",
+};
+
 export default function InventoryCollection({
   profile,
   visiblePals,
@@ -34,19 +59,34 @@ export default function InventoryCollection({
   onReset,
   onRemove,
 }: InventoryCollectionProps) {
+  const speciesGroups = useMemo(() => groupInventoryPals(visiblePals), [visiblePals]);
+  const allSpeciesGroups = useMemo(() => groupInventoryPals(profile.pals), [profile.pals]);
+  const totalCopiesBySpecies = useMemo(
+    () => new Map(allSpeciesGroups.map(({ speciesId, pals }) => [speciesId, pals.length])),
+    [allSpeciesGroups],
+  );
+  const [selectedSpeciesId, setSelectedSpeciesId] = useState<OwnedPal["speciesId"]>();
+  const selectedGroup = speciesGroups.find(({ speciesId }) => speciesId === selectedSpeciesId);
+
   return (
     <>
       <CollectionHeader
         profile={profile}
         visibleCount={visiblePals.length}
+        visibleSpeciesCount={speciesGroups.length}
+        totalSpeciesCount={allSpeciesGroups.length}
         isFiltered={isFiltered}
         onRemove={onRemove}
       />
       {visiblePals.length ? (
-        <ul className="inventory-collection" aria-label={`${profile.name} Pals`}>
-          {visiblePals.map((pal) => (
-            <li key={pal.id}>
-              <InventoryPalCard pal={pal} />
+        <ul className="inventory-species-grid" aria-label={`${profile.name} Pal types`}>
+          {speciesGroups.map((group) => (
+            <li key={group.speciesId}>
+              <InventorySpeciesCard
+                group={group}
+                totalCount={totalCopiesBySpecies.get(group.speciesId) ?? group.pals.length}
+                onOpen={() => setSelectedSpeciesId(group.speciesId)}
+              />
             </li>
           ))}
         </ul>
@@ -65,6 +105,17 @@ export default function InventoryCollection({
           <span>Try importing this world again after Palworld finishes saving.</span>
         </div>
       )}
+
+      <AnimatePresence>
+        {selectedGroup ? (
+          <InventorySpeciesModal
+            key={selectedGroup.speciesId}
+            group={selectedGroup}
+            totalCount={totalCopiesBySpecies.get(selectedGroup.speciesId) ?? selectedGroup.pals.length}
+            onClose={() => setSelectedSpeciesId(undefined)}
+          />
+        ) : null}
+      </AnimatePresence>
     </>
   );
 }
@@ -72,29 +123,195 @@ export default function InventoryCollection({
 function CollectionHeader({
   profile,
   visibleCount,
+  visibleSpeciesCount,
+  totalSpeciesCount,
   isFiltered,
   onRemove,
 }: {
   profile: InventoryProfile;
   visibleCount: number;
+  visibleSpeciesCount: number;
+  totalSpeciesCount: number;
   isFiltered: boolean;
   onRemove: () => void;
 }) {
   return (
     <header className="inventory-collection-header">
       <div>
-        <span>PALS IN THIS WORLD</span>
+        <span>PAL TYPES · A–Z</span>
         <h2>{profile.name}</h2>
         <p>{formatProfileDetails(profile)}</p>
       </div>
       <div className="inventory-collection-actions">
         <span className="inventory-result-count">
-          <strong>{visibleCount.toLocaleString()}</strong>
-          {isFiltered ? ` of ${profile.pals.length.toLocaleString()} Pals` : " Pals"}
+          <strong>{visibleSpeciesCount.toLocaleString()}</strong>
+          {isFiltered ? ` of ${totalSpeciesCount.toLocaleString()}` : ""}
+          {totalSpeciesCount === 1 ? " type" : " types"}
+          <small>
+            {visibleCount.toLocaleString()}
+            {isFiltered ? ` of ${profile.pals.length.toLocaleString()}` : ""}
+            {profile.pals.length === 1 ? " Pal shown" : " Pals shown"}
+          </small>
         </span>
         <RemoveWorldButton profile={profile} onRemove={onRemove} />
       </div>
     </header>
+  );
+}
+
+function InventorySpeciesCard({
+  group,
+  totalCount,
+  onOpen,
+}: {
+  group: InventorySpeciesGroup;
+  totalCount: number;
+  onOpen: () => void;
+}) {
+  const species = breedingRepository.getPal(group.speciesId);
+  const highestLevel = getHighestLevel(group.pals);
+  const bestIv = getBestAverageIv(group.pals);
+  const femaleCount = group.pals.filter(({ gender }) => gender === "F").length;
+  const locations = summarizeLocations(group.pals);
+  const isNarrowed = group.pals.length < totalCount;
+
+  return (
+    <Button
+      className="inventory-species-card"
+      onPress={onOpen}
+      aria-label={`Open ${group.speciesName}, ${formatVisibleCopyCount(group.pals.length, totalCount)}`}
+    >
+      <span className="inventory-species-card-topline">
+        <span className="inventory-species-number">No. {species?.number ?? "--"}</span>
+        <span className="inventory-species-count">
+          <strong>{group.pals.length}</strong>
+          {isNarrowed
+            ? ` of ${totalCount}`
+            : group.pals.length === 1 ? " copy" : " copies"}
+        </span>
+      </span>
+
+      <span className="inventory-species-portrait">
+        {species ? <PalAvatar pal={species} /> : null}
+      </span>
+
+      <span className="inventory-species-name">{group.speciesName}</span>
+
+      <span className="inventory-species-highlights">
+        <span>
+          <small>Max level</small>
+          <strong>{highestLevel ?? "—"}</strong>
+        </span>
+        <span title="Best average of HP, Attack, and Defense hidden IVs">
+          <small>Best avg IV</small>
+          <strong>{bestIv ?? "—"}</strong>
+        </span>
+        <span>
+          <small>Sex</small>
+          <strong className="inventory-species-genders">
+            <span>{femaleCount} female</span>
+            <span>{group.pals.length - femaleCount} male</span>
+          </strong>
+        </span>
+      </span>
+
+      <span className="inventory-species-card-footer">
+        <span className="inventory-species-locations">
+          {locations.map(({ location, count }) => (
+            <span key={location}>{locationLabels[location]} {count}</span>
+          ))}
+        </span>
+        <span className="inventory-species-open">View copies <ArrowIcon /></span>
+      </span>
+    </Button>
+  );
+}
+
+function InventorySpeciesModal({
+  group,
+  totalCount,
+  onClose,
+}: {
+  group: InventorySpeciesGroup;
+  totalCount: number;
+  onClose: () => void;
+}) {
+  const [sort, setSort] = useState<InventoryCopySort>("level-desc");
+  const shouldReduceMotion = useReducedMotion();
+  const species = breedingRepository.getPal(group.speciesId);
+  const sortedPals = useMemo(() => sortInventoryCopies(group.pals, sort), [group.pals, sort]);
+  const motionDuration = shouldReduceMotion ? 0 : 0.2;
+
+  return (
+    <MotionModalOverlay
+      className="inventory-pal-overlay"
+      isOpen
+      isDismissable
+      onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}
+      initial={shouldReduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: motionDuration, ease: "easeOut" }}
+    >
+      <MotionModal
+        className="inventory-pal-modal"
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 24, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 14, scale: 0.975 }}
+        transition={{ duration: motionDuration, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <Dialog className="inventory-pal-dialog" aria-label={`${group.speciesName} copies`}>
+          <header className="inventory-pal-modal-header">
+            <span className="inventory-pal-modal-portrait">
+              {species ? <PalAvatar pal={species} /> : null}
+            </span>
+            <span className="inventory-pal-modal-heading">
+              <small>No. {species?.number ?? "--"} · {formatVisibleCopyCount(group.pals.length, totalCount)}</small>
+              <Heading slot="title">{group.speciesName}</Heading>
+              <p>
+                {group.pals.length < totalCount
+                  ? "Showing only copies that match your current search and filters."
+                  : "Compare your copies by level, hidden IVs, passives, and location."}
+              </p>
+            </span>
+            <Button slot="close" className="inventory-modal-close" aria-label="Close Pal details">
+              <CloseIcon />
+            </Button>
+          </header>
+
+          {group.pals.length > 1 ? (
+            <div className="inventory-copy-toolbar">
+              <span><SortIcon /> Sort by</span>
+              <div role="group" aria-label={`Sort ${group.speciesName} copies`}>
+                {copySortOptions.map((option) => (
+                  <Button
+                    key={option.id}
+                    className="inventory-copy-sort"
+                    data-selected={sort === option.id || undefined}
+                    aria-pressed={sort === option.id}
+                    onPress={() => setSort(option.id)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <ul className="inventory-copy-grid" aria-label={`${group.speciesName} copies`}>
+            {sortedPals.map((pal) => (
+              <motion.li
+                layout={!shouldReduceMotion}
+                key={pal.id}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.22, ease: "easeOut" }}
+              >
+                <InventoryPalCard pal={pal} />
+              </motion.li>
+            ))}
+          </ul>
+        </Dialog>
+      </MotionModal>
+    </MotionModalOverlay>
   );
 }
 
@@ -115,7 +332,7 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
         <div className="inventory-pal-name">
           <strong>{displayName}</strong>
           <span>
-            <small>{displayName === speciesName ? "Paldeck" : speciesName}</small>
+            <small>{displayName === speciesName ? "Imported Pal" : speciesName}</small>
             <em>No. {species?.number ?? "--"}</em>
           </span>
         </div>
@@ -206,18 +423,6 @@ function HiddenIvBadges({ scores }: { scores: NonNullable<OwnedPal["abilityScore
   );
 }
 
-function getPotentialTier(value: number) {
-  if (value >= 90) return "exceptional";
-  if (value >= 70) return "strong";
-  return "standard";
-}
-
-function getPassiveRankTier(rank: number) {
-  if (rank >= 3) return "high";
-  if (rank < 0) return "negative";
-  return "standard";
-}
-
 function RemoveWorldButton({
   profile,
   onRemove,
@@ -250,6 +455,51 @@ function RemoveWorldButton({
   );
 }
 
+function getHighestLevel(pals: readonly OwnedPal[]) {
+  const levels = pals.flatMap(({ level }) => level === undefined ? [] : [level]);
+  return levels.length ? Math.max(...levels) : undefined;
+}
+
+function getBestAverageIv(pals: readonly OwnedPal[]) {
+  const averages = pals.flatMap((pal) => {
+    const average = getAverageCombatIv(pal);
+    return average === undefined ? [] : [average];
+  });
+  return averages.length ? Math.max(...averages) : undefined;
+}
+
+function summarizeLocations(pals: readonly OwnedPal[]) {
+  const counts = new Map<PalLocation, number>();
+  pals.forEach(({ location }) => counts.set(location, (counts.get(location) ?? 0) + 1));
+  const order: readonly PalLocation[] = ["party", "base", "global-storage", "palbox"];
+  return order.flatMap((location) => {
+    const count = counts.get(location);
+    return count ? [{ location, count }] : [];
+  });
+}
+
+function formatCopyCount(count: number) {
+  return `${count.toLocaleString()} ${count === 1 ? "copy" : "copies"}`;
+}
+
+function formatVisibleCopyCount(visibleCount: number, totalCount: number) {
+  return visibleCount < totalCount
+    ? `${visibleCount.toLocaleString()} of ${formatCopyCount(totalCount)}`
+    : formatCopyCount(visibleCount);
+}
+
+function getPotentialTier(value: number) {
+  if (value >= 90) return "exceptional";
+  if (value >= 70) return "strong";
+  return "standard";
+}
+
+function getPassiveRankTier(rank: number) {
+  if (rank >= 3) return "high";
+  if (rank < 0) return "negative";
+  return "standard";
+}
+
 function formatProfileDetails(profile: InventoryProfile) {
   const parts = [profile.platform === "xbox" ? "Xbox / Game Pass" : "Steam"];
   if (profile.playerName && profile.playerName !== profile.name) parts.push(profile.playerName);
@@ -274,4 +524,16 @@ function SearchIcon() {
 
 function MoreIcon() {
   return <svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="4" cy="9" r="1" /><circle cx="9" cy="9" r="1" /><circle cx="14" cy="9" r="1" /></svg>;
+}
+
+function ArrowIcon() {
+  return <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" /></svg>;
+}
+
+function SortIcon() {
+  return <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5h8M3 9h6M3 13h4M13 4v10m0 0-2.5-2.5M13 14l2.5-2.5" /></svg>;
+}
+
+function CloseIcon() {
+  return <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" /></svg>;
 }

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { OwnedPal } from "../../domain/inventory";
-import { filterInventoryPals, getAverageCombatIv } from "./inventoryCollectionFilter";
+import {
+  filterInventoryPals,
+  getAverageCombatIv,
+  groupInventoryPals,
+  sortInventoryCopies,
+} from "./inventoryCollectionFilter";
 
 const passive = passiveRepository.all()[0];
 const pals: readonly OwnedPal[] = [
@@ -34,9 +39,22 @@ describe("Inventory collection filtering", () => {
     }
   });
 
-  it("matches every typed term and sorts the unfiltered collection by display name", () => {
+  it("matches every typed term and preserves the imported copy order", () => {
     expect(filterInventoryPals(pals, { query: "wool iv" }).map(({ id }) => id)).toEqual(["first"]);
     expect(filterInventoryPals(pals).map(({ id }) => id)).toEqual(["second", "first"]);
+  });
+
+  it("groups copies by Pal type and sorts the types by species name", () => {
+    const extraCattiva: OwnedPal = {
+      ...pals[0],
+      id: "third",
+      sourceInstanceId: "third",
+      level: 20,
+    };
+    const groups = groupInventoryPals([...pals, extraCattiva]);
+
+    expect(groups.map(({ speciesName }) => speciesName)).toEqual(["Cattiva", "Lamball"]);
+    expect(groups[0].pals.map(({ id }) => id)).toEqual(["second", "third"]);
   });
 
   it("uses a dedicated location filter instead of mixing location into search", () => {
@@ -62,10 +80,10 @@ describe("Inventory collection filtering", () => {
     expect(filterInventoryPals(pals, { passives: "none" }).map(({ id }) => id)).toEqual(["second"]);
   });
 
-  it("sorts by level, hidden IV average, and location", () => {
-    expect(filterInventoryPals(pals, { sort: "level-desc" }).map(({ id }) => id)).toEqual(["first", "second"]);
-    expect(filterInventoryPals(pals, { sort: "level-asc" }).map(({ id }) => id)).toEqual(["second", "first"]);
-    expect(filterInventoryPals(pals, { sort: "iv-desc" }).map(({ id }) => id)).toEqual(["first", "second"]);
-    expect(filterInventoryPals(pals, { sort: "location" }).map(({ id }) => id)).toEqual(["second", "first"]);
+  it("sorts copies inside a Pal group by level, IV, name, and location", () => {
+    expect(sortInventoryCopies(pals, "level-desc").map(({ id }) => id)).toEqual(["first", "second"]);
+    expect(sortInventoryCopies(pals, "iv-desc").map(({ id }) => id)).toEqual(["first", "second"]);
+    expect(sortInventoryCopies(pals, "name").map(({ id }) => id)).toEqual(["second", "first"]);
+    expect(sortInventoryCopies(pals, "location").map(({ id }) => id)).toEqual(["second", "first"]);
   });
 });

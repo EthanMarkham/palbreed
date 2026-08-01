@@ -5,7 +5,6 @@ import type { OwnedPal } from "../../domain/inventory";
 import type {
   InventoryIvFilter,
   InventoryPassiveFilter,
-  InventorySort,
 } from "./inventorySearch";
 
 export type InventoryCollectionFilter = {
@@ -14,7 +13,14 @@ export type InventoryCollectionFilter = {
   gender?: OwnedPal["gender"];
   iv?: InventoryIvFilter;
   passives?: InventoryPassiveFilter;
-  sort?: InventorySort;
+};
+
+export type InventoryCopySort = "level-desc" | "iv-desc" | "name" | "location";
+
+export type InventorySpeciesGroup = {
+  speciesId: OwnedPal["speciesId"];
+  speciesName: string;
+  pals: readonly OwnedPal[];
 };
 
 export function filterInventoryPals(
@@ -22,15 +28,38 @@ export function filterInventoryPals(
   filter: InventoryCollectionFilter = {},
 ): readonly OwnedPal[] {
   const terms = filter.query?.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean) ?? [];
-  return [...pals]
-    .filter((pal) => (
-      terms.every((term) => getSearchText(pal).includes(term))
-      && (!filter.location || pal.location === filter.location)
-      && (!filter.gender || pal.gender === filter.gender)
-      && matchesIvFilter(pal, filter.iv)
-      && matchesPassiveFilter(pal, filter.passives)
-    ))
-    .sort(getInventoryComparator(filter.sort));
+  return pals.filter((pal) => (
+    terms.every((term) => getSearchText(pal).includes(term))
+    && (!filter.location || pal.location === filter.location)
+    && (!filter.gender || pal.gender === filter.gender)
+    && matchesIvFilter(pal, filter.iv)
+    && matchesPassiveFilter(pal, filter.passives)
+  ));
+}
+
+export function groupInventoryPals(pals: readonly OwnedPal[]): readonly InventorySpeciesGroup[] {
+  const palsBySpecies = new Map<OwnedPal["speciesId"], OwnedPal[]>();
+  pals.forEach((pal) => {
+    const group = palsBySpecies.get(pal.speciesId) ?? [];
+    group.push(pal);
+    palsBySpecies.set(pal.speciesId, group);
+  });
+
+  return [...palsBySpecies.entries()]
+    .map(([speciesId, groupedPals]) => ({
+      speciesId,
+      speciesName: breedingRepository.getPal(speciesId)?.name ?? speciesId,
+      pals: groupedPals,
+    }))
+    .sort((left, right) => left.speciesName.localeCompare(right.speciesName)
+      || left.speciesId.localeCompare(right.speciesId));
+}
+
+export function sortInventoryCopies(
+  pals: readonly OwnedPal[],
+  sort: InventoryCopySort,
+): readonly OwnedPal[] {
+  return [...pals].sort(getInventoryCopyComparator(sort));
 }
 
 export function getInventoryPalName(pal: OwnedPal): string {
@@ -78,13 +107,10 @@ function matchesPassiveFilter(pal: OwnedPal, filter: InventoryPassiveFilter | un
   return filter === "with" ? pal.passiveIds.length > 0 : pal.passiveIds.length === 0;
 }
 
-function getInventoryComparator(sort: InventorySort | undefined) {
+function getInventoryCopyComparator(sort: InventoryCopySort) {
   if (sort === "level-desc") {
     return (left: OwnedPal, right: OwnedPal) => compareOptionalNumbers(left.level, right.level, "desc")
-      || compareInventoryPalNames(left, right);
-  }
-  if (sort === "level-asc") {
-    return (left: OwnedPal, right: OwnedPal) => compareOptionalNumbers(left.level, right.level, "asc")
+      || compareOptionalNumbers(getAverageCombatIv(left), getAverageCombatIv(right), "desc")
       || compareInventoryPalNames(left, right);
   }
   if (sort === "iv-desc") {
@@ -92,7 +118,8 @@ function getInventoryComparator(sort: InventorySort | undefined) {
       getAverageCombatIv(left),
       getAverageCombatIv(right),
       "desc",
-    ) || compareInventoryPalNames(left, right);
+    ) || compareOptionalNumbers(left.level, right.level, "desc")
+      || compareInventoryPalNames(left, right);
   }
   if (sort === "location") {
     const locationOrder: Record<OwnedPal["location"], number> = {

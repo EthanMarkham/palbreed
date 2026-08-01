@@ -1420,7 +1420,7 @@
   flex: none;
   padding: 14px;
   display: grid;
-  grid-template-columns: minmax(250px, 0.72fr) minmax(260px, 1fr) auto;
+  grid-template-columns: minmax(250px, 0.72fr) minmax(280px, 1fr);
   align-items: end;
   gap: 10px;
   border-radius: 18px 18px 0 0;
@@ -1626,82 +1626,6 @@
 .inventory-search-clear svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
 .inventory-search[data-empty] .inventory-search-clear { visibility: hidden; }
 
-.inventory-sort-select {
-  min-width: 178px;
-  display: grid;
-  gap: 5px;
-}
-
-.inventory-sort-select > label {
-  color: var(--text-subtle);
-  font: 800 0.5rem/1 "Space Grotesk", sans-serif;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-}
-
-.inventory-sort-trigger {
-  height: 48px;
-  padding: 0 0.68rem;
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) 14px;
-  align-items: center;
-  gap: 0.48rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 11px;
-  color: var(--ink);
-  background: rgba(255, 255, 255, 0.76);
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
-}
-
-.inventory-sort-trigger[data-hovered],
-.inventory-sort-trigger[data-focus-visible],
-.inventory-sort-select[data-open] .inventory-sort-trigger {
-  border-color: rgba(35, 133, 109, 0.42);
-  background: var(--paper-strong);
-  box-shadow: 0 0 0 3px rgba(35, 133, 109, 0.09);
-  outline: none;
-}
-
-.inventory-sort-trigger[data-disabled] { opacity: 0.58; cursor: default; }
-.inventory-sort-trigger svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.55; }
-.inventory-sort-trigger > svg:first-child { width: 18px; height: 18px; color: var(--teal); }
-.inventory-sort-trigger > svg:last-child { width: 14px; height: 14px; color: var(--text-subtle); transition: transform 0.16s ease; }
-.inventory-sort-select[data-open] .inventory-sort-trigger > svg:last-child { transform: rotate(180deg); }
-.inventory-sort-value { overflow: hidden; font-size: 0.62rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-
-.inventory-control-popover {
-  z-index: 96;
-  width: var(--trigger-width);
-  min-width: 210px;
-  padding: 6px;
-  border: 1px solid var(--line-strong);
-  border-radius: 12px;
-  background: rgba(251, 249, 241, 0.98);
-  box-shadow: 0 18px 44px rgba(12, 21, 17, 0.18);
-  backdrop-filter: blur(14px);
-  outline: none;
-}
-
-.inventory-control-options { display: grid; gap: 2px; outline: none; }
-.inventory-control-option {
-  padding: 0.56rem 0.6rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 15px;
-  align-items: center;
-  gap: 8px;
-  border-radius: 8px;
-  color: var(--ink-soft);
-  font-size: 0.58rem;
-  font-weight: 700;
-  cursor: pointer;
-  outline: none;
-}
-.inventory-control-option[data-hovered],
-.inventory-control-option[data-focused] { color: var(--ink); background: var(--teal-soft); }
-.inventory-control-option svg { width: 15px; height: 15px; fill: none; stroke: var(--teal-dark); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-
 .inventory-filter-bar {
   min-width: 0;
   min-height: 53px;
@@ -1869,6 +1793,7 @@
 .inventory-collection-actions { flex: none; display: flex; align-items: center; gap: 8px; }
 .inventory-result-count { min-width: 88px; color: var(--text-muted); font-size: 0.55rem; text-align: right; }
 .inventory-result-count strong { color: var(--ink); font: 700 1rem/1 "Space Grotesk", sans-serif; }
+.inventory-result-count small { display: block; margin-top: 3px; color: var(--text-subtle); font-size: 0.46rem; }
 
 .inventory-world-menu {
   width: 34px;
@@ -1886,25 +1811,227 @@
 .inventory-world-menu[data-focus-visible] { color: var(--ink); border-color: var(--line-strong); background: var(--paper-strong); outline: none; }
 .inventory-world-menu svg { width: 18px; height: 18px; fill: currentColor; }
 
-.inventory-collection {
+.inventory-species-grid {
   margin: 0;
   padding: 16px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   align-content: start;
   gap: 12px;
   list-style: none;
 }
 
-.inventory-collection > li {
+.inventory-species-grid > li {
   min-width: 0;
   animation: inventory-card-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.inventory-collection > li:nth-child(2) { animation-delay: 20ms; }
-.inventory-collection > li:nth-child(3) { animation-delay: 40ms; }
-.inventory-collection > li:nth-child(4) { animation-delay: 60ms; }
-.inventory-collection > li:nth-child(n + 5) { animation-delay: 80ms; }
+.inventory-species-grid > li:nth-child(2) { animation-delay: 20ms; }
+.inventory-species-grid > li:nth-child(3) { animation-delay: 40ms; }
+.inventory-species-grid > li:nth-child(4) { animation-delay: 60ms; }
+.inventory-species-grid > li:nth-child(n + 5) { animation-delay: 80ms; }
+
+.inventory-species-card {
+  width: 100%;
+  min-height: 270px;
+  padding: 13px;
+  display: grid;
+  grid-template-rows: auto 92px auto auto 1fr;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 32, 27, 0.11);
+  border-radius: 16px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 50% 31%, rgba(216, 242, 154, 0.2), transparent 30%),
+    linear-gradient(155deg, rgba(255, 255, 255, 0.75), rgba(242, 246, 240, 0.58));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.82);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.inventory-species-card[data-hovered],
+.inventory-species-card[data-focus-visible] {
+  border-color: rgba(35, 133, 109, 0.36);
+  box-shadow: 0 15px 30px rgba(18, 25, 22, 0.1), 0 0 0 3px rgba(35, 133, 109, 0.07);
+  outline: none;
+  transform: translateY(-3px);
+}
+
+.inventory-species-card-topline,
+.inventory-species-card-footer {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inventory-species-number {
+  color: var(--text-subtle);
+  font: 800 0.43rem/1 "Space Grotesk", sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.inventory-species-count {
+  padding: 0.28rem 0.45rem;
+  border-radius: 999px;
+  color: var(--teal-dark);
+  background: rgba(35, 133, 109, 0.09);
+  font-size: 0.44rem;
+  line-height: 1;
+}
+
+.inventory-species-count strong { font-size: 0.58rem; }
+
+.inventory-species-portrait {
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  border: 1px solid rgba(35, 133, 109, 0.1);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: inset 0 0 24px rgba(35, 133, 109, 0.055);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.inventory-species-card[data-hovered] .inventory-species-portrait { transform: scale(1.045) rotate(-1.5deg); }
+.inventory-species-portrait .pal-avatar { width: 82px; height: 82px; }
+
+.inventory-species-name {
+  width: 100%;
+  overflow: hidden;
+  color: var(--ink);
+  font: 700 1rem/1.15 "Space Grotesk", sans-serif;
+  letter-spacing: -0.025em;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-species-highlights {
+  width: 100%;
+  padding: 9px 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid var(--line);
+}
+
+.inventory-species-highlights > span { min-width: 0; padding: 0 7px; display: grid; gap: 4px; text-align: center; }
+.inventory-species-highlights > span + span { border-left: 1px solid var(--line); }
+.inventory-species-highlights small { color: var(--text-subtle); font: 800 0.38rem/1 "Space Grotesk", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
+.inventory-species-highlights strong { overflow: hidden; color: var(--ink-soft); font: 700 0.65rem/1 "Space Grotesk", sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.inventory-species-highlights .inventory-species-genders { display: grid; gap: 2px; font-size: 0.5rem; font-weight: 650; line-height: 1.1; white-space: normal; }
+
+.inventory-species-card-footer { align-self: end; }
+.inventory-species-locations { min-width: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.inventory-species-locations > span { padding: 0.25rem 0.34rem; border-radius: 6px; color: var(--text-muted); background: rgba(20, 32, 27, 0.045); font-size: 0.42rem; font-weight: 700; }
+.inventory-species-open { flex: none; display: inline-flex; align-items: center; gap: 3px; color: var(--teal-dark); font-size: 0.48rem; font-weight: 800; }
+.inventory-species-open svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.16s ease; }
+.inventory-species-card[data-hovered] .inventory-species-open svg { transform: translateX(2px); }
+
+.inventory-pal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  padding: 20px;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  background: rgba(10, 18, 14, 0.66);
+  backdrop-filter: blur(12px) saturate(0.8);
+}
+
+.inventory-pal-modal {
+  width: min(1040px, 100%);
+  max-height: calc(100svh - 40px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: 24px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 12% 0, rgba(216, 242, 154, 0.22), transparent 24%),
+    var(--paper-strong);
+  box-shadow: 0 34px 90px rgba(4, 11, 8, 0.46);
+  outline: none;
+}
+
+.inventory-pal-dialog { max-height: calc(100svh - 40px); display: flex; flex-direction: column; outline: none; }
+
+.inventory-pal-modal-header {
+  flex: none;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.inventory-pal-modal-portrait {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(35, 133, 109, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.64);
+}
+.inventory-pal-modal-portrait .pal-avatar { width: 67px; height: 67px; }
+.inventory-pal-modal-heading { min-width: 0; display: grid; gap: 3px; }
+.inventory-pal-modal-heading > small { color: var(--teal-dark); font: 800 0.46rem/1 "Space Grotesk", sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.inventory-pal-modal-heading h2 { margin: 0; color: var(--ink); font: 700 1.45rem/1.1 "Space Grotesk", sans-serif; letter-spacing: -0.04em; }
+.inventory-pal-modal-heading p { margin: 0; color: var(--text-muted); font-size: 0.58rem; line-height: 1.45; }
+
+.inventory-copy-toolbar {
+  flex: none;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(226, 241, 235, 0.3);
+}
+
+.inventory-copy-toolbar > span { flex: none; display: inline-flex; align-items: center; gap: 5px; color: var(--text-subtle); font: 800 0.45rem/1 "Space Grotesk", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+.inventory-copy-toolbar > span svg { width: 15px; height: 15px; fill: none; stroke: var(--teal); stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; }
+.inventory-copy-toolbar > div { padding: 3px; display: flex; align-items: center; gap: 3px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, 0.55); }
+
+.inventory-copy-sort {
+  min-height: 31px;
+  padding: 0.4rem 0.58rem;
+  border-radius: 7px;
+  color: var(--text-muted);
+  font-size: 0.49rem;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.inventory-copy-sort[data-hovered],
+.inventory-copy-sort[data-focus-visible] { color: var(--ink); background: rgba(255, 255, 255, 0.72); outline: none; }
+.inventory-copy-sort[data-selected] { color: var(--teal-dark); background: var(--paper-strong); box-shadow: 0 2px 7px rgba(18, 25, 22, 0.09); }
+
+.inventory-copy-grid {
+  min-height: 0;
+  margin: 0;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  align-content: start;
+  gap: 12px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.inventory-copy-grid > li { min-width: 0; }
 
 .inventory-pal-card {
   height: 100%;
@@ -3624,11 +3751,12 @@
   .version-label { display: none; }
   .site-nav { justify-self: end; }
   .site-nav a { padding-inline: 0.58rem; }
-  .inventory-browser-toolbar { grid-template-columns: minmax(230px, 0.75fr) minmax(220px, 1fr) auto; }
+  .inventory-browser-toolbar { grid-template-columns: minmax(230px, 0.75fr) minmax(220px, 1fr); }
 }
 
 @media (max-width: 760px) {
-  .inventory-collection { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+  .inventory-species-grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+  .inventory-copy-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
   .inventory-filter-bar {
     overflow-x: auto;
     scrollbar-width: none;
@@ -3681,13 +3809,9 @@
   .hero-index { right: 12px; font-size: 6.4rem; }
   .feature-card { padding: 15px; border-radius: 16px; }
   .inventory-browser { padding: 0; overflow: clip; }
-  .inventory-browser-toolbar { min-width: 0; grid-template-columns: minmax(0, 1fr) minmax(138px, 0.58fr); padding: 12px; }
-  .inventory-world-select { grid-column: 1 / -1; }
+  .inventory-browser-toolbar { min-width: 0; grid-template-columns: minmax(0, 1fr); padding: 12px; }
   .inventory-world-select,
   .inventory-search { width: 100%; }
-  .inventory-sort-select { min-width: 0; }
-  .inventory-sort-trigger,
-  .inventory-sort-value { min-width: 0; }
   .inventory-filter-bar {
     padding-inline: 12px;
     display: grid;
@@ -3705,7 +3829,25 @@
   .inventory-collection-header { min-height: 0; padding: 16px 14px; align-items: flex-end; }
   .inventory-collection-header p { white-space: normal; }
   .inventory-result-count { min-width: 0; }
-  .inventory-collection { padding: 10px 10px 12px; }
+  .inventory-species-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 10px 10px 12px; gap: 8px; }
+  .inventory-species-card { min-height: 248px; padding: 10px; grid-template-rows: auto 78px auto auto 1fr; }
+  .inventory-species-portrait { width: 78px; height: 78px; border-radius: 20px; }
+  .inventory-species-portrait .pal-avatar { width: 70px; height: 70px; }
+  .inventory-species-highlights > span { padding-inline: 4px; }
+  .inventory-species-highlights small { font-size: 0.33rem; }
+  .inventory-species-locations { max-height: 21px; overflow: hidden; }
+  .inventory-pal-overlay { padding: 8px; align-items: end; }
+  .inventory-pal-modal { max-height: calc(100svh - 8px); border-radius: 20px 20px 0 0; }
+  .inventory-pal-dialog { max-height: calc(100svh - 8px); }
+  .inventory-pal-modal-header { padding: 14px; grid-template-columns: 60px minmax(0, 1fr) 34px; gap: 10px; }
+  .inventory-pal-modal-portrait { width: 60px; height: 60px; border-radius: 15px; }
+  .inventory-pal-modal-portrait .pal-avatar { width: 54px; height: 54px; }
+  .inventory-pal-modal-heading h2 { font-size: 1.15rem; }
+  .inventory-pal-modal-heading p { display: none; }
+  .inventory-copy-toolbar { padding: 9px 12px; align-items: stretch; flex-direction: column; gap: 7px; }
+  .inventory-copy-toolbar > div { width: 100%; overflow-x: auto; }
+  .inventory-copy-sort { flex: 1; }
+  .inventory-copy-grid { grid-template-columns: 1fr; padding: 10px; }
   .inventory-empty { margin: 10px; }
   .inventory-import-overlay { padding: 10px; align-items: end; }
   .inventory-import-modal { max-height: calc(100svh - 20px); border-radius: 18px; }

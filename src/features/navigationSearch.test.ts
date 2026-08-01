@@ -110,7 +110,6 @@ describe("route-backed search state", () => {
       gender: "F",
       iv: "average-90",
       passives: "with",
-      sort: "iv-desc",
     });
     expect(parseInventorySearch({
       world: 12,
@@ -133,7 +132,6 @@ describe("route-backed search state", () => {
       gender: "M",
       iv: "known",
       passives: "none",
-      sort: "level-desc",
     });
     expect(filtered).toEqual({
       world: "world-2",
@@ -141,10 +139,9 @@ describe("route-backed search state", () => {
       gender: "M",
       iv: "known",
       passives: "none",
-      sort: "level-desc",
     });
-    expect(clearInventoryFilters(filtered)).toEqual({ world: "world-2", sort: "level-desc" });
-    expect(updateInventorySearch(filtered, { gender: undefined, sort: "name" })).toEqual({
+    expect(clearInventoryFilters(filtered)).toEqual({ world: "world-2" });
+    expect(updateInventorySearch(filtered, { gender: undefined })).toEqual({
       world: "world-2",
       location: "party",
       iv: "known",

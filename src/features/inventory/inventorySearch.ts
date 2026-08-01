@@ -8,15 +8,6 @@ import {
   optionalStringSearchParam,
 } from "../../routing/searchParams";
 
-export const inventorySortOptions = [
-  "name",
-  "level-desc",
-  "level-asc",
-  "iv-desc",
-  "location",
-] as const;
-export type InventorySort = (typeof inventorySortOptions)[number];
-
 export const inventoryIvFilterOptions = ["known", "average-70", "average-90"] as const;
 export type InventoryIvFilter = (typeof inventoryIvFilterOptions)[number];
 
@@ -38,7 +29,6 @@ const rawInventorySearchSchema = z.object({
   gender: optionalStringSearchParam,
   iv: optionalStringSearchParam,
   passives: optionalStringSearchParam,
-  sort: optionalStringSearchParam,
 });
 
 export type InventorySearchState = {
@@ -48,11 +38,10 @@ export type InventorySearchState = {
   gender?: PalGender;
   iv?: InventoryIvFilter;
   passives?: InventoryPassiveFilter;
-  sort?: InventorySort;
 };
 
 export type InventorySearchUpdate = Partial<
-  Pick<InventorySearchState, "location" | "gender" | "iv" | "passives" | "sort">
+  Pick<InventorySearchState, "location" | "gender" | "iv" | "passives">
 >;
 
 export function parseInventorySearch(search: Record<string, unknown>): InventorySearchState {
@@ -65,7 +54,6 @@ export function parseInventorySearch(search: Record<string, unknown>): Inventory
     gender: normalizeOption(raw.gender, inventoryGenderOptions),
     iv: normalizeOption(raw.iv, inventoryIvFilterOptions),
     passives: normalizeOption(raw.passives, inventoryPassiveFilterOptions),
-    sort: normalizeSort(raw.sort),
   });
 }
 
@@ -94,7 +82,6 @@ export function updateInventorySearch(
     gender: normalizeOption(merged.gender, inventoryGenderOptions),
     iv: normalizeOption(merged.iv, inventoryIvFilterOptions),
     passives: normalizeOption(merged.passives, inventoryPassiveFilterOptions),
-    sort: normalizeSort(merged.sort),
   });
 }
 
@@ -110,11 +97,6 @@ export function clearInventoryFilters(search: InventorySearchState): InventorySe
 
 export function resetInventoryView(search: InventorySearchState): InventorySearchState {
   return compactSearch({ ...clearInventoryFilters(search), q: undefined });
-}
-
-function normalizeSort(value: unknown): InventorySort | undefined {
-  const sort = normalizeOption(value, inventorySortOptions);
-  return sort === "name" ? undefined : sort;
 }
 
 function normalizeOption<const T extends string>(

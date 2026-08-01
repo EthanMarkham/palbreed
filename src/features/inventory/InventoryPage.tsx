@@ -6,12 +6,8 @@ import {
   Heading,
   Input,
   Label,
-  ListBox,
-  ListBoxItem,
   Popover,
   SearchField,
-  Select,
-  SelectValue,
 } from "react-aria-components";
 import StatusBanner from "../../components/StatusBanner";
 import type { InventoryProfile, PalLocation } from "../../domain/inventory";
@@ -32,7 +28,6 @@ import {
   type InventoryPassiveFilter,
   type InventorySearchState,
   type InventorySearchUpdate,
-  type InventorySort,
 } from "./inventorySearch";
 import InventoryWorldSelect from "./InventoryWorldSelect";
 
@@ -59,7 +54,6 @@ export default function InventoryPage({
       gender: search.gender,
       iv: search.iv,
       passives: search.passives,
-      sort: search.sort,
     }),
     [
       profile?.pals,
@@ -68,7 +62,6 @@ export default function InventoryPage({
       search.location,
       search.passives,
       search.q,
-      search.sort,
     ],
   );
   const isFiltered = Boolean(
@@ -154,16 +147,11 @@ export default function InventoryPage({
           >
             <Label className="sr-only">Search Pals</Label>
             <SearchIcon />
-            <Input placeholder="Search names, passives, levels, or stats" />
+            <Input placeholder="Search Pal types, nicknames, passives, levels, or IVs" />
             <AriaButton slot="clear" className="inventory-search-clear" aria-label="Clear search">
               <CloseIcon />
             </AriaButton>
           </SearchField>
-          <InventorySortSelect
-            value={search.sort}
-            isDisabled={!profile}
-            onChange={(sort) => updateView({ sort })}
-          />
         </div>
 
         <InventoryFilterBar
@@ -196,14 +184,6 @@ export default function InventoryPage({
   );
 }
 
-const sortOptions: readonly SelectOption<InventorySort>[] = [
-  { id: "name", label: "Name A-Z" },
-  { id: "level-desc", label: "Level: high to low" },
-  { id: "level-asc", label: "Level: low to high" },
-  { id: "iv-desc", label: "Best average IV" },
-  { id: "location", label: "Location & slot" },
-];
-
 const locationOptions: readonly { id: PalLocation | "all"; label: string }[] = [
   { id: "all", label: "All" },
   { id: "party", label: "Party" },
@@ -213,50 +193,6 @@ const locationOptions: readonly { id: PalLocation | "all"; label: string }[] = [
 ];
 
 type SelectOption<T extends string> = { id: T; label: string };
-
-function InventorySortSelect({
-  value,
-  isDisabled,
-  onChange,
-}: {
-  value: InventorySort | undefined;
-  isDisabled: boolean;
-  onChange: (sort: InventorySort | undefined) => void;
-}) {
-  return (
-    <Select<SelectOption<InventorySort>>
-      className="inventory-sort-select"
-      selectedKey={value ?? "name"}
-      isDisabled={isDisabled}
-      onSelectionChange={(key) => onChange(key === "name" ? undefined : String(key) as InventorySort)}
-    >
-      <Label>Sort by</Label>
-      <AriaButton className="inventory-sort-trigger">
-        <SortIcon />
-        <SelectValue className="inventory-sort-value" />
-        <ChevronIcon />
-      </AriaButton>
-      <Popover className="inventory-control-popover" placement="bottom end">
-        <ListBox items={sortOptions} className="inventory-control-options">
-          {(option) => (
-            <ListBoxItem
-              id={option.id}
-              textValue={option.label}
-              className="inventory-control-option"
-            >
-              {({ isSelected }) => (
-                <>
-                  <span>{option.label}</span>
-                  {isSelected ? <CheckIcon /> : null}
-                </>
-              )}
-            </ListBoxItem>
-          )}
-        </ListBox>
-      </Popover>
-    </Select>
-  );
-}
 
 function InventoryFilterBar({
   profile,
@@ -429,7 +365,7 @@ function InventoryHero() {
       <div>
         <span className="section-kicker">INVENTORY</span>
         <h1>Your Palworld 1.0 Pals</h1>
-        <p>Search your imported Pals, compare stats, and choose which world the Builder uses.</p>
+        <p>Browse by Pal type, then compare your copies by stats, passives, and location.</p>
       </div>
       <span className="hero-index">01</span>
     </section>
@@ -473,24 +409,12 @@ function SearchIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg>;
 }
 
-function SortIcon() {
-  return <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5h8M3 9h6M3 13h4M13 4v10m0 0-2.5-2.5M13 14l2.5-2.5" /></svg>;
-}
-
 function FilterIcon() {
   return <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M2.5 4h13M5 9h8m-5.5 5h3" /></svg>;
 }
 
 function LocationIcon() {
   return <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 16s5-4.4 5-9a5 5 0 0 0-10 0c0 4.6 5 9 5 9Z" /><circle cx="9" cy="7" r="1.7" /></svg>;
-}
-
-function ChevronIcon() {
-  return <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 6 4.5 4 4.5-4" /></svg>;
-}
-
-function CheckIcon() {
-  return <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8.3 3 3L13 4.7" /></svg>;
 }
 
 function WorldOutlineIcon() {
