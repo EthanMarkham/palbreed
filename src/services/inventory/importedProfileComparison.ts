@@ -60,7 +60,7 @@ function canonicalPal(pal: OwnedPal) {
     pal.abilityScores
       ? [
           pal.abilityScores.hp,
-          pal.abilityScores.melee,
+          pal.abilityScores.melee ?? null,
           pal.abilityScores.ranged,
           pal.abilityScores.defense,
         ]

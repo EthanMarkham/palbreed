@@ -337,10 +337,16 @@ function sanitizePalboxSlotIndex(value: OwnedPal["palboxSlotIndex"]) {
 
 function sanitizeAbilityScores(scores: OwnedPal["abilityScores"]) {
   if (!scores) return undefined;
-  const values = [scores.hp, scores.melee, scores.ranged, scores.defense];
-  return values.every((value) => Number.isInteger(value) && value >= 0 && value <= 100)
+  const requiredValues = [scores.hp, scores.ranged, scores.defense];
+  const hasValidMelee = scores.melee === undefined
+    || isValidAbilityScore(scores.melee);
+  return requiredValues.every(isValidAbilityScore) && hasValidMelee
     ? scores
     : undefined;
+}
+
+function isValidAbilityScore(value: number) {
+  return Number.isInteger(value) && value >= 0 && value <= 100;
 }
 
 function sanitizeNormalizationVersion(profile: InventoryProfile) {

@@ -18,7 +18,7 @@ const ownedPalSchema = z.object({
   level: z.number().optional(),
   abilityScores: z.object({
     hp: z.number().int().min(0).max(100),
-    melee: z.number().int().min(0).max(100),
+    melee: z.number().int().min(0).max(100).optional(),
     ranged: z.number().int().min(0).max(100),
     defense: z.number().int().min(0).max(100),
   }).optional(),

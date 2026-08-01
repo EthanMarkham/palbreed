@@ -72,6 +72,10 @@ describe("Inventory collection filtering", () => {
 
   it("combines gender, hidden IV, and passive filters", () => {
     expect(getAverageCombatIv(pals[1])).toBe(90);
+    expect(getAverageCombatIv({
+      ...pals[1],
+      abilityScores: { hp: 95, ranged: 85, defense: 90 },
+    })).toBe(90);
     expect(filterInventoryPals(pals, {
       gender: "F",
       iv: "average-90",

@@ -36,6 +36,7 @@ type InventoryCollectionProps = {
 
 const MotionModalOverlay = motion.create(ModalOverlay);
 const MotionModal = motion.create(Modal);
+const MotionButton = motion.create(Button);
 
 const copySortOptions: readonly { id: InventoryCopySort; label: string }[] = [
   { id: "level-desc", label: "Highest level" },
@@ -67,6 +68,7 @@ export default function InventoryCollection({
   );
   const [selectedSpeciesId, setSelectedSpeciesId] = useState<OwnedPal["speciesId"]>();
   const selectedGroup = speciesGroups.find(({ speciesId }) => speciesId === selectedSpeciesId);
+  const shouldReduceMotion = Boolean(useReducedMotion());
 
   return (
     <>
@@ -79,17 +81,31 @@ export default function InventoryCollection({
         onRemove={onRemove}
       />
       {visiblePals.length ? (
-        <ul className="inventory-species-grid" aria-label={`${profile.name} Pal types`}>
-          {speciesGroups.map((group) => (
-            <li key={group.speciesId}>
-              <InventorySpeciesCard
-                group={group}
-                totalCount={totalCopiesBySpecies.get(group.speciesId) ?? group.pals.length}
-                onOpen={() => setSelectedSpeciesId(group.speciesId)}
-              />
-            </li>
-          ))}
-        </ul>
+        <motion.ul
+          layout={!shouldReduceMotion}
+          className="inventory-species-grid"
+          aria-label={`${profile.name} Pal types`}
+        >
+          <AnimatePresence initial={false}>
+            {speciesGroups.map((group) => (
+              <motion.li
+                layout={!shouldReduceMotion}
+                key={group.speciesId}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 8, scale: 0.985 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={shouldReduceMotion ? undefined : { opacity: 0, y: -5, scale: 0.985 }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <InventorySpeciesCard
+                  group={group}
+                  totalCount={totalCopiesBySpecies.get(group.speciesId) ?? group.pals.length}
+                  shouldReduceMotion={shouldReduceMotion}
+                  onOpen={() => setSelectedSpeciesId(group.speciesId)}
+                />
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </motion.ul>
       ) : profile.pals.length ? (
         <div className="empty-state inventory-empty">
           <SearchIcon />
@@ -162,10 +178,12 @@ function CollectionHeader({
 function InventorySpeciesCard({
   group,
   totalCount,
+  shouldReduceMotion,
   onOpen,
 }: {
   group: InventorySpeciesGroup;
   totalCount: number;
+  shouldReduceMotion: boolean;
   onOpen: () => void;
 }) {
   const species = breedingRepository.getPal(group.speciesId);
@@ -176,9 +194,12 @@ function InventorySpeciesCard({
   const isNarrowed = group.pals.length < totalCount;
 
   return (
-    <Button
+    <MotionButton
       className="inventory-species-card"
       onPress={onOpen}
+      whileHover={shouldReduceMotion ? undefined : { y: -4 }}
+      whileTap={shouldReduceMotion ? undefined : { scale: 0.985 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
       aria-label={`Open ${group.speciesName}, ${formatVisibleCopyCount(group.pals.length, totalCount)}`}
     >
       <span className="inventory-species-card-topline">
@@ -223,7 +244,7 @@ function InventorySpeciesCard({
         </span>
         <span className="inventory-species-open">View copies <ArrowIcon /></span>
       </span>
-    </Button>
+    </MotionButton>
   );
 }
 
@@ -291,7 +312,14 @@ function InventorySpeciesModal({
                     aria-pressed={sort === option.id}
                     onPress={() => setSort(option.id)}
                   >
-                    {option.label}
+                    {sort === option.id ? (
+                      <motion.span
+                        className="inventory-copy-sort-highlight"
+                        layoutId={`inventory-copy-sort-${group.speciesId}`}
+                        transition={{ duration: motionDuration, ease: [0.22, 1, 0.36, 1] }}
+                      />
+                    ) : null}
+                    <span>{option.label}</span>
                   </Button>
                 ))}
               </div>
@@ -305,7 +333,7 @@ function InventorySpeciesModal({
                 key={pal.id}
                 transition={{ duration: shouldReduceMotion ? 0 : 0.22, ease: "easeOut" }}
               >
-                <InventoryPalCard pal={pal} />
+                <InventoryPalCard pal={pal} shouldReduceMotion={Boolean(shouldReduceMotion)} />
               </motion.li>
             ))}
           </ul>
@@ -315,7 +343,13 @@ function InventorySpeciesModal({
   );
 }
 
-function InventoryPalCard({ pal }: { pal: OwnedPal }) {
+function InventoryPalCard({
+  pal,
+  shouldReduceMotion,
+}: {
+  pal: OwnedPal;
+  shouldReduceMotion: boolean;
+}) {
   const species = breedingRepository.getPal(pal.speciesId);
   const displayName = getInventoryPalName(pal);
   const speciesName = getInventoryPalSpeciesName(pal);
@@ -336,16 +370,16 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
             <em>No. {species?.number ?? "--"}</em>
           </span>
         </div>
-        {averageIv !== undefined ? (
-          <span
-            className="inventory-iv-average"
-            data-tier={getPotentialTier(averageIv)}
-            title="Average of HP, Attack, and Defense hidden IVs"
-          >
-            <small>IV AVG</small>
-            <strong>{averageIv}</strong>
-          </span>
-        ) : null}
+        <span
+          className="inventory-iv-average"
+          data-tier={getPotentialTier(averageIv)}
+          title={averageIv === undefined
+            ? "Average IV is unavailable because this imported record has no combat IV data"
+            : "Average of HP, Attack, and Defense IVs"}
+        >
+          <small>AVG IV</small>
+          <strong>{averageIv ?? "—"}</strong>
+        </span>
       </header>
 
       <dl className="inventory-pal-facts">
@@ -363,6 +397,8 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
         </div>
       </dl>
 
+      <IvScores scores={pal.abilityScores} shouldReduceMotion={shouldReduceMotion} />
+
       {combatStats ? (
         <div
           className="inventory-combat-stats"
@@ -376,8 +412,6 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
           </dl>
         </div>
       ) : null}
-
-      {pal.abilityScores ? <HiddenIvBadges scores={pal.abilityScores} /> : null}
 
       <div className="inventory-passives">
         <span className="inventory-card-label">Passives</span>
@@ -400,22 +434,50 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
   );
 }
 
-function HiddenIvBadges({ scores }: { scores: NonNullable<OwnedPal["abilityScores"]> }) {
+function IvScores({
+  scores,
+  shouldReduceMotion,
+}: {
+  scores: OwnedPal["abilityScores"];
+  shouldReduceMotion: boolean;
+}) {
   const values = [
-    ["HP", scores.hp],
-    ["Attack", scores.ranged],
-    ["Defense", scores.defense],
-    ["Melee", scores.melee],
+    ["HP", scores?.hp],
+    ["Attack", scores?.ranged],
+    ["Defense", scores?.defense],
   ] as const;
 
   return (
-    <div className="inventory-potential" title="Hidden stat scores from the imported save, from 0 to 100">
-      <span className="inventory-card-label">Hidden IVs <em>0–100</em></span>
+    <div
+      className="inventory-potential"
+      title={scores
+        ? "Individual values from the imported save, from 0 to 100"
+        : "IV data was not available in this imported record"}
+    >
+      <span className="inventory-card-label">
+        Combat IVs
+        <em>{scores ? "0–100" : "Not available"}</em>
+      </span>
       <dl>
-        {values.map(([label, value]) => (
-          <div key={label} data-tier={getPotentialTier(value)} title={`${label} IV: ${value} out of 100`}>
+        {values.map(([label, value], index) => (
+          <div
+            key={label}
+            data-tier={getPotentialTier(value)}
+            title={value === undefined ? `${label} IV is unavailable` : `${label} IV: ${value} out of 100`}
+          >
             <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dd>{value ?? "—"}</dd>
+            <span className="inventory-iv-meter" aria-hidden="true">
+              <motion.span
+                initial={shouldReduceMotion ? false : { scaleX: 0 }}
+                animate={{ scaleX: (value ?? 0) / 100 }}
+                transition={{
+                  duration: shouldReduceMotion ? 0 : 0.42,
+                  delay: shouldReduceMotion ? 0 : 0.08 + index * 0.05,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+              />
+            </span>
           </div>
         ))}
       </dl>
@@ -488,7 +550,8 @@ function formatVisibleCopyCount(visibleCount: number, totalCount: number) {
     : formatCopyCount(visibleCount);
 }
 
-function getPotentialTier(value: number) {
+function getPotentialTier(value: number | undefined) {
+  if (value === undefined) return "unknown";
   if (value >= 90) return "exceptional";
   if (value >= 70) return "strong";
   return "standard";

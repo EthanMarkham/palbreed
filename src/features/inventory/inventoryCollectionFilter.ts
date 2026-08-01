@@ -78,7 +78,12 @@ function getSearchText(pal: OwnedPal): string {
     getInventoryPalSpeciesName(pal),
     pal.level ? `level ${pal.level}` : "",
     pal.abilityScores
-      ? `iv hp ${pal.abilityScores.hp} attack ${pal.abilityScores.ranged} defense ${pal.abilityScores.defense} melee ${pal.abilityScores.melee}`
+      ? [
+          `iv hp ${pal.abilityScores.hp}`,
+          `attack ${pal.abilityScores.ranged}`,
+          `defense ${pal.abilityScores.defense}`,
+          pal.abilityScores.melee === undefined ? "" : `melee ${pal.abilityScores.melee}`,
+        ].join(" ")
       : "",
     combatStats
       ? `combat hp ${combatStats.hp} health ${combatStats.hp} attack ${combatStats.attack} damage ${combatStats.attack} defense ${combatStats.defense}`

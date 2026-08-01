@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { SaveImportError } from "../../domain/saveImport";
-import { isTransientWatchError } from "./saveWatchService";
+import { isTransientWatchError, watchAccessState } from "./saveWatchService";
+
+describe("stored save handle access", () => {
+  it("offers a one-click resume when Chromium pauses a retained handle", () => {
+    expect(watchAccessState("prompt")).toEqual({
+      status: "needs-permission",
+      message: "Browser access is paused. Resume sync to use the saved folder.",
+    });
+  });
+
+  it("does not treat a retained, authorized handle as a missing folder", () => {
+    expect(watchAccessState("granted").status).toBe("watching");
+  });
+});
 
 describe("Xbox save watch retry policy", () => {
   it("retries files that disappear during WGS blob rotation", () => {

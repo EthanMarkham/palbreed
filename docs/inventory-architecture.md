@@ -16,27 +16,31 @@ version and enables deterministic local migrations before sync.
 
 ## Optional automatic refresh
 
-Automatic refresh is opt-in and is available only after a world has been
-imported successfully. A retained, read-only `FileSystemDirectoryHandle` is
-stored in a dedicated IndexedDB database. Every open Palpath tab participates
-in a Web Locks election, so at most one tab checks saves at a time.
+Automatic refresh is connected automatically after a successful import made
+with the File System Access API. The user selects the save source once; its
+retained, read-only `FileSystemDirectoryHandle` is stored in a dedicated
+IndexedDB database. Every open Palpath tab participates in a Web Locks election,
+so at most one tab checks saves at a time.
 
-The inexpensive 15-second poll reads only the imported Steam world's
-`Level/01.sav` metadata. For Xbox, it fingerprints the selected WGS account's
-file paths, sizes, and modified times so opaque blob rotation is detected.
-After a change, two snapshots must match across a debounce before Palpath parses
-the save. The normalized result is compared semantically with the current
-profile; ordering, import timestamps, and fallback display labels cannot cause
-an update. Identical results do not change the local revision or call the
-Supabase sync RPC.
+Where Chromium exposes `FileSystemObserver`, recursive directory notifications
+wake the refresh loop immediately. Because that API remains non-standard, the
+inexpensive 15-second poll stays active as the production fallback and safety
+net. It reads only the imported Steam world's `Level/01.sav` metadata. For Xbox,
+it fingerprints the selected WGS account's file paths, sizes, and modified times
+so opaque blob rotation is detected. After a change, two snapshots must match
+across a debounce before Palpath parses the save. The normalized result is
+compared semantically with the current profile; ordering, import timestamps,
+and fallback display labels cannot cause an update. Identical results do not
+change the local revision or call the Supabase sync RPC.
 
 The poll exists only while a Palpath tab is open. Persisted folder permission
-may return to `prompt` or `denied` after a browser restart. A user-triggered
-Refresh first queries the retained handle and reads it immediately when access
-is still granted. If the handle returns `prompt`, the same action calls
-`requestPermission()` so the browser can restore access without reopening the
-operating-system folder picker. Choosing the folder again is reserved for a
-missing, revoked, or moved folder.
+may return to `prompt` or `denied` after a browser restart. That state is kept
+separate from a missing folder in both the service and UI. A user-triggered
+Resume sync action calls `requestPermission()` on the retained handle, so the
+browser can restore access without reopening the operating-system folder
+picker. Choosing a source again is reserved for a missing, revoked, moved, or
+intentionally changed folder. Chromium's picker ID is platform-specific so a
+genuinely new Xbox or Steam source opens near its last-used location.
 
 ## Save parser contract
 

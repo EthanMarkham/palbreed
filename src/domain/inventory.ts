@@ -3,7 +3,7 @@ import type { PassiveId } from "./passive";
 
 export type PalLocation = "party" | "palbox" | "base" | "global-storage";
 export type InventoryPlatform = "xbox" | "steam";
-export const CURRENT_INVENTORY_NORMALIZATION_VERSION = 2;
+export const CURRENT_INVENTORY_NORMALIZATION_VERSION = 3;
 
 export type InventoryOwner =
   | { kind: "anonymous"; id: string }
@@ -11,7 +11,7 @@ export type InventoryOwner =
 
 export type PalAbilityScores = {
   hp: number;
-  melee: number;
+  melee?: number;
   ranged: number;
   defense: number;
 };

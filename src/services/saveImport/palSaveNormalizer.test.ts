@@ -76,6 +76,25 @@ describe("normalizePalsFromParsedSave", () => {
     });
   });
 
+  it("keeps the three combat IVs when a save omits the unused melee talent", () => {
+    const parsed = {
+      SaveParameter_0: {
+        CharacterID_0: "SheepBall",
+        Gender_0: "EPalGenderType::Female",
+        Talent_HP_0: 74,
+        Talent_Shot_0: 88,
+        Talent_Defense_0: 92,
+      },
+    };
+
+    expect(normalizePalsFromParsedSave(parsed)[0]?.abilityScores).toEqual({
+      hp: 74,
+      melee: undefined,
+      ranged: 88,
+      defense: 92,
+    });
+  });
+
   it("reads the authoritative Palbox slot by Pal instance id", () => {
     const parsed = {
       CharacterContainerSaveData_0: {

@@ -64,4 +64,23 @@ describe("Pal save placement", () => {
       { ...palboxPal, palboxSlotIndex: undefined },
     )).toBe(palboxPal);
   });
+
+  it("keeps IVs and other details when the better-placed duplicate is incomplete", () => {
+    const abilityScores = { hp: 91, melee: 34, ranged: 87, defense: 96 };
+    const detailedBasePal: OwnedPal = {
+      ...basePal,
+      nickname: "Mochi",
+      level: 55,
+      passiveIds: ["artful-dodger"],
+      abilityScores,
+    };
+
+    expect(selectPreferredImportedPal(detailedBasePal, palboxPal)).toEqual({
+      ...palboxPal,
+      nickname: "Mochi",
+      level: 55,
+      passiveIds: ["artful-dodger"],
+      abilityScores,
+    });
+  });
 });

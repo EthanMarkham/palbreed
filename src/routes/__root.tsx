@@ -1,5 +1,6 @@
-import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
+import { Link, Outlet, createRootRoute, useRouterState } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import "../App.css";
 import Seo from "../components/Seo";
@@ -18,6 +19,8 @@ export const Route = createRootRoute({
 function RootLayout() {
   const brandMarkUrl = `${import.meta.env.BASE_URL}brand/palpath-mark-512.png`;
   const [hasHeaderBackdrop, setHasHeaderBackdrop] = useState(false);
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const shouldReduceMotion = Boolean(useReducedMotion());
 
   useEffect(() => {
     const updateHeaderBackdrop = () => setHasHeaderBackdrop(window.scrollY > 8);
@@ -51,7 +54,18 @@ function RootLayout() {
         </div>
       </header>
 
-      <Outlet />
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          className="route-stage"
+          key={pathname}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 8, scale: 0.997 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={shouldReduceMotion ? undefined : { opacity: 0, y: -5, scale: 0.998 }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <Outlet />
+        </motion.div>
+      </AnimatePresence>
 
       <footer className="site-footer">
         <span>Unofficial Palworld utility</span>

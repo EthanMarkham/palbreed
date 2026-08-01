@@ -45,6 +45,7 @@ type ImportStatus = {
 type RefreshSelection = {
   manifest: SaveManifest;
   slot: SaveSlotCandidate;
+  directoryHandle?: FileSystemDirectoryHandle;
 };
 
 type WorldImportDialogProps = {
@@ -91,11 +92,23 @@ export default function WorldImportDialog({
     setCompletion(undefined);
     setStatus({ kind: "working", message: "Looking for worlds…" });
     try {
-      const handle = await chooseSaveDirectory();
+      const handle = await chooseSaveDirectory(platform);
       const files = await readSaveDirectory(handle);
-      setManifest(await scanLogicalSaveSelection(files, platform));
+      const nextManifest = await scanLogicalSaveSelection(files, platform);
+      setManifest(nextManifest);
       setDirectoryHandle(handle);
       setStatus({ kind: "idle" });
+
+      // The common Xbox case is a single current world. Selecting WGS is the
+      // user's intent to connect it, so do not make them confirm it again.
+      const supportedSlots = nextManifest.slots.filter(({ format }) => format === "palworld-1.0");
+      if (supportedSlots.length === 1 && supportedSlots[0]) {
+        await importSlot(supportedSlots[0], {
+          manifest: nextManifest,
+          slot: supportedSlots[0],
+          directoryHandle: handle,
+        });
+      }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         setStatus({ kind: "idle" });
@@ -126,9 +139,9 @@ export default function WorldImportDialog({
   ) => {
     const selectedManifest = refreshSelection?.manifest ?? activeManifest;
     if (!selectedManifest) return;
+    const selectedDirectoryHandle = refreshSelection?.directoryHandle ?? directoryHandle;
     const isRefresh = Boolean(
-      refreshSelection
-      ?? importedBySlot[slot.id]
+      importedBySlot[slot.id]
       ?? findImportedProfile(profiles, selectedManifest, slot)?.id,
     );
     setCompletion(undefined);
@@ -141,8 +154,9 @@ export default function WorldImportDialog({
       let importSlot = refreshSelection?.slot ?? slot;
       if (refreshSelection) {
         setManifest(importManifest);
-      } else if (isRefresh && directoryHandle) {
-        const files = await readStableSaveDirectory(directoryHandle, {
+      }
+      if (selectedDirectoryHandle) {
+        const files = await readStableSaveDirectory(selectedDirectoryHandle, {
           platform: selectedManifest.platform,
           accountId: selectedManifest.accountId,
           worldRootPath: slot.rootPath,
@@ -167,6 +181,19 @@ export default function WorldImportDialog({
       const profile = inventoryService.getActiveProfile();
       if (!profile) throw new Error("We imported the world, but couldn't open it.");
 
+      let syncError: string | undefined;
+      if (persistentFoldersSupported && selectedDirectoryHandle) {
+        try {
+          await saveWatchService.enableAfterImport(
+            profile.id,
+            selectedDirectoryHandle,
+            importSlot,
+          );
+        } catch (error) {
+          syncError = importMessage(error);
+        }
+      }
+
       setImportedBySlot((current) => ({
         ...current,
         [slot.id]: profile.id,
@@ -183,9 +210,14 @@ export default function WorldImportDialog({
         : `${action} ${preview.pals.length.toLocaleString()} Pals.${skipped
           ? ` Skipped ${skipped} ${skipped === 1 ? "entry" : "entries"} that Palpath doesn't recognize yet.`
           : ""}`;
-      setStatus({ kind: "idle" });
-      setCompletion(message);
-      onImported(profile.id, message);
+      const completionMessage = persistentFoldersSupported && selectedDirectoryHandle && !syncError
+        ? `${message} Sync is on while Palpath is open.`
+        : message;
+      setStatus(syncError
+        ? { kind: "error", message: `The world was imported, but sync could not start: ${syncError}` }
+        : { kind: "idle" });
+      setCompletion(completionMessage);
+      onImported(profile.id, completionMessage);
     } catch (error) {
       setStatus({ kind: "error", message: importMessage(error) });
     }
@@ -219,19 +251,6 @@ export default function WorldImportDialog({
         manifest: refreshedManifest,
         slot: refreshedSlot,
       });
-    } catch (error) {
-      setStatus({ kind: "error", message: importMessage(error) });
-    }
-  };
-
-  const enableAutoRefresh = async (slot: SaveSlotCandidate, profileId: string) => {
-    if (!directoryHandle) return;
-    setCompletion(undefined);
-    setStatus({ kind: "working", message: `Turning on automatic refresh for ${slot.label}…` });
-    try {
-      await saveWatchService.enableAfterImport(profileId, directoryHandle, slot);
-      setStatus({ kind: "idle" });
-      setCompletion("Automatic refresh is on. It runs only while Palpath is open.");
     } catch (error) {
       setStatus({ kind: "error", message: importMessage(error) });
     }
@@ -312,7 +331,7 @@ export default function WorldImportDialog({
               <div>
                 <span className="section-kicker">WORLDS</span>
                 <Heading slot="title">{profiles.length ? "Manage your worlds" : "Import a world"}</Heading>
-                <p>Import manually, or let Palpath refresh a world while this site is open.</p>
+                <p>Connect a local save once. Palpath keeps it current while this site is open.</p>
               </div>
               <Button
                 slot="close"
@@ -344,22 +363,26 @@ export default function WorldImportDialog({
                             <small>{worldStatus(profile, watch)}</small>
                           </div>
                           {persistentFoldersSupported ? (
-                            watch ? (
+                            !saveWatch.ready ? (
+                              <span className="manual-only-badge">Loading sync…</span>
+                            ) : watch ? (
                               <div className="managed-world-actions">
                                 <Button
-                                  className="secondary-button compact-button"
+                                  className={`${watch.status === "needs-permission" ? "primary" : "secondary"}-button compact-button`}
                                   isDisabled={status.kind === "working"}
                                   onPress={() => void refreshWorld(profile)}
                                 >
-                                  Refresh
+                                  {watch.status === "needs-permission" ? "Resume sync" : "Check now"}
                                 </Button>
-                                {watch.status === "needs-folder" || watch.status === "error" ? (
+                                {watch.status === "needs-permission"
+                                  || watch.status === "needs-folder"
+                                  || watch.status === "error" ? (
                                   <Button
                                     className="secondary-button compact-button"
                                     isDisabled={status.kind === "working"}
                                     onPress={() => void chooseWorldFolder(profile)}
                                   >
-                                    Choose folder
+                                    Change source
                                   </Button>
                                 ) : null}
                                 <Button
@@ -376,7 +399,7 @@ export default function WorldImportDialog({
                                 isDisabled={status.kind === "working"}
                                 onPress={() => void chooseWorldFolder(profile)}
                               >
-                                Choose folder
+                                Connect save
                               </Button>
                             )
                           ) : (
@@ -387,15 +410,15 @@ export default function WorldImportDialog({
                     })}
                   </div>
                   <p className="watch-lifetime-note">
-                    Automatic refresh checks connected saves about every 15 seconds and stops when all Palpath tabs close.
-                    Manual Refresh remains available.
+                    Select a save once. Palpath remembers it, checks about every 15 seconds while open,
+                    and asks only to resume browser access after a restart.
                   </p>
                 </section>
               ) : null}
 
               <section className={`world-import-section${profiles.length ? " has-managed-worlds" : ""}`}>
                 <div className="subheading import-section-heading">
-                  <strong>{profiles.length ? "Import or refresh" : "Choose your save source"}</strong>
+                  <strong>{profiles.length ? "Connect another save" : "Choose your save source"}</strong>
                 </div>
 
                 <div className="platform-tabs" role="group" aria-label="Save platform">
@@ -438,7 +461,7 @@ export default function WorldImportDialog({
                     onPress={() => void scanPickedDirectory()}
                   >
                     <FolderIcon />
-                    <span>{status.kind === "working" ? "Please wait…" : "Choose save folder"}</span>
+                    <span>{status.kind === "working" ? "Please wait…" : platform === "xbox" ? "Connect Xbox saves" : "Connect Steam saves"}</span>
                   </Button>
                 ) : (
                   <FileTrigger acceptDirectory allowsMultiple onSelect={(files) => void scanFallbackFolder(files)}>
@@ -455,8 +478,8 @@ export default function WorldImportDialog({
 
                 {platform === "xbox" ? (
                   <p className="platform-limit-note">
-                    Xbox refresh watches the selected WGS account for stable file changes.
-                    Your selected save also stays ready for manual Refresh.
+                    Choose the WGS folder once. Palpath follows Xbox's rotating save blobs and
+                    refreshes connected worlds automatically while this tab is open.
                   </p>
                 ) : null}
                 {status.kind !== "idle" && status.message ? (
@@ -475,9 +498,6 @@ export default function WorldImportDialog({
                       const importedProfile = findImportedProfile(profiles, activeManifest, slot);
                       const profileId = importedBySlot[slot.id] ?? importedProfile?.id;
                       const watch = profileId ? saveWatch.worlds[profileId] : undefined;
-                      const needsConnection = !watch
-                        || watch.status === "needs-folder"
-                        || watch.status === "error";
                       return (
                         <article className="world-row" key={slot.id}>
                           <div>
@@ -511,22 +531,12 @@ export default function WorldImportDialog({
                                 aria-label={supported ? `Import ${slot.label}` : `${slot.label} requires Palworld 1.0`}
                                 onPress={() => void importSlot(slot)}
                               >
-                                {profileId ? "Refresh" : "Import"}
+                                {profileId ? "Update & connect" : "Import & connect"}
                               </Button>
                             )}
-                            {persistentFoldersSupported
-                              && directoryHandle
-                              && profileId
-                              && needsConnection ? (
-                                <Button
-                                  className="primary-button compact-button"
-                                  isDisabled={status.kind === "working"}
-                                  onPress={() => void enableAutoRefresh(slot, profileId)}
-                                >
-                                  {watch ? "Reconnect" : "Auto refresh"}
-                                </Button>
-                              ) : null}
-                            {watch && !needsConnection ? <span className="watching-badge"><PulseIcon />Watching</span> : null}
+                            {watch && watch.status === "watching" ? (
+                              <span className="watching-badge"><PulseIcon />Connected</span>
+                            ) : null}
                           </div>
                         </article>
                       );
@@ -560,6 +570,7 @@ function worldStatus(
 ) {
   if (!watch) return `${profile.pals.length.toLocaleString()} Pals · Not connected`;
   if (watch.status === "checking") return "Checking for changes…";
+  if (watch.status === "needs-permission") return "Sync paused · Resume with one click";
   if (watch.status === "needs-folder") return "Folder access needs to be reconnected";
   if (watch.status === "error") return watch.message;
   return `${profile.pals.length.toLocaleString()} Pals · Watching while open`;

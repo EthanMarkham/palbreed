@@ -9,7 +9,7 @@ export interface RawSavePal {
   level?: number;
   abilityScores?: {
     hp: number;
-    melee: number;
+    melee?: number;
     ranged: number;
     defense: number;
   };
@@ -106,7 +106,7 @@ function readAbilityScores(parameter: unknown): RawSavePal["abilityScores"] {
   const melee = abilityScore(parameter, "Talent_Melee");
   const ranged = abilityScore(parameter, "Talent_Shot");
   const defense = abilityScore(parameter, "Talent_Defense");
-  return hp === undefined || melee === undefined || ranged === undefined || defense === undefined
+  return hp === undefined || ranged === undefined || defense === undefined
     ? undefined
     : { hp, melee, ranged, defense };
 }

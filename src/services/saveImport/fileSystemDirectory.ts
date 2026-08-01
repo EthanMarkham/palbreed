@@ -19,12 +19,14 @@ export function supportsPersistentSaveFolders() {
     && Boolean(navigator.locks);
 }
 
-export async function chooseSaveDirectory() {
+export async function chooseSaveDirectory(platform?: "xbox" | "steam") {
   if (!supportsPersistentSaveFolders()) {
     throw new Error("Automatic refresh requires a current version of Chrome or Edge.");
   }
   return (window as unknown as DirectoryPickerWindow).showDirectoryPicker({
-    id: "palpath-save-folder",
+    // Chromium remembers the last location for each picker ID. Keep Xbox and
+    // Steam independent so changing a real source is less tedious.
+    id: platform ? `palpath-${platform}-save-folder` : "palpath-save-folder",
     mode: "read",
   });
 }

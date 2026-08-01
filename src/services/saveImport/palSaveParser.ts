@@ -287,16 +287,32 @@ export function selectPreferredImportedPal(
   if (!existing) return candidate;
   const priorityDifference = locationPriority(candidate.location)
     - locationPriority(existing.location);
-  if (priorityDifference > 0) return candidate;
-  if (priorityDifference < 0) return existing;
+  if (priorityDifference > 0) return enrichImportedPal(candidate, existing);
+  if (priorityDifference < 0) return enrichImportedPal(existing, candidate);
   if (
     existing.location === "palbox"
     && existing.palboxSlotIndex !== undefined
     && candidate.palboxSlotIndex === undefined
   ) {
-    return existing;
+    return enrichImportedPal(existing, candidate);
   }
-  return candidate;
+  return enrichImportedPal(candidate, existing);
+}
+
+function enrichImportedPal(preferred: OwnedPal, fallback: OwnedPal): OwnedPal {
+  const passiveIds = preferred.passiveIds.length ? preferred.passiveIds : fallback.passiveIds;
+  const nickname = preferred.nickname ?? fallback.nickname;
+  const level = preferred.level ?? fallback.level;
+  const abilityScores = preferred.abilityScores ?? fallback.abilityScores;
+  if (
+    passiveIds === preferred.passiveIds
+    && nickname === preferred.nickname
+    && level === preferred.level
+    && abilityScores === preferred.abilityScores
+  ) {
+    return preferred;
+  }
+  return { ...preferred, passiveIds, nickname, level, abilityScores };
 }
 
 function formatMegabytes(bytes: number) {

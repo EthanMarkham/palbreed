@@ -1,4 +1,7 @@
-import type { InventoryProfile } from "../../domain/inventory";
+import {
+  CURRENT_INVENTORY_NORMALIZATION_VERSION,
+  type InventoryProfile,
+} from "../../domain/inventory";
 import {
   SaveImportError,
   type LogicalSaveFile,
@@ -34,7 +37,7 @@ const CHANNEL_NAME = "palpath-save-watch";
 
 export type SaveWatchWorldState = {
   profileId: string;
-  status: "watching" | "checking" | "needs-folder" | "error";
+  status: "watching" | "checking" | "needs-permission" | "needs-folder" | "error";
   folderName: string;
   message: string;
   lastCheckedAt?: string;
@@ -43,6 +46,7 @@ export type SaveWatchWorldState = {
 
 export type SaveWatchSnapshot = {
   supported: boolean;
+  ready: boolean;
   worlds: Readonly<Record<string, SaveWatchWorldState>>;
 };
 
@@ -60,11 +64,37 @@ type SaveSourceSnapshot = {
   files?: readonly LogicalSaveFile[];
 };
 
+type DirectoryObserver = {
+  observe(
+    handle: FileSystemDirectoryHandle,
+    options?: { recursive?: boolean },
+  ): Promise<void>;
+  disconnect(): void;
+};
+
+type DirectoryObserverConstructor = new (
+  callback: () => void,
+) => DirectoryObserver;
+
+export function watchAccessState(permission: PermissionState) {
+  return permission === "granted"
+    ? {
+        status: "watching" as const,
+        message: "Watching while Palpath is open.",
+      }
+    : {
+        status: "needs-permission" as const,
+        message: "Browser access is paused. Resume sync to use the saved folder.",
+      };
+}
+
 export class SaveWatchService {
   private readonly listeners = new Set<Listener>();
   private readonly watches = new Map<string, StoredSaveWatch>();
+  private readonly observers = new Map<string, DirectoryObserver>();
   private snapshot: SaveWatchSnapshot = {
     supported: supportsPersistentSaveFolders(),
+    ready: !supportsPersistentSaveFolders(),
     worlds: {},
   };
   private started = false;
@@ -94,9 +124,14 @@ export class SaveWatchService {
     }
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     const runId = this.runId;
-    void this.loadWatches().then(() => {
-      if (this.started && this.runId === runId) void this.runPollingLoop(runId);
-    });
+    void this.loadWatches()
+      .catch((error) => {
+        console.error("Saved folder connections could not be restored.", error);
+        this.setSnapshot({ ...this.snapshot, ready: true });
+      })
+      .then(() => {
+        if (this.started && this.runId === runId) void this.runPollingLoop(runId);
+      });
   }
 
   stop() {
@@ -104,6 +139,7 @@ export class SaveWatchService {
     this.started = false;
     this.runId += 1;
     this.wakePolling?.();
+    this.disconnectObservers();
     this.channel?.close();
     this.channel = undefined;
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
@@ -139,13 +175,14 @@ export class SaveWatchService {
     const permission = await requestSaveDirectoryPermission(watch.directoryHandle);
     if (permission !== "granted") {
       this.setWorldState(watch, {
-        status: "needs-folder",
-        message: "Folder access wasn't granted. Restore access or choose the folder again.",
+        status: "needs-permission",
+        message: "Browser access is paused. Resume sync to use the saved folder.",
       });
       throw new Error(
-        `Palpath doesn't have access to ${watch.folderName}. Restore access or choose the folder again.`,
+        `Palpath still remembers ${watch.folderName}, but browser access wasn't granted. Allow access to resume sync.`,
       );
     }
+    void this.observeWatch(watch);
 
     this.setWorldState(watch, {
       status: "checking",
@@ -164,7 +201,7 @@ export class SaveWatchService {
     const profile = inventoryService.getProfile(profileId);
     if (!profile) throw new Error("That imported world is no longer available.");
 
-    const directoryHandle = await chooseSaveDirectory();
+    const directoryHandle = await chooseSaveDirectory(profile.platform);
     const selectedFiles = await readSaveDirectory(directoryHandle);
     const files = profile.platform === "xbox"
       ? selectXboxAccountFiles(selectedFiles, profile.accountId)
@@ -194,6 +231,8 @@ export class SaveWatchService {
   }
 
   private async deleteWatch(profileId: string) {
+    this.observers.get(profileId)?.disconnect();
+    this.observers.delete(profileId);
     this.watches.delete(profileId);
     await this.store.delete(profileId);
     const worlds = { ...this.snapshot.worlds };
@@ -239,27 +278,35 @@ export class SaveWatchService {
       status: "watching",
       message: "Watching while Palpath is open.",
     });
+    void this.observeWatch(watch);
     this.broadcast({ type: "config-changed" });
     this.checkNow();
   }
 
   private async loadWatches() {
     const stored = await this.store.list();
+    this.disconnectObservers();
     this.watches.clear();
     const worlds: Record<string, SaveWatchWorldState> = {};
     for (const watch of stored) {
       if (watch.version !== 1) continue;
       this.watches.set(watch.profileId, watch);
+      let permission: PermissionState;
+      try {
+        permission = await querySaveDirectoryPermission(watch.directoryHandle);
+      } catch {
+        permission = "denied";
+      }
       worlds[watch.profileId] = {
         profileId: watch.profileId,
         folderName: watch.folderName,
-        status: "watching",
-        message: "Watching while Palpath is open.",
+        ...watchAccessState(permission),
         lastCheckedAt: watch.lastCheckedAt,
         lastUpdatedAt: watch.lastUpdatedAt,
       };
+      if (permission === "granted") void this.observeWatch(watch);
     }
-    this.setSnapshot({ ...this.snapshot, worlds });
+    this.setSnapshot({ ...this.snapshot, ready: true, worlds });
   }
 
   private async runPollingLoop(runId: number) {
@@ -307,15 +354,18 @@ export class SaveWatchService {
       const permission = await querySaveDirectoryPermission(watch.directoryHandle);
       if (permission !== "granted") {
         this.setWorldState(watch, {
-          status: "needs-folder",
-          message: "Reconnect the save folder to resume.",
+          status: "needs-permission",
+          message: "Browser access is paused. Resume sync to use the saved folder.",
         });
         return undefined;
       }
 
       const firstSource = await this.readSourceSnapshot(watch, profile);
       const checkedAt = new Date().toISOString();
-      if (watch.lastSourceSignature === firstSource.signature) {
+      if (
+        watch.lastSourceSignature === firstSource.signature
+        && profile.normalizationVersion >= CURRENT_INVENTORY_NORMALIZATION_VERSION
+      ) {
         this.setWorldState(watch, {
           status: "watching",
           message: "Watching while Palpath is open.",
@@ -398,6 +448,32 @@ export class SaveWatchService {
       profile.accountId ?? watch.accountId,
     );
     return { signature: fileSetSignature(files), files };
+  }
+
+  private async observeWatch(watch: StoredSaveWatch) {
+    const Observer = (globalThis as typeof globalThis & {
+      FileSystemObserver?: DirectoryObserverConstructor;
+    }).FileSystemObserver;
+    if (!Observer) return;
+
+    this.observers.get(watch.profileId)?.disconnect();
+    const observer = new Observer(() => this.checkNow());
+    try {
+      await observer.observe(watch.directoryHandle, { recursive: true });
+      if (!this.started || !this.watches.has(watch.profileId)) {
+        observer.disconnect();
+        return;
+      }
+      this.observers.set(watch.profileId, observer);
+    } catch {
+      // FileSystemObserver is non-standard. Polling remains the reliable path.
+      observer.disconnect();
+    }
+  }
+
+  private disconnectObservers() {
+    this.observers.forEach((observer) => observer.disconnect());
+    this.observers.clear();
   }
 
   private setWorldState(
