@@ -207,11 +207,18 @@ function BuilderResultView({
   const passiveSummary = passiveGoal?.kind === "any"
     ? "No passive preference"
     : passiveGoal?.requiredIds.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ") ?? "";
+  const isIvReroll = result.strategy === "iv-reroll";
   return (
     <div className="build-result">
       <div className="build-summary">
         {target ? <PalAvatar pal={target} className="build-summary-avatar" /> : null}
-        <div><span className="result-eyebrow">BREEDING ROUTE</span><h2>{target?.name}</h2><p>{passiveSummary}</p></div>
+        <div>
+          <span className="result-eyebrow">
+            {isIvReroll ? "BEST-IV REROLL" : "BREEDING ROUTE"}
+          </span>
+          <h2>{target?.name}</h2>
+          <p>{isIvReroll ? `Best available parent pairing · ${passiveSummary}` : passiveSummary}</p>
+        </div>
         <div className="build-metrics"><span><strong>{result.steps.length}</strong>breedings</span><span><strong>{formatEggs(result.expectedCakes)}</strong>eggs on average</span></div>
       </div>
 

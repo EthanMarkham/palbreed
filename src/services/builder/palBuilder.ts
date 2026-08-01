@@ -56,6 +56,7 @@ export type BuilderResult =
       status: "found";
       steps: readonly BuilderStep[];
       expectedCakes: number;
+      strategy: "standard" | "iv-reroll";
     }
   | {
       status: "missing-passives";
@@ -77,6 +78,7 @@ type EncodedOwnedPal = {
   passiveIds: readonly PassiveId[];
   requiredMask: number;
   extraCount: number;
+  ivScores?: BuilderIvScores;
 };
 
 type PartnerAction = {
@@ -95,6 +97,7 @@ type QueueEntry = {
   state: number;
   steps: number;
   expectedCakes: number;
+  ivQuality: number;
 };
 
 const MAX_PASSIVES = 4;
@@ -105,6 +108,11 @@ const UNVISITED_PARENT = -0x80000000;
 const UNREACHED_STEPS = 0xffff;
 const MAX_CACHED_PARENT_UNION = MAX_PASSIVES * 3;
 const ODDS_DIMENSION = MAX_PASSIVES + 1;
+const IV_PARENT_SHARE = 0.3;
+const IV_RANDOM_SHARE = 0.4;
+const AVERAGE_RANDOM_IV = 50.5;
+const PAIRING_PRIMARY_WEIGHT = 1000;
+const UNKNOWN_IV_QUALITY = Number.NEGATIVE_INFINITY;
 const passiveOdds = new Float64Array(
   (MAX_CACHED_PARENT_UNION + 1) * ODDS_DIMENSION * ODDS_DIMENSION,
 );
@@ -157,14 +165,11 @@ export function buildPal(input: BuilderInput): BuilderResult {
       passiveIds,
       requiredMask,
       extraCount,
+      ivScores: getInventoryIvScores(pal),
     };
   });
 
-  const ownedTarget = encodedInventory.some(({ pal, requiredMask, extraCount }) =>
-    pal.speciesId === input.targetId
-    && (acceptsAnyPassives || (requiredMask === fullMask && extraCount <= allowedExtras)),
-  );
-  if (ownedTarget) return { status: "found", steps: [], expectedCakes: 0 };
+  const isIvReroll = encodedInventory.some(({ pal }) => pal.speciesId === input.targetId);
 
   const targetIndex = getRuntimePalIndex(input.targetId);
   if (targetIndex === undefined) return noRoute();
@@ -174,10 +179,25 @@ export function buildPal(input: BuilderInput): BuilderResult {
     encodedInventory,
     maskVariants,
     acceptsAnyPassives,
+    isIvReroll,
   );
   const stateCount = runtimePals.length * maskVariants * EXTRA_VARIANTS * GENDER_VARIANTS;
   const bestSteps = new Uint16Array(stateCount).fill(UNREACHED_STEPS);
   const bestExpectedCakes = new Float64Array(stateCount).fill(Number.POSITIVE_INFINITY);
+  const bestIvQuality = new Float64Array(stateCount).fill(UNKNOWN_IV_QUALITY);
+  const bestIvHp = isIvReroll ? new Float64Array(stateCount).fill(Number.NaN) : undefined;
+  const bestIvAttack = isIvReroll ? new Float64Array(stateCount).fill(Number.NaN) : undefined;
+  const bestIvDefense = isIvReroll ? new Float64Array(stateCount).fill(Number.NaN) : undefined;
+  const getStateIvScores = (state: number): BuilderIvScores | undefined => {
+    if (!bestIvHp || !bestIvAttack || !bestIvDefense || Number.isNaN(bestIvHp[state])) {
+      return undefined;
+    }
+    return {
+      hp: bestIvHp[state],
+      attack: bestIvAttack[state],
+      defense: bestIvDefense[state],
+    };
+  };
   const firstParentRef = new Int32Array(stateCount).fill(UNVISITED_PARENT);
   const secondParentRef = new Int32Array(stateCount).fill(UNVISITED_PARENT);
   const edgeOdds = new Float64Array(stateCount);
@@ -186,13 +206,14 @@ export function buildPal(input: BuilderInput): BuilderResult {
     { length: runtimePals.length * 2 },
     () => [],
   );
-  const queue = new StatePriorityQueue(input.objective, stateCount);
+  const queue = new StatePriorityQueue(input.objective, isIvReroll, stateCount);
 
   const recordFinalState = (
     maxUnknownExtraCount: number,
     odds: number,
     steps: number,
     expectedCakes: number,
+    ivQuality: number,
     firstRef: number,
     secondRef: number,
   ) => {
@@ -214,10 +235,14 @@ export function buildPal(input: BuilderInput): BuilderResult {
       bestExpectedCakes[state],
       maxUnknownExtraCount,
       input.objective,
+      ivQuality,
+      bestIvQuality[state],
+      isIvReroll,
     ) >= 0) return;
 
     bestSteps[state] = nextSteps;
     bestExpectedCakes[state] = nextExpectedCakes;
+    bestIvQuality[state] = ivQuality;
     firstParentRef[state] = firstRef;
     secondParentRef[state] = secondRef;
     edgeOdds[state] = odds;
@@ -231,6 +256,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
     odds: number,
     steps: number,
     expectedCakes: number,
+    ivQuality: number,
+    ivScores: BuilderIvScores | undefined,
     firstRef: number,
     secondRef: number,
   ) => {
@@ -251,14 +278,23 @@ export function buildPal(input: BuilderInput): BuilderResult {
       bestExpectedCakes[state],
       maxUnknownExtraCount,
       input.objective,
+      ivQuality,
+      bestIvQuality[state],
+      isIvReroll,
     ) >= 0) return;
 
     bestSteps[state] = steps;
     bestExpectedCakes[state] = expectedCakes;
+    bestIvQuality[state] = ivQuality;
+    if (ivScores && bestIvHp && bestIvAttack && bestIvDefense) {
+      bestIvHp[state] = ivScores.hp;
+      bestIvAttack[state] = ivScores.attack;
+      bestIvDefense[state] = ivScores.defense;
+    }
     firstParentRef[state] = firstRef;
     secondParentRef[state] = secondRef;
     edgeOdds[state] = odds;
-    queue.push(state, steps, expectedCakes);
+    queue.push(state, steps, expectedCakes, ivQuality);
   };
 
   const relaxHatchGenders = (
@@ -269,6 +305,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
     isFinalHatch: boolean,
     currentSteps: number,
     currentExpectedCakes: number,
+    ivQuality: number,
+    ivScores: BuilderIvScores | undefined,
     firstRef: number,
     secondRef: number,
   ) => {
@@ -278,6 +316,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
         passiveChance,
         currentSteps,
         currentExpectedCakes,
+        ivQuality,
         firstRef,
         secondRef,
       );
@@ -297,6 +336,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
         odds,
         currentSteps + 1,
         currentExpectedCakes + 1 / odds,
+        ivQuality,
+        ivScores,
         firstRef,
         secondRef,
       );
@@ -309,12 +350,20 @@ export function buildPal(input: BuilderInput): BuilderResult {
     parentUnionSize: number,
     currentSteps: number,
     currentExpectedCakes: number,
+    firstIvScores: BuilderIvScores | undefined,
+    secondIvScores: BuilderIvScores | undefined,
     firstRef: number,
     secondRef: number,
   ) => {
     const desiredCount = countBits(nextMask);
     const availableExtraSlots = MAX_PASSIVES - desiredCount;
     const isFinalHatch = childIndex === targetIndex && nextMask === fullMask;
+    const ivScores = isIvReroll
+      ? estimateOffspringIvScores(firstIvScores, secondIvScores)
+      : undefined;
+    const ivQuality = isFinalHatch
+      ? getPairingIvQuality(firstIvScores, secondIvScores)
+      : getIvScoreTotal(ivScores);
     if (acceptsAnyPassives) {
       relaxHatchGenders(
         childIndex,
@@ -324,6 +373,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
         isFinalHatch,
         currentSteps,
         currentExpectedCakes,
+        ivQuality,
+        ivScores,
         firstRef,
         secondRef,
       );
@@ -348,6 +399,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
         isFinalHatch,
         currentSteps,
         currentExpectedCakes,
+        ivQuality,
+        ivScores,
         firstRef,
         secondRef,
       );
@@ -377,6 +430,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
         acceptsAnyPassives ? 0 : passiveUnionSize(first.passiveIds, second.passiveIds),
         0,
         0,
+        first.ivScores,
+        second.ivScores,
         encodeInventoryRef(firstIndex),
         encodeInventoryRef(secondIndex),
       );
@@ -389,6 +444,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
       !current
       || bestSteps[current.state] !== current.steps
       || bestExpectedCakes[current.state] !== current.expectedCakes
+      || bestIvQuality[current.state] !== current.ivQuality
       || settled[current.state]
     ) continue;
 
@@ -411,6 +467,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
           : countBits(nextMask) + partner.extraCount + decoded.maxUnknownExtraCount,
         current.steps,
         current.expectedCakes,
+        getStateIvScores(current.state),
+        partner.ivScores,
         current.state,
         encodeInventoryRef(action.partnerIndex),
       );
@@ -434,6 +492,8 @@ export function buildPal(input: BuilderInput): BuilderResult {
               + second.maxUnknownExtraCount,
           bestSteps[firstState] + bestSteps[secondState],
           bestExpectedCakes[firstState] + bestExpectedCakes[secondState],
+          getStateIvScores(firstState),
+          getStateIvScores(secondState),
           firstState,
           secondState,
         );
@@ -482,6 +542,9 @@ export function buildPal(input: BuilderInput): BuilderResult {
         bestExpectedCakes[bestTargetState],
         stateExtraCount(bestTargetState),
         input.objective,
+        bestIvQuality[state],
+        bestIvQuality[bestTargetState],
+        isIvReroll,
       ) < 0
     ) {
       bestTargetState = state;
@@ -503,6 +566,7 @@ export function buildPal(input: BuilderInput): BuilderResult {
           edgeOdds,
         ),
         expectedCakes: bestExpectedCakes[bestTargetState],
+        strategy: isIvReroll ? "iv-reroll" : "standard",
       };
 }
 
@@ -527,9 +591,10 @@ function buildPartnerActions(
   inventory: readonly EncodedOwnedPal[],
   maskVariants: number,
   acceptsAnyPassives: boolean,
+  optimizeIvs: boolean,
 ) {
   return runtimePals.map((_, firstParentIndex): readonly PartnerAction[] => {
-    const bestPartnerByOutcome = new Map<number, number>();
+    const bestPartnersByOutcome = new Map<number, number[]>();
 
     for (let partnerIndex = 0; partnerIndex < inventory.length; partnerIndex += 1) {
       const partner = inventory[partnerIndex];
@@ -543,18 +608,40 @@ function buildPartnerActions(
       const actionKey = (
         (childIndex * maskVariants + partner.requiredMask) * 2
       ) + (partner.pal.gender === "M" ? 1 : 0);
-      const existingIndex = bestPartnerByOutcome.get(actionKey);
-      if (
-        existingIndex !== undefined
-        && (acceptsAnyPassives || inventory[existingIndex].extraCount <= partner.extraCount)
-      ) continue;
-      bestPartnerByOutcome.set(actionKey, partnerIndex);
+      const existingIndices = bestPartnersByOutcome.get(actionKey) ?? [];
+      if (!optimizeIvs) {
+        const existing = existingIndices[0];
+        if (
+          existing !== undefined
+          && (acceptsAnyPassives || inventory[existing].extraCount <= partner.extraCount)
+        ) continue;
+        bestPartnersByOutcome.set(actionKey, [partnerIndex]);
+        continue;
+      }
+
+      if (existingIndices.some((index) => partnerDominates(
+        inventory[index],
+        partner,
+        acceptsAnyPassives,
+      ))) continue;
+      bestPartnersByOutcome.set(
+        actionKey,
+        existingIndices
+          .filter((index) => !partnerDominates(
+            partner,
+            inventory[index],
+            acceptsAnyPassives,
+          ))
+          .concat(partnerIndex),
+      );
     }
 
-    return [...bestPartnerByOutcome].map(([actionKey, partnerIndex]) => ({
-      childIndex: Math.floor(actionKey / (maskVariants * 2)),
-      partnerIndex,
-    }));
+    return [...bestPartnersByOutcome].flatMap(([actionKey, partnerIndices]) => (
+      partnerIndices.map((partnerIndex) => ({
+        childIndex: Math.floor(actionKey / (maskVariants * 2)),
+        partnerIndex,
+      }))
+    ));
   });
 }
 
@@ -697,21 +784,90 @@ function compareLabels(
   secondExpectedCakes: number,
   secondExtraCount: number,
   objective: BuilderObjective,
+  firstIvQuality = UNKNOWN_IV_QUALITY,
+  secondIvQuality = UNKNOWN_IV_QUALITY,
+  optimizeIvs = false,
 ) {
+  const ivComparison = optimizeIvs
+    ? -compareIvQuality(firstIvQuality, secondIvQuality)
+    : 0;
   if (objective === "cleanest") {
     return firstExpectedCakes - secondExpectedCakes
+      || ivComparison
       || firstSteps - secondSteps
       || firstExtraCount - secondExtraCount;
   }
   if (objective === "recommended") {
     return (firstExpectedCakes + firstSteps * 8) - (secondExpectedCakes + secondSteps * 8)
+      || ivComparison
       || firstSteps - secondSteps
       || firstExpectedCakes - secondExpectedCakes
       || firstExtraCount - secondExtraCount;
   }
   return firstSteps - secondSteps
+    || ivComparison
     || firstExpectedCakes - secondExpectedCakes
     || firstExtraCount - secondExtraCount;
+}
+
+function compareIvQuality(first: number, second: number) {
+  if (first === second) return 0;
+  if (first === UNKNOWN_IV_QUALITY) return -1;
+  if (second === UNKNOWN_IV_QUALITY) return 1;
+  return first - second;
+}
+
+function partnerDominates(
+  first: EncodedOwnedPal,
+  second: EncodedOwnedPal,
+  acceptsAnyPassives: boolean,
+) {
+  if (!acceptsAnyPassives && first.extraCount > second.extraCount) return false;
+  if (!first.ivScores) return !second.ivScores;
+  if (!second.ivScores) return true;
+  return first.ivScores.hp >= second.ivScores.hp
+    && first.ivScores.attack >= second.ivScores.attack
+    && first.ivScores.defense >= second.ivScores.defense;
+}
+
+function getPairingIvQuality(
+  first: BuilderIvScores | undefined,
+  second: BuilderIvScores | undefined,
+) {
+  if (!first || !second) return UNKNOWN_IV_QUALITY;
+  // The best source for each stat is the primary tie-break. The other source
+  // breaks equal maxima because both parents independently own a 30% share.
+  const strongestSources = Math.max(first.hp, second.hp)
+    + Math.max(first.attack, second.attack)
+    + Math.max(first.defense, second.defense);
+  const backupSources = Math.min(first.hp, second.hp)
+    + Math.min(first.attack, second.attack)
+    + Math.min(first.defense, second.defense);
+  return strongestSources * PAIRING_PRIMARY_WEIGHT + backupSources;
+}
+
+function getIvScoreTotal(scores: BuilderIvScores | undefined) {
+  return scores
+    ? scores.hp + scores.attack + scores.defense
+    : UNKNOWN_IV_QUALITY;
+}
+
+function estimateOffspringIvScores(
+  first: BuilderIvScores | undefined,
+  second: BuilderIvScores | undefined,
+): BuilderIvScores | undefined {
+  if (!first || !second) return undefined;
+  return {
+    hp: estimateOffspringIvStat(first.hp, second.hp),
+    attack: estimateOffspringIvStat(first.attack, second.attack),
+    defense: estimateOffspringIvStat(first.defense, second.defense),
+  };
+}
+
+function estimateOffspringIvStat(first: number, second: number) {
+  return IV_PARENT_SHARE * first
+    + IV_PARENT_SHARE * second
+    + IV_RANDOM_SHARE * AVERAGE_RANDOM_IV;
 }
 
 function getInventoryIvScores(pal: OwnedPal): BuilderIvScores | undefined {
@@ -809,10 +965,12 @@ class StatePriorityQueue {
   private readonly states: number[] = [];
   private readonly steps: number[] = [];
   private readonly expectedCakes: number[] = [];
+  private readonly ivQualities: number[] = [];
   private readonly positions: Int32Array;
 
   constructor(
     private readonly objective: BuilderObjective,
+    private readonly optimizeIvs: boolean,
     stateCount: number,
   ) {
     this.positions = new Int32Array(stateCount).fill(-1);
@@ -822,11 +980,12 @@ class StatePriorityQueue {
     return this.states.length;
   }
 
-  push(state: number, steps: number, expectedCakes: number) {
+  push(state: number, steps: number, expectedCakes: number, ivQuality: number) {
     const existingIndex = this.positions[state];
     if (existingIndex >= 0) {
       this.steps[existingIndex] = steps;
       this.expectedCakes[existingIndex] = expectedCakes;
+      this.ivQualities[existingIndex] = ivQuality;
       this.siftUp(existingIndex);
       return;
     }
@@ -835,6 +994,7 @@ class StatePriorityQueue {
     this.states.push(state);
     this.steps.push(steps);
     this.expectedCakes.push(expectedCakes);
+    this.ivQualities.push(ivQuality);
     this.positions[state] = index;
     this.siftUp(index);
   }
@@ -846,10 +1006,12 @@ class StatePriorityQueue {
       state: firstState,
       steps: this.steps[0],
       expectedCakes: this.expectedCakes[0],
+      ivQuality: this.ivQualities[0],
     };
     const tailState = this.states.pop();
     const tailSteps = this.steps.pop();
     const tailExpectedCakes = this.expectedCakes.pop();
+    const tailIvQuality = this.ivQualities.pop();
     this.positions[firstState] = -1;
 
     if (
@@ -857,10 +1019,12 @@ class StatePriorityQueue {
       && tailState !== undefined
       && tailSteps !== undefined
       && tailExpectedCakes !== undefined
+      && tailIvQuality !== undefined
     ) {
       this.states[0] = tailState;
       this.steps[0] = tailSteps;
       this.expectedCakes[0] = tailExpectedCakes;
+      this.ivQualities[0] = tailIvQuality;
       this.positions[tailState] = 0;
       this.siftDown(0);
     }
@@ -872,13 +1036,14 @@ class StatePriorityQueue {
     const state = this.states[index];
     const steps = this.steps[index];
     const expectedCakes = this.expectedCakes[index];
+    const ivQuality = this.ivQualities[index];
     while (index > 0) {
       const parent = Math.floor((index - 1) / 2);
-      if (this.compareAt(parent, state, steps, expectedCakes) <= 0) break;
+      if (this.compareAt(parent, state, steps, expectedCakes, ivQuality) <= 0) break;
       this.copyEntry(parent, index);
       index = parent;
     }
-    this.setEntry(index, state, steps, expectedCakes);
+    this.setEntry(index, state, steps, expectedCakes, ivQuality);
   }
 
   private siftDown(startIndex: number) {
@@ -886,6 +1051,7 @@ class StatePriorityQueue {
     const state = this.states[index];
     const steps = this.steps[index];
     const expectedCakes = this.expectedCakes[index];
+    const ivQuality = this.ivQualities[index];
     while (true) {
       const left = index * 2 + 1;
       if (left >= this.states.length) break;
@@ -897,14 +1063,16 @@ class StatePriorityQueue {
         state,
         steps,
         expectedCakes,
+        ivQuality,
         this.states[child],
         this.steps[child],
         this.expectedCakes[child],
+        this.ivQualities[child],
       ) <= 0) break;
       this.copyEntry(child, index);
       index = child;
     }
-    this.setEntry(index, state, steps, expectedCakes);
+    this.setEntry(index, state, steps, expectedCakes, ivQuality);
   }
 
   private copyEntry(from: number, to: number) {
@@ -913,24 +1081,40 @@ class StatePriorityQueue {
       this.states[from],
       this.steps[from],
       this.expectedCakes[from],
+      this.ivQualities[from],
     );
   }
 
-  private setEntry(index: number, state: number, steps: number, expectedCakes: number) {
+  private setEntry(
+    index: number,
+    state: number,
+    steps: number,
+    expectedCakes: number,
+    ivQuality: number,
+  ) {
     this.states[index] = state;
     this.steps[index] = steps;
     this.expectedCakes[index] = expectedCakes;
+    this.ivQualities[index] = ivQuality;
     this.positions[state] = index;
   }
 
-  private compareAt(index: number, state: number, steps: number, expectedCakes: number) {
+  private compareAt(
+    index: number,
+    state: number,
+    steps: number,
+    expectedCakes: number,
+    ivQuality: number,
+  ) {
     return this.compareValues(
       this.states[index],
       this.steps[index],
       this.expectedCakes[index],
+      this.ivQualities[index],
       state,
       steps,
       expectedCakes,
+      ivQuality,
     );
   }
 
@@ -939,9 +1123,11 @@ class StatePriorityQueue {
       this.states[first],
       this.steps[first],
       this.expectedCakes[first],
+      this.ivQualities[first],
       this.states[second],
       this.steps[second],
       this.expectedCakes[second],
+      this.ivQualities[second],
     );
   }
 
@@ -949,9 +1135,11 @@ class StatePriorityQueue {
     firstState: number,
     firstSteps: number,
     firstExpectedCakes: number,
+    firstIvQuality: number,
     secondState: number,
     secondSteps: number,
     secondExpectedCakes: number,
+    secondIvQuality: number,
   ) {
     return compareLabels(
       firstSteps,
@@ -961,6 +1149,9 @@ class StatePriorityQueue {
       secondExpectedCakes,
       stateExtraCount(secondState),
       this.objective,
+      firstIvQuality,
+      secondIvQuality,
+      this.optimizeIvs,
     );
   }
 }

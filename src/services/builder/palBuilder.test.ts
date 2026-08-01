@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runtimePals } from "../../data/breedingRuntime";
 import type { OwnedPal } from "../../domain/inventory";
-import { buildPal } from "./palBuilder";
+import { buildPal, type BuilderParent } from "./palBuilder";
 
 const inventory: OwnedPal[] = [
   { id: "lamball-1", sourceInstanceId: "lamball-1", speciesId: "lamball", gender: "F", passiveIds: ["CraftSpeed_up2"], level: 24, location: "palbox", palboxSlotIndex: 65 },
@@ -10,6 +10,14 @@ const inventory: OwnedPal[] = [
 
 function abilityScores(value: number) {
   return { hp: value, melee: value, ranged: value, defense: value };
+}
+
+function statScores(hp: number, attack: number, defense: number) {
+  return { hp, melee: attack, ranged: attack, defense };
+}
+
+function inventorySlot(parent: BuilderParent) {
+  return parent.origin === "inventory" ? parent.palboxSlotIndex : undefined;
 }
 
 describe("Pal Builder", () => {
@@ -234,6 +242,34 @@ describe("Pal Builder", () => {
     expect(performance.now() - startedAt).toBeLessThan(3_000);
   }, 5_000);
 
+  it("keeps a full-Palbox owned-target IV reroll bounded", () => {
+    const largeInventory: OwnedPal[] = Array.from({ length: 690 }, (_, index) => ({
+      id: `reroll-${index}`,
+      sourceInstanceId: `reroll-${index}`,
+      speciesId: "daedream",
+      gender: index % 2 === 0 ? "F" : "M",
+      passiveIds: [],
+      abilityScores: statScores(
+        1 + ((index * 17) % 100),
+        1 + ((index * 43) % 100),
+        1 + ((index * 71) % 100),
+      ),
+      location: "palbox",
+      palboxSlotIndex: index,
+    }));
+    const startedAt = performance.now();
+
+    const result = buildPal({
+      inventory: largeInventory,
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "fewest",
+    });
+
+    expect(result).toMatchObject({ status: "found", strategy: "iv-reroll" });
+    expect(performance.now() - startedAt).toBeLessThan(3_000);
+  }, 5_000);
+
   it("never proposes a same-sex parent pair", () => {
     const result = buildPal({
       inventory: [inventory[0], { ...inventory[1], gender: "F" }],
@@ -307,7 +343,7 @@ describe("Pal Builder", () => {
     });
 
     expect(exactResult.status).toBe("no-route");
-    expect(relaxedResult).toMatchObject({ status: "found", steps: [] });
+    expect(relaxedResult.status).toBe("no-route");
   });
 
   it("prices unwanted parent passives into the estimated hatch count", () => {
@@ -329,22 +365,193 @@ describe("Pal Builder", () => {
     }
   });
 
-  it("accepts an owned target with any passive combination for an Any goal", () => {
+  it("builds another copy when the requested Pal is already owned", () => {
     const result = buildPal({
-      inventory: [{
-        id: "daedream-1",
-        sourceInstanceId: "daedream-1",
-        speciesId: "daedream",
-        gender: "F",
-        passiveIds: ["CraftSpeed_up2", "CraftSpeed_up1"],
-        location: "palbox",
-      }],
+      inventory: [
+        {
+          id: "daedream-1",
+          sourceInstanceId: "daedream-1",
+          speciesId: "daedream",
+          gender: "F",
+          passiveIds: ["CraftSpeed_up2", "CraftSpeed_up1"],
+          location: "palbox",
+        },
+        {
+          id: "daedream-2",
+          sourceInstanceId: "daedream-2",
+          speciesId: "daedream",
+          gender: "M",
+          passiveIds: [],
+          location: "palbox",
+        },
+      ],
       targetId: "daedream",
       passiveGoal: { kind: "any" },
       objective: "recommended",
     });
 
-    expect(result).toMatchObject({ status: "found", steps: [] });
+    expect(result).toMatchObject({
+      status: "found",
+      strategy: "iv-reroll",
+      steps: [{ result: "daedream" }],
+    });
+  });
+
+  it("uses the strongest per-stat sources to break tied owned-target routes", () => {
+    const targetInventory: OwnedPal[] = [
+      {
+        id: "daedream-f-specialist",
+        sourceInstanceId: "daedream-f-specialist",
+        speciesId: "daedream",
+        gender: "F",
+        passiveIds: [],
+        abilityScores: statScores(100, 1, 1),
+        location: "palbox",
+        palboxSlotIndex: 1,
+      },
+      {
+        id: "daedream-m-specialist",
+        sourceInstanceId: "daedream-m-specialist",
+        speciesId: "daedream",
+        gender: "M",
+        passiveIds: [],
+        abilityScores: statScores(1, 100, 100),
+        location: "palbox",
+        palboxSlotIndex: 2,
+      },
+      {
+        id: "daedream-f-balanced",
+        sourceInstanceId: "daedream-f-balanced",
+        speciesId: "daedream",
+        gender: "F",
+        passiveIds: [],
+        abilityScores: statScores(90, 90, 90),
+        location: "palbox",
+        palboxSlotIndex: 3,
+      },
+      {
+        id: "daedream-m-balanced",
+        sourceInstanceId: "daedream-m-balanced",
+        speciesId: "daedream",
+        gender: "M",
+        passiveIds: [],
+        abilityScores: statScores(80, 80, 80),
+        location: "palbox",
+        palboxSlotIndex: 4,
+      },
+    ];
+
+    const result = buildPal({
+      inventory: targetInventory,
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "fewest",
+    });
+
+    expect(result.status).toBe("found");
+    if (result.status === "found") {
+      expect(result.steps).toHaveLength(1);
+      expect([
+        inventorySlot(result.steps[0].firstParent),
+        inventorySlot(result.steps[0].secondParent),
+      ]).toEqual([1, 2]);
+    }
+  });
+
+  it("rewards a strong second source when the best per-stat values tie", () => {
+    const targetInventory: OwnedPal[] = [
+      {
+        id: "daedream-f-thin",
+        sourceInstanceId: "daedream-f-thin",
+        speciesId: "daedream",
+        gender: "F",
+        passiveIds: [],
+        abilityScores: statScores(100, 20, 20),
+        location: "palbox",
+        palboxSlotIndex: 1,
+      },
+      {
+        id: "daedream-m-thin",
+        sourceInstanceId: "daedream-m-thin",
+        speciesId: "daedream",
+        gender: "M",
+        passiveIds: [],
+        abilityScores: statScores(20, 100, 100),
+        location: "palbox",
+        palboxSlotIndex: 2,
+      },
+      {
+        id: "daedream-f-deep",
+        sourceInstanceId: "daedream-f-deep",
+        speciesId: "daedream",
+        gender: "F",
+        passiveIds: [],
+        abilityScores: statScores(100, 80, 80),
+        location: "palbox",
+        palboxSlotIndex: 3,
+      },
+      {
+        id: "daedream-m-deep",
+        sourceInstanceId: "daedream-m-deep",
+        speciesId: "daedream",
+        gender: "M",
+        passiveIds: [],
+        abilityScores: statScores(80, 100, 100),
+        location: "palbox",
+        palboxSlotIndex: 4,
+      },
+    ];
+
+    const result = buildPal({
+      inventory: targetInventory,
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "fewest",
+    });
+
+    expect(result.status).toBe("found");
+    if (result.status === "found") {
+      expect([
+        inventorySlot(result.steps[0].firstParent),
+        inventorySlot(result.steps[0].secondParent),
+      ]).toEqual([3, 4]);
+    }
+  });
+
+  it("does not use IVs to rank routes for a Pal that is not already owned", () => {
+    const routeInventory: OwnedPal[] = [
+      { ...inventory[0], palboxSlotIndex: 1, abilityScores: abilityScores(1) },
+      { ...inventory[1], palboxSlotIndex: 2, abilityScores: abilityScores(1) },
+      {
+        ...inventory[0],
+        id: "lamball-2",
+        sourceInstanceId: "lamball-2",
+        palboxSlotIndex: 3,
+        abilityScores: abilityScores(100),
+      },
+      {
+        ...inventory[1],
+        id: "cattiva-2",
+        sourceInstanceId: "cattiva-2",
+        palboxSlotIndex: 4,
+        abilityScores: abilityScores(100),
+      },
+    ];
+    const result = buildPal({
+      inventory: routeInventory,
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "fewest",
+    });
+
+    expect(result.status).toBe("found");
+    if (result.status === "found") {
+      expect(result.strategy).toBe("standard");
+      expect([
+        inventorySlot(result.steps[0].firstParent),
+        inventorySlot(result.steps[0].secondParent),
+      ]).toEqual([1, 2]);
+    }
   });
 
   it("includes a no-passive result when building with an Any goal", () => {
