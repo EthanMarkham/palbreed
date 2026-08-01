@@ -4,8 +4,6 @@ import { SEO_PAGES } from "../config/seo";
 import InventoryPage from "../features/inventory/InventoryPage";
 import {
   parseInventorySearch,
-  setInventoryQuery,
-  setInventoryWorld,
 } from "../features/inventory/inventorySearch";
 import { shouldReplaceSearch, type SearchUpdateMode } from "../routing/searchParams";
 
@@ -26,8 +24,7 @@ function InventoryRoute() {
       <Seo {...SEO_PAGES.inventory} />
       <InventoryPage
         search={search}
-        onWorldChange={(value, mode = "push") => updateSearch(setInventoryWorld(search, value), mode)}
-        onQueryChange={(value) => updateSearch(setInventoryQuery(search, value))}
+        onSearchChange={updateSearch}
       />
     </>
   );

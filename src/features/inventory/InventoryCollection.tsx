@@ -12,6 +12,7 @@ import { passiveRepository } from "../../data/passiveRepository";
 import { getPalCombatStats } from "../../data/palStatsRepository";
 import type { InventoryProfile, OwnedPal } from "../../domain/inventory";
 import {
+  getAverageCombatIv,
   getInventoryPalName,
   getInventoryPalSpeciesName,
 } from "./inventoryCollectionFilter";
@@ -20,7 +21,8 @@ type InventoryCollectionProps = {
   profile: InventoryProfile;
   visiblePals: readonly OwnedPal[];
   query: string | undefined;
-  onQueryClear: () => void;
+  isFiltered: boolean;
+  onReset: () => void;
   onRemove: () => void;
 };
 
@@ -28,11 +30,10 @@ export default function InventoryCollection({
   profile,
   visiblePals,
   query,
-  onQueryClear,
+  isFiltered,
+  onReset,
   onRemove,
 }: InventoryCollectionProps) {
-  const isFiltered = Boolean(query?.trim());
-
   return (
     <>
       <CollectionHeader
@@ -52,10 +53,10 @@ export default function InventoryCollection({
       ) : profile.pals.length ? (
         <div className="empty-state inventory-empty">
           <SearchIcon />
-          <strong>No Pals match “{query?.trim()}”</strong>
-          <span>Try a name, passive, stat, level, sex, or location.</span>
-          <Button className="secondary-button compact-button" onPress={onQueryClear}>
-            Clear search
+          <strong>{query?.trim() ? `No Pals match “${query.trim()}”` : "No Pals match these filters"}</strong>
+          <span>Try a broader search or clear one of the active filters.</span>
+          <Button className="secondary-button compact-button" onPress={onReset}>
+            Reset results
           </Button>
         </div>
       ) : (
@@ -103,6 +104,7 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
   const speciesName = getInventoryPalSpeciesName(pal);
   const passives = passiveRepository.resolve(pal.passiveIds);
   const combatStats = getPalCombatStats(pal);
+  const averageIv = getAverageCombatIv(pal);
 
   return (
     <article className="inventory-pal-card">
@@ -110,10 +112,23 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
         <span className="inventory-pal-image">
           {species ? <PalAvatar pal={species} /> : null}
         </span>
-        <div>
+        <div className="inventory-pal-name">
           <strong>{displayName}</strong>
-          <small>{displayName === speciesName ? `No. ${species?.number ?? "--"}` : speciesName}</small>
+          <span>
+            <small>{displayName === speciesName ? "Paldeck" : speciesName}</small>
+            <em>No. {species?.number ?? "--"}</em>
+          </span>
         </div>
+        {averageIv !== undefined ? (
+          <span
+            className="inventory-iv-average"
+            data-tier={getPotentialTier(averageIv)}
+            title="Average of HP, Attack, and Defense hidden IVs"
+          >
+            <small>IV AVG</small>
+            <strong>{averageIv}</strong>
+          </span>
+        ) : null}
       </header>
 
       <dl className="inventory-pal-facts">
@@ -127,7 +142,7 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
         </div>
         <div>
           <dt>Location</dt>
-          <dd>{formatLocation(pal)}</dd>
+          <dd title={formatLocation(pal)}>{formatLocation(pal)}</dd>
         </div>
       </dl>
 
@@ -136,7 +151,7 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
           className="inventory-combat-stats"
           title={`Core stats at level ${pal.level}, before passive and enhancement bonuses`}
         >
-          <span className="inventory-card-label">Combat</span>
+          <span className="inventory-card-label">Core stats <em>Lv. {pal.level}</em></span>
           <dl>
             <div><dt>HP</dt><dd>{combatStats.hp.toLocaleString()}</dd></div>
             <div><dt>Attack</dt><dd>{combatStats.attack.toLocaleString()}</dd></div>
@@ -145,13 +160,22 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
         </div>
       ) : null}
 
-      {pal.abilityScores ? <AbilityScoreStrip scores={pal.abilityScores} /> : null}
+      {pal.abilityScores ? <HiddenIvBadges scores={pal.abilityScores} /> : null}
 
       <div className="inventory-passives">
         <span className="inventory-card-label">Passives</span>
         {passives.length ? (
           <ul aria-label="Passive skills">
-            {passives.map((passive) => <li key={passive.id}>{passive.name}</li>)}
+            {passives.map((passive) => (
+              <li
+                key={passive.id}
+                data-rank={getPassiveRankTier(passive.rank)}
+                title={`${passive.description} Rank ${passive.rank}.`}
+              >
+                <span>{passive.name}</span>
+                <small>R{passive.rank}</small>
+              </li>
+            ))}
           </ul>
         ) : <span className="inventory-passives-empty">None</span>}
       </div>
@@ -159,7 +183,7 @@ function InventoryPalCard({ pal }: { pal: OwnedPal }) {
   );
 }
 
-function AbilityScoreStrip({ scores }: { scores: NonNullable<OwnedPal["abilityScores"]> }) {
+function HiddenIvBadges({ scores }: { scores: NonNullable<OwnedPal["abilityScores"]> }) {
   const values = [
     ["HP", scores.hp],
     ["Attack", scores.ranged],
@@ -168,13 +192,11 @@ function AbilityScoreStrip({ scores }: { scores: NonNullable<OwnedPal["abilitySc
   ] as const;
 
   return (
-    <div className="inventory-potential" title="Hidden stat scores, from 0 to 100">
-      <span className="inventory-card-label">
-        Potential <em>IV</em>
-      </span>
+    <div className="inventory-potential" title="Hidden stat scores from the imported save, from 0 to 100">
+      <span className="inventory-card-label">Hidden IVs <em>0–100</em></span>
       <dl>
         {values.map(([label, value]) => (
-          <div key={label} data-tier={getPotentialTier(value)}>
+          <div key={label} data-tier={getPotentialTier(value)} title={`${label} IV: ${value} out of 100`}>
             <dt>{label}</dt>
             <dd>{value}</dd>
           </div>
@@ -187,6 +209,12 @@ function AbilityScoreStrip({ scores }: { scores: NonNullable<OwnedPal["abilitySc
 function getPotentialTier(value: number) {
   if (value >= 90) return "exceptional";
   if (value >= 70) return "strong";
+  return "standard";
+}
+
+function getPassiveRankTier(rank: number) {
+  if (rank >= 3) return "high";
+  if (rank < 0) return "negative";
   return "standard";
 }
 
@@ -234,7 +262,7 @@ function formatLocation(pal: OwnedPal) {
   if (pal.location === "palbox") {
     return pal.palboxSlotIndex === undefined
       ? "Palbox"
-      : `Palbox · Page ${Math.floor(pal.palboxSlotIndex / 30) + 1}`;
+      : `Palbox P${Math.floor(pal.palboxSlotIndex / 30) + 1} / S${(pal.palboxSlotIndex % 30) + 1}`;
   }
   if (pal.location === "global-storage") return "Global storage";
   return pal.location === "party" ? "Party" : "Base";

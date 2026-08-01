@@ -7,9 +7,11 @@ import {
 } from "./builder/builderNavigation";
 import { getBuilderPassiveIds, parseBuilderSearch } from "./builder/builderSearch";
 import {
+  clearInventoryFilters,
   parseInventorySearch,
   setInventoryQuery,
   setInventoryWorld,
+  updateInventorySearch,
 } from "./inventory/inventorySearch";
 import {
   parseToolsSearch,
@@ -93,17 +95,60 @@ describe("route-backed search state", () => {
   });
 
   it("keeps Inventory world selection and filtering in browser history", () => {
-    expect(parseInventorySearch({ world: " world-1 ", q: "Lamball " })).toEqual({
+    expect(parseInventorySearch({
+      world: " world-1 ",
+      q: "Lamball ",
+      location: "palbox",
+      gender: "F",
+      iv: "average-90",
+      passives: "with",
+      sort: "iv-desc",
+    })).toEqual({
       world: "world-1",
       q: "Lamball ",
+      location: "palbox",
+      gender: "F",
+      iv: "average-90",
+      passives: "with",
+      sort: "iv-desc",
     });
-    expect(parseInventorySearch({ world: 12, q: "   " })).toEqual({});
+    expect(parseInventorySearch({
+      world: 12,
+      q: "   ",
+      location: "map",
+      gender: "any",
+      iv: "perfect",
+      passives: "yes",
+      sort: "random",
+    })).toEqual({});
     expect(setInventoryWorld({ q: "swift" }, "world-2")).toEqual({
       world: "world-2",
       q: "swift",
     });
     expect(setInventoryQuery({ world: "world-2", q: "old" }, "")).toEqual({
       world: "world-2",
+    });
+    const filtered = updateInventorySearch({ world: "world-2" }, {
+      location: "party",
+      gender: "M",
+      iv: "known",
+      passives: "none",
+      sort: "level-desc",
+    });
+    expect(filtered).toEqual({
+      world: "world-2",
+      location: "party",
+      gender: "M",
+      iv: "known",
+      passives: "none",
+      sort: "level-desc",
+    });
+    expect(clearInventoryFilters(filtered)).toEqual({ world: "world-2", sort: "level-desc" });
+    expect(updateInventorySearch(filtered, { gender: undefined, sort: "name" })).toEqual({
+      world: "world-2",
+      location: "party",
+      iv: "known",
+      passives: "none",
     });
   });
 });
