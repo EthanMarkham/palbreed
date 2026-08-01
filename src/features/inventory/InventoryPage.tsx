@@ -142,7 +142,7 @@ function InventoryHero() {
     <section className="feature-hero">
       <div>
         <span className="section-kicker">INVENTORY</span>
-        <h1>Your Pals</h1>
+        <h1>Your Palworld 1.0 Pals</h1>
         <p>Search your imported Pals, compare stats, and choose which world the Builder uses.</p>
       </div>
       <span className="hero-index">01</span>

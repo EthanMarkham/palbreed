@@ -1,4 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import Seo from "../components/Seo";
+import { SEO_PAGES } from "../config/seo";
 import ToolsPage from "../features/tools/ToolsPage";
 import {
   parseToolsSearch,
@@ -21,12 +23,15 @@ function ToolsRoute() {
   };
 
   return (
-    <ToolsPage
-      search={search}
-      onInputChange={(field, value) => updateSearch(setToolsInput(search, field, value))}
-      onSelectionChange={(field, value) => updateSearch(setToolsSelection(search, field, value), "push")}
-      onSwapPath={() => updateSearch(swapToolsSelections(search, "path"), "push")}
-      onSwapParents={() => updateSearch(swapToolsSelections(search, "parents"), "push")}
-    />
+    <>
+      <Seo {...SEO_PAGES.tools} />
+      <ToolsPage
+        search={search}
+        onInputChange={(field, value) => updateSearch(setToolsInput(search, field, value))}
+        onSelectionChange={(field, value) => updateSearch(setToolsSelection(search, field, value), "push")}
+        onSwapPath={() => updateSearch(swapToolsSelections(search, "path"), "push")}
+        onSwapParents={() => updateSearch(swapToolsSelections(search, "parents"), "push")}
+      />
+    </>
   );
 }

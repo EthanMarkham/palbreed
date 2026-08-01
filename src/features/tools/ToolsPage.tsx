@@ -37,15 +37,15 @@ export default function ToolsPage({
       <section className="feature-hero">
         <div>
           <span className="section-kicker">TOOLS</span>
-          <h1>Check a breeding path or pairing</h1>
-          <p>These tools use Palworld 1.0 breeding data. They don't use the Pals in your imported world.</p>
+          <h1>Palworld 1.0 breeding calculator</h1>
+          <p>Check the offspring from any two parents or find the shortest breeding path between any two of the 299 Pals.</p>
         </div>
         <span className="hero-index">03</span>
       </section>
 
       <section className="feature-card finder-card path-finder-card" aria-labelledby="path-finder-title">
         <div className="card-heading">
-          <span id="path-finder-title">Breeding path</span>
+          <h2 id="path-finder-title">Breeding path calculator</h2>
           <small>Find the shortest route between two Pals</small>
         </div>
         <div className="finder-controls">
@@ -68,7 +68,7 @@ export default function ToolsPage({
 
       <section className="feature-card finder-card" aria-labelledby="parent-finder-title">
         <div className="card-heading">
-          <span id="parent-finder-title">Pair result</span>
+          <h2 id="parent-finder-title">Parent pair calculator</h2>
           <small>See what two Pals produce</small>
         </div>
         <div className="parent-finder-layout">
@@ -88,6 +88,28 @@ export default function ToolsPage({
             />
           </div>
           <ParentResult first={search.first} second={search.second} outcomes={outcomes} />
+        </div>
+      </section>
+
+      <section className="feature-card tools-guide" aria-labelledby="tools-guide-title">
+        <div className="tools-guide-intro">
+          <span className="section-kicker">PALWORLD 1.0</span>
+          <h2 id="tools-guide-title">Use the right calculator for your breeding question</h2>
+          <p>Palpath uses a versioned 1.0 dataset for all 299 Pals, including the Katress and Wixen gender-specific results.</p>
+        </div>
+        <div className="tools-guide-grid">
+          <article>
+            <h3>What will these parents make?</h3>
+            <p>Choose two Pals in the parent pair calculator to see their offspring and any required parent genders.</p>
+          </article>
+          <article>
+            <h3>How do I reach a target Pal?</h3>
+            <p>Choose a starting Pal and a target in the breeding path calculator to get the shortest available chain.</p>
+          </article>
+          <article>
+            <h3>Want to breed from your save?</h3>
+            <p>Use the Builder to plan from Pals you already own and include the passive skills you want to inherit.</p>
+          </article>
         </div>
       </section>
     </main>

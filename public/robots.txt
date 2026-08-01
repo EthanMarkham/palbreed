@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://palpath.app/sitemap.xml

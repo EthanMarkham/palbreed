@@ -95,8 +95,8 @@ export default function BuilderPage({
       <section className="feature-hero builder-hero">
         <div>
           <span className="section-kicker">BUILDER</span>
-          <h1>Plan your next Pal</h1>
-          <p>Choose a Pal and any passives you care about. We'll find the best route from your selected world.</p>
+          <h1>Palworld breeding route planner</h1>
+          <p>Choose a target Pal and passive skills. We'll find the best Palworld 1.0 route from your selected world.</p>
         </div>
         <span className="hero-index">02</span>
       </section>
