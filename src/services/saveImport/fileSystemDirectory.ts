@@ -106,6 +106,17 @@ export async function querySaveDirectoryPermission(directory: FileSystemDirector
   return permissionHandle.queryPermission({ mode: "read" });
 }
 
+export async function requestSaveDirectoryPermission(directory: FileSystemDirectoryHandle) {
+  const permissionHandle = directory as Partial<PermissionDirectoryHandle>;
+  if (!permissionHandle.queryPermission || !permissionHandle.requestPermission) {
+    return "denied" as PermissionState;
+  }
+
+  const currentPermission = await permissionHandle.queryPermission({ mode: "read" });
+  if (currentPermission === "granted") return currentPermission;
+  return permissionHandle.requestPermission({ mode: "read" });
+}
+
 async function visitDirectory(
   directory: FileSystemDirectoryHandle,
   path: string,

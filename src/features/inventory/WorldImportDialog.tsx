@@ -237,13 +237,33 @@ export default function WorldImportDialog({
     }
   };
 
-  const reconnectWorld = async (profile: InventoryProfile) => {
+  const refreshWorld = async (profile: InventoryProfile) => {
     setCompletion(undefined);
-    setStatus({ kind: "working", message: `Reconnecting ${profile.name}…` });
+    setStatus({ kind: "working", message: `Refreshing ${profile.name}…` });
     try {
-      await saveWatchService.reconnect(profile.id);
+      const result = await saveWatchService.refresh(profile.id);
+      const message = result === "updated"
+        ? `Updated ${profile.name} from its ${profile.platform === "xbox" ? "Xbox" : "Steam"} save.`
+        : `${profile.name} is already current.`;
       setStatus({ kind: "idle" });
-      setCompletion(`${profile.name} is watching its ${profile.platform === "xbox" ? "Xbox" : "Steam"} save while Palpath is open.`);
+      setCompletion(message);
+      onImported(profile.id, message);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setStatus({ kind: "idle" });
+        return;
+      }
+      setStatus({ kind: "error", message: importMessage(error) });
+    }
+  };
+
+  const chooseWorldFolder = async (profile: InventoryProfile) => {
+    setCompletion(undefined);
+    setStatus({ kind: "working", message: `Connecting ${profile.name}…` });
+    try {
+      await saveWatchService.chooseFolder(profile.id);
+      setStatus({ kind: "idle" });
+      setCompletion(`${profile.name} is connected and current.`);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         setStatus({ kind: "idle" });
@@ -326,13 +346,20 @@ export default function WorldImportDialog({
                           {persistentFoldersSupported ? (
                             watch ? (
                               <div className="managed-world-actions">
+                                <Button
+                                  className="secondary-button compact-button"
+                                  isDisabled={status.kind === "working"}
+                                  onPress={() => void refreshWorld(profile)}
+                                >
+                                  Refresh
+                                </Button>
                                 {watch.status === "needs-folder" || watch.status === "error" ? (
                                   <Button
                                     className="secondary-button compact-button"
                                     isDisabled={status.kind === "working"}
-                                    onPress={() => void reconnectWorld(profile)}
+                                    onPress={() => void chooseWorldFolder(profile)}
                                   >
-                                    Reconnect
+                                    Choose folder
                                   </Button>
                                 ) : null}
                                 <Button
@@ -347,7 +374,7 @@ export default function WorldImportDialog({
                               <Button
                                 className="secondary-button compact-button"
                                 isDisabled={status.kind === "working"}
-                                onPress={() => void reconnectWorld(profile)}
+                                onPress={() => void chooseWorldFolder(profile)}
                               >
                                 Choose folder
                               </Button>

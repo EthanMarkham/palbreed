@@ -14,6 +14,7 @@ import {
   getWorldDirectory,
   querySaveDirectoryPermission,
   readSaveDirectory,
+  requestSaveDirectoryPermission,
   selectXboxAccountFiles,
   supportsPersistentSaveFolders,
 } from "./fileSystemDirectory";
@@ -44,6 +45,8 @@ export type SaveWatchSnapshot = {
   supported: boolean;
   worlds: Readonly<Record<string, SaveWatchWorldState>>;
 };
+
+export type SaveRefreshResult = "updated" | "unchanged";
 
 type WatchMessage =
   | { type: "config-changed" }
@@ -125,7 +128,39 @@ export class SaveWatchService {
     await this.saveWatch(profile, directoryHandle, slot, lastSourceSignature);
   }
 
-  async reconnect(profileId: string) {
+  async refresh(profileId: string): Promise<SaveRefreshResult> {
+    const profile = inventoryService.getProfile(profileId);
+    if (!profile) throw new Error("That imported world is no longer available.");
+    const watch = this.watches.get(profileId);
+    if (!watch) {
+      throw new Error("Choose this world's save folder before refreshing it.");
+    }
+
+    const permission = await requestSaveDirectoryPermission(watch.directoryHandle);
+    if (permission !== "granted") {
+      this.setWorldState(watch, {
+        status: "needs-folder",
+        message: "Folder access wasn't granted. Restore access or choose the folder again.",
+      });
+      throw new Error(
+        `Palpath doesn't have access to ${watch.folderName}. Restore access or choose the folder again.`,
+      );
+    }
+
+    this.setWorldState(watch, {
+      status: "checking",
+      message: "Checking this world for changes…",
+    });
+    return navigator.locks.request(LOCK_NAME, async () => {
+      const currentWatch = this.watches.get(profileId);
+      if (!currentWatch) throw new Error("Automatic refresh was disconnected.");
+      const result = await this.pollWorld(currentWatch, profile, true);
+      if (!result) throw new Error("Folder access changed before the refresh completed.");
+      return result;
+    });
+  }
+
+  async chooseFolder(profileId: string) {
     const profile = inventoryService.getProfile(profileId);
     if (!profile) throw new Error("That imported world is no longer available.");
 
@@ -143,10 +178,8 @@ export class SaveWatchService {
         `We couldn't find ${profile.name} in that folder. Choose the save folder that contains it.`,
       );
     }
-    const lastSourceSignature = profile.platform === "xbox"
-      ? fileSetSignature(files)
-      : undefined;
-    await this.saveWatch(profile, directoryHandle, slot, lastSourceSignature);
+    await this.saveWatch(profile, directoryHandle, slot, undefined);
+    await this.refresh(profileId);
   }
 
   async disable(profileId: string) {
@@ -265,7 +298,11 @@ export class SaveWatchService {
     }
   }
 
-  private async pollWorld(watch: StoredSaveWatch, profile: InventoryProfile) {
+  private async pollWorld(
+    watch: StoredSaveWatch,
+    profile: InventoryProfile,
+    throwOnError = false,
+  ): Promise<SaveRefreshResult | undefined> {
     try {
       const permission = await querySaveDirectoryPermission(watch.directoryHandle);
       if (permission !== "granted") {
@@ -273,7 +310,7 @@ export class SaveWatchService {
           status: "needs-folder",
           message: "Reconnect the save folder to resume.",
         });
-        return;
+        return undefined;
       }
 
       const firstSource = await this.readSourceSnapshot(watch, profile);
@@ -284,7 +321,7 @@ export class SaveWatchService {
           message: "Watching while Palpath is open.",
           lastCheckedAt: checkedAt,
         });
-        return;
+        return "unchanged";
       }
 
       this.setWorldState(watch, {
@@ -331,6 +368,7 @@ export class SaveWatchService {
       if (result !== "unchanged") {
         this.broadcast({ type: "profile-updated", profileId: watch.profileId });
       }
+      return result === "unchanged" ? "unchanged" : "updated";
     } catch (error) {
       const stillSaving = isTransientWatchError(error, profile.platform);
       this.setWorldState(watch, {
@@ -339,6 +377,8 @@ export class SaveWatchService {
           ? "Palworld is still saving. We'll try again shortly."
           : watchErrorMessage(error),
       });
+      if (throwOnError) throw error;
+      return undefined;
     }
   }
 

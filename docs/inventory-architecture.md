@@ -31,9 +31,12 @@ an update. Identical results do not change the local revision or call the
 Supabase sync RPC.
 
 The poll exists only while a Palpath tab is open. Persisted folder permission
-may return to `prompt` or `denied` after a browser restart, in which case the
-world manager requires a user gesture to reconnect the folder. Manual refresh
-remains available from the retained folder selection while the tab is open.
+may return to `prompt` or `denied` after a browser restart. A user-triggered
+Refresh first queries the retained handle and reads it immediately when access
+is still granted. If the handle returns `prompt`, the same action calls
+`requestPermission()` so the browser can restore access without reopening the
+operating-system folder picker. Choosing the folder again is reserved for a
+missing, revoked, or moved folder.
 
 ## Save parser contract
 
