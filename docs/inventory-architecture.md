@@ -16,16 +16,31 @@ version and enables deterministic local migrations before sync.
 
 ## Optional automatic refresh
 
-Automatic refresh is connected automatically after a successful import made
-with the File System Access API. The user selects the save source once; its
-retained, read-only `FileSystemDirectoryHandle` is stored in a dedicated
-IndexedDB database. Every open Palpath tab participates in a Web Locks election,
-so at most one tab checks saves at a time.
+The production browser contract is one operating-system picker per source
+lifecycle. The user selects `SaveGames` or `wgs` once, and all account/world
+selection after that happens inside Palpath. A retained, read-only
+`FileSystemDirectoryHandle` is stored in a dedicated IndexedDB database. Web
+Locks coordinate multiple tabs when available; browsers without Web Locks keep
+the retained-handle flow and reconcile independently.
+
+Palpath derives and stores the narrowest stable handle after discovery:
+
+- Steam: the exact 32-character world folder.
+- Xbox app / PC Game Pass: the one account folder that directly contains
+  `containers.index`. A world cannot be narrowed further because Xbox rotates
+  its logical containers across GUID-named sibling blobs.
+
+If `wgs` contains several Xbox accounts, Palpath scans each account separately
+and asks the user to choose inside the app. It never merges accounts and never
+opens another folder picker for that choice. The raw Xbox XUID/SCID folder name
+stays in local watcher storage; normalized cloud data receives only a
+domain-separated SHA-256 pseudonym.
 
 Where Chromium exposes `FileSystemObserver`, recursive directory notifications
 wake the refresh loop immediately. Because that API remains non-standard, the
 inexpensive 15-second poll stays active as the production fallback and safety
-net. It reads only the imported Steam world's `Level/01.sav` metadata. For Xbox,
+net. It fingerprints all current files in the narrow Steam world scope so
+player, party, and global-storage-only changes are not missed. For Xbox,
 it fingerprints the selected WGS account's file paths, sizes, and modified times
 so opaque blob rotation is detected. After a change, two snapshots must match
 across a debounce before Palpath parses the save. The normalized result is
@@ -36,11 +51,18 @@ change the local revision or call the Supabase sync RPC.
 The poll exists only while a Palpath tab is open. Persisted folder permission
 may return to `prompt` or `denied` after a browser restart. That state is kept
 separate from a missing folder in both the service and UI. A user-triggered
-Resume sync action calls `requestPermission()` on the retained handle, so the
+Resume access action calls `requestPermission()` on the retained handle, so the
 browser can restore access without reopening the operating-system folder
 picker. Choosing a source again is reserved for a missing, revoked, moved, or
 intentionally changed folder. Chromium's picker ID is platform-specific so a
 genuinely new Xbox or Steam source opens near its last-used location.
+
+`FileSystemObserver` is a latency hint, never the source of truth: events are
+debounced into the same authoritative reconciliation path. A service worker and
+Background Sync cannot watch local files. An installed PWA improves permission
+persistence and app presentation but still cannot promise monitoring after the
+app is closed. Closed-app monitoring requires a separately installed, signed
+Windows companion and is intentionally not claimed by the browser product.
 
 ## Save parser contract
 
@@ -71,9 +93,20 @@ review; this is a release gate, not an optional attribution note.
   Every proposed pairing enforces one male and one female parent, including
   the oriented gender requirements for species-specific breeding exceptions.
   An empty passive selection removes the passive constraint. Selected passives
-  are required, while unselected passive slots remain unconstrained.
-  “Cleanest” uses estimated expected cakes; probability copy is always labeled
-  as estimated.
+  are required. The explicit extra-passive switch controls whether unselected
+  final slots are constrained to remain empty; intermediate carriers can still
+  use those slots when the route needs them. “Cleanest” uses estimated expected
+  cakes; probability copy is always labeled as estimated.
+- Imported HP, Attack, and Defense IVs participate in route ranking. “Balanced”
+  trades stronger expected offspring IVs against expected eggs and breeding
+  steps. “Maximize IVs” favors complementary high-stat parent sources, but is
+  bounded to two steps beyond the balanced route and to a capped expected-egg
+  budget. Planned offspring IVs are expectations from independent 30% / 30% /
+  40% parent-parent-random inheritance, never represented as guaranteed scores.
+  Missing imported IVs use the neutral 50.5 random-roll average so incomplete
+  save data neither wins nor loses by default.
+  Palworld 1.0 Mushroom Cake is recommended for IV-focused hatches, but its
+  unpublished stat distribution is not included in numeric odds.
 - The search combines compatible planned carriers as well as owned Pals, so
   both final parents may be independently bred branches. Route reconstruction
   preserves those dependencies as a parent tree instead of flattening them

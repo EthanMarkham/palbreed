@@ -12,9 +12,8 @@ import { inventoryService } from "../inventory/inventoryService";
 import {
   chooseSaveDirectory,
   fileSetSignature,
-  fileSignature,
-  getSteamWorldTrigger,
   getWorldDirectory,
+  getXboxAccountDirectory,
   querySaveDirectoryPermission,
   readSaveDirectory,
   requestSaveDirectoryPermission,
@@ -37,9 +36,10 @@ const CHANNEL_NAME = "palpath-save-watch";
 
 export type SaveWatchWorldState = {
   profileId: string;
-  status: "watching" | "checking" | "needs-permission" | "needs-folder" | "error";
+  status: "watching" | "checking" | "waiting" | "needs-permission" | "access-blocked" | "needs-folder" | "error";
   folderName: string;
   message: string;
+  monitoringMode: "notifications+polling" | "polling";
   lastCheckedAt?: string;
   lastUpdatedAt?: string;
 };
@@ -77,21 +77,29 @@ type DirectoryObserverConstructor = new (
 ) => DirectoryObserver;
 
 export function watchAccessState(permission: PermissionState) {
-  return permission === "granted"
-    ? {
+  if (permission === "granted") {
+    return {
         status: "watching" as const,
         message: "Watching while Palpath is open.",
-      }
-    : {
-        status: "needs-permission" as const,
-        message: "Browser access is paused. Resume sync to use the saved folder.",
       };
+  }
+  if (permission === "prompt") {
+    return {
+        status: "needs-permission" as const,
+        message: "Browser access is paused. Resume access to the remembered folder.",
+      };
+  }
+  return {
+    status: "access-blocked" as const,
+    message: "Browser access is blocked. Allow this site to read local files or choose another source.",
+  };
 }
 
 export class SaveWatchService {
   private readonly listeners = new Set<Listener>();
   private readonly watches = new Map<string, StoredSaveWatch>();
   private readonly observers = new Map<string, DirectoryObserver>();
+  private readonly transientFailures = new Map<string, number>();
   private snapshot: SaveWatchSnapshot = {
     supported: supportsPersistentSaveFolders(),
     ready: !supportsPersistentSaveFolders(),
@@ -101,6 +109,7 @@ export class SaveWatchService {
   private runId = 0;
   private wakeVersion = 0;
   private wakePolling: (() => void) | undefined;
+  private observerWakeTimer: number | undefined;
   private channel: BroadcastChannel | undefined;
 
   constructor(private readonly store: SaveWatchStore = new IndexedDbSaveWatchStore()) {}
@@ -139,6 +148,8 @@ export class SaveWatchService {
     this.started = false;
     this.runId += 1;
     this.wakePolling?.();
+    if (this.observerWakeTimer !== undefined) window.clearTimeout(this.observerWakeTimer);
+    this.observerWakeTimer = undefined;
     this.disconnectObservers();
     this.channel?.close();
     this.channel = undefined;
@@ -149,22 +160,33 @@ export class SaveWatchService {
     profileId: string,
     directoryHandle: FileSystemDirectoryHandle,
     slot: SaveSlotCandidate,
+    sourceAccountId?: string,
   ) {
     const profile = inventoryService.getProfile(profileId);
     if (!profile) throw new Error("Import this world before turning on automatic refresh.");
     if (profile.worldId !== slot.worldId) {
       throw new Error("That folder does not match the imported world.");
     }
-    const lastSourceSignature = profile.platform === "xbox"
-      ? fileSetSignature(selectXboxAccountFiles(
-          await readSaveDirectory(directoryHandle),
-          profile.accountId,
-        ))
-      : fileSignature(slot.files.get("level/01.sav")?.file ?? missingSteamTrigger());
-    await this.saveWatch(profile, directoryHandle, slot, lastSourceSignature);
+    const scopedDirectory = profile.platform === "xbox"
+      ? (await getXboxAccountDirectory(directoryHandle, sourceAccountId)).directoryHandle
+      : await getWorldDirectory(directoryHandle, slot.rootPath);
+    const sourceFiles = await readSaveDirectory(scopedDirectory);
+    const scopedSlot = profile.platform === "steam"
+      ? { ...slot, rootPath: scopedDirectory.name }
+      : slot;
+    await this.saveWatch(
+      profile,
+      scopedDirectory,
+      scopedSlot,
+      fileSetSignature(sourceFiles),
+      sourceAccountId,
+    );
   }
 
-  async refresh(profileId: string): Promise<SaveRefreshResult> {
+  async refresh(
+    profileId: string,
+    resumeAccess = false,
+  ): Promise<SaveRefreshResult> {
     const profile = inventoryService.getProfile(profileId);
     if (!profile) throw new Error("That imported world is no longer available.");
     const watch = this.watches.get(profileId);
@@ -172,23 +194,25 @@ export class SaveWatchService {
       throw new Error("Choose this world's save folder before refreshing it.");
     }
 
-    const permission = await requestSaveDirectoryPermission(watch.directoryHandle);
+    const permission = resumeAccess
+      ? await requestSaveDirectoryPermission(watch.directoryHandle)
+      : await querySaveDirectoryPermission(watch.directoryHandle);
     if (permission !== "granted") {
+      const access = watchAccessState(permission);
       this.setWorldState(watch, {
-        status: "needs-permission",
-        message: "Browser access is paused. Resume sync to use the saved folder.",
+        ...access,
       });
       throw new Error(
-        `Palpath still remembers ${watch.folderName}, but browser access wasn't granted. Allow access to resume sync.`,
+        permission === "denied"
+          ? "Browser access is blocked. Allow local file access for Palpath or choose another source."
+          : `Palpath still remembers ${watch.folderName}. Allow access to resume local auto-refresh.`,
       );
     }
-    void this.observeWatch(watch);
-
     this.setWorldState(watch, {
       status: "checking",
       message: "Checking this world for changes…",
     });
-    return navigator.locks.request(LOCK_NAME, async () => {
+    return this.withExclusiveLock(async () => {
       const currentWatch = this.watches.get(profileId);
       if (!currentWatch) throw new Error("Automatic refresh was disconnected.");
       const result = await this.pollWorld(currentWatch, profile, true);
@@ -201,21 +225,29 @@ export class SaveWatchService {
     const profile = inventoryService.getProfile(profileId);
     if (!profile) throw new Error("That imported world is no longer available.");
 
-    const directoryHandle = await chooseSaveDirectory(profile.platform);
-    const selectedFiles = await readSaveDirectory(directoryHandle);
-    const files = profile.platform === "xbox"
-      ? selectXboxAccountFiles(selectedFiles, profile.accountId)
-      : selectedFiles;
+    const existing = this.watches.get(profileId);
+    const pickedDirectory = await chooseSaveDirectory(
+      profile.platform,
+      existing?.directoryHandle,
+    );
+    const directoryHandle = profile.platform === "xbox"
+      ? (await getXboxAccountDirectory(pickedDirectory, existing?.sourceAccountId)).directoryHandle
+      : pickedDirectory;
+    const files = await readSaveDirectory(directoryHandle);
     const manifest = await scanLogicalSaveSelection(files, profile.platform);
-    const slot = manifest.slots.find(({ worldId }) => worldId === profile.worldId)
-      ?? (manifest.slots.length === 1 ? manifest.slots[0] : undefined);
+    const slot = manifest.slots.find(({ worldId }) => worldId === profile.worldId);
     if (!slot) {
       throw new SaveImportError(
         "NO_WORLDS",
         `We couldn't find ${profile.name} in that folder. Choose the save folder that contains it.`,
       );
     }
-    await this.saveWatch(profile, directoryHandle, slot, undefined);
+    await this.enableAfterImport(
+      profile.id,
+      directoryHandle,
+      slot,
+      manifest.sourceAccountId,
+    );
     await this.refresh(profileId);
   }
 
@@ -231,9 +263,9 @@ export class SaveWatchService {
   }
 
   private async deleteWatch(profileId: string) {
-    this.observers.get(profileId)?.disconnect();
-    this.observers.delete(profileId);
+    const existing = this.watches.get(profileId);
     this.watches.delete(profileId);
+    if (existing) this.disconnectUnusedObserver(this.sourceKey(existing));
     await this.store.delete(profileId);
     const worlds = { ...this.snapshot.worlds };
     delete worlds[profileId];
@@ -254,6 +286,7 @@ export class SaveWatchService {
     directoryHandle: FileSystemDirectoryHandle,
     slot: SaveSlotCandidate,
     lastSourceSignature: string | undefined,
+    sourceAccountId?: string,
   ) {
     const now = new Date().toISOString();
     const existing = this.watches.get(profile.id);
@@ -261,6 +294,9 @@ export class SaveWatchService {
       version: 1,
       profileId: profile.id,
       worldId: profile.worldId ?? slot.worldId,
+      platform: profile.platform,
+      scope: profile.platform === "xbox" ? "xbox-account" : "steam-world",
+      sourceAccountId,
       accountId: profile.accountId,
       folderName: directoryHandle.name,
       worldRootPath: slot.rootPath,
@@ -270,10 +306,14 @@ export class SaveWatchService {
       lastCheckedAt: existing?.lastCheckedAt,
       lastUpdatedAt: existing?.lastUpdatedAt,
     };
-    await navigator.locks.request(LOCK_NAME, async () => {
+    await this.withExclusiveLock(async () => {
       await this.store.put(watch);
       this.watches.set(watch.profileId, watch);
     });
+    void navigator.storage?.persist?.().catch(() => false);
+    if (existing && this.sourceKey(existing) !== this.sourceKey(watch)) {
+      this.disconnectUnusedObserver(this.sourceKey(existing));
+    }
     this.setWorldState(watch, {
       status: "watching",
       message: "Watching while Palpath is open.",
@@ -300,11 +340,11 @@ export class SaveWatchService {
       worlds[watch.profileId] = {
         profileId: watch.profileId,
         folderName: watch.folderName,
+        monitoringMode: monitoringMode(),
         ...watchAccessState(permission),
         lastCheckedAt: watch.lastCheckedAt,
         lastUpdatedAt: watch.lastUpdatedAt,
       };
-      if (permission === "granted") void this.observeWatch(watch);
     }
     this.setSnapshot({ ...this.snapshot, ready: true, worlds });
   }
@@ -313,13 +353,17 @@ export class SaveWatchService {
     while (this.started && this.runId === runId) {
       const wakeVersion = this.wakeVersion;
       try {
-        await navigator.locks.request(
-          LOCK_NAME,
-          { ifAvailable: true },
-          async (lock) => {
-            if (lock) await this.pollAll();
-          },
-        );
+        if (navigator.locks?.request) {
+          await navigator.locks.request(
+            LOCK_NAME,
+            { ifAvailable: true },
+            async (lock) => {
+              if (lock) await this.pollAll();
+            },
+          );
+        } else {
+          await this.pollAll();
+        }
       } catch (error) {
         if (this.started) console.error("Automatic save refresh failed.", error);
       }
@@ -333,6 +377,7 @@ export class SaveWatchService {
 
   private async pollAll() {
     await inventoryService.whenReady();
+    const sourceSnapshots = new Map<string, SaveSourceSnapshot>();
     for (const watch of [...this.watches.values()]) {
       if (!this.started) return;
       const profile = inventoryService.getProfile(watch.profileId);
@@ -341,7 +386,7 @@ export class SaveWatchService {
         this.broadcast({ type: "config-changed" });
         continue;
       }
-      await this.pollWorld(watch, profile);
+      await this.pollWorld(watch, profile, false, sourceSnapshots);
     }
   }
 
@@ -349,23 +394,32 @@ export class SaveWatchService {
     watch: StoredSaveWatch,
     profile: InventoryProfile,
     throwOnError = false,
+    sharedSourceSnapshots?: Map<string, SaveSourceSnapshot>,
   ): Promise<SaveRefreshResult | undefined> {
     try {
       const permission = await querySaveDirectoryPermission(watch.directoryHandle);
       if (permission !== "granted") {
+        const access = watchAccessState(permission);
         this.setWorldState(watch, {
-          status: "needs-permission",
-          message: "Browser access is paused. Resume sync to use the saved folder.",
+          ...access,
         });
         return undefined;
       }
+      watch = await this.ensureScopedWatch(watch, profile);
+      void this.observeWatch(watch);
 
-      const firstSource = await this.readSourceSnapshot(watch, profile);
+      const sourceKey = this.sourceKey(watch);
+      let firstSource = sharedSourceSnapshots?.get(sourceKey);
+      if (!firstSource) {
+        firstSource = await this.readSourceSnapshot(watch, profile);
+        sharedSourceSnapshots?.set(sourceKey, firstSource);
+      }
       const checkedAt = new Date().toISOString();
       if (
         watch.lastSourceSignature === firstSource.signature
         && profile.normalizationVersion >= CURRENT_INVENTORY_NORMALIZATION_VERSION
       ) {
+        this.transientFailures.delete(watch.profileId);
         this.setWorldState(watch, {
           status: "watching",
           message: "Watching while Palpath is open.",
@@ -383,14 +437,14 @@ export class SaveWatchService {
       if (stableSource.signature !== firstSource.signature) {
         throw new SaveStillChangingError();
       }
+      sharedSourceSnapshots?.set(sourceKey, stableSource);
 
       const files = stableSource.files ?? await readSaveDirectory(
         await getWorldDirectory(watch.directoryHandle, watch.worldRootPath),
         watch.worldRootPath,
       );
       const manifest = await scanLogicalSaveSelection(files, profile.platform);
-      const slot = manifest.slots.find(({ worldId }) => worldId === watch.worldId)
-        ?? (manifest.slots.length === 1 ? manifest.slots[0] : undefined);
+      const slot = manifest.slots.find(({ worldId }) => worldId === watch.worldId);
       if (!slot) throw new Error("We couldn't find the imported world in its saved folder.");
 
       const preview = await extractPalsFromSlot(slot);
@@ -407,6 +461,7 @@ export class SaveWatchService {
       };
       this.watches.set(watch.profileId, nextWatch);
       await this.store.put(nextWatch);
+      this.transientFailures.delete(watch.profileId);
       this.setWorldState(nextWatch, {
         status: "watching",
         message: result === "unchanged"
@@ -421,10 +476,19 @@ export class SaveWatchService {
       return result === "unchanged" ? "unchanged" : "updated";
     } catch (error) {
       const stillSaving = isTransientWatchError(error, profile.platform);
+      const transientFailureCount = stillSaving
+        ? (this.transientFailures.get(watch.profileId) ?? 0) + 1
+        : 0;
+      if (stillSaving) this.transientFailures.set(watch.profileId, transientFailureCount);
+      else this.transientFailures.delete(watch.profileId);
       this.setWorldState(watch, {
-        status: stillSaving ? "watching" : "error",
+        status: stillSaving
+          ? transientFailureCount >= 4 ? "waiting" : "watching"
+          : "error",
         message: stillSaving
-          ? "Palworld is still saving. We'll try again shortly."
+          ? transientFailureCount >= 4
+            ? "The local save has not settled yet. Your last good import is safe; Palpath is still retrying."
+            : "Palworld or Xbox cloud sync is still saving. We'll try again shortly."
           : watchErrorMessage(error),
       });
       if (throwOnError) throw error;
@@ -437,17 +501,53 @@ export class SaveWatchService {
     profile: InventoryProfile,
   ): Promise<SaveSourceSnapshot> {
     if (profile.platform === "steam") {
-      const trigger = await getSteamWorldTrigger(
+      const world = await getWorldDirectory(
         watch.directoryHandle,
         watch.worldRootPath,
       );
-      return { signature: fileSignature(await trigger.getFile()) };
+      const files = await readSaveDirectory(world, watch.worldRootPath);
+      return { signature: fileSetSignature(files), files };
     }
     const files = selectXboxAccountFiles(
       await readSaveDirectory(watch.directoryHandle),
-      profile.accountId ?? watch.accountId,
+      watch.sourceAccountId,
     );
     return { signature: fileSetSignature(files), files };
+  }
+
+  private async ensureScopedWatch(
+    watch: StoredSaveWatch,
+    profile: InventoryProfile,
+  ) {
+    if (watch.platform && watch.scope) return watch;
+
+    const legacySourceAccountId = profile.platform === "xbox"
+      && profile.accountId
+      && !profile.accountId.startsWith("palpath-source-v1:")
+      ? profile.accountId
+      : undefined;
+    const scopedDirectory = profile.platform === "xbox"
+      ? (await getXboxAccountDirectory(
+          watch.directoryHandle,
+          watch.sourceAccountId ?? legacySourceAccountId,
+        )).directoryHandle
+      : await getWorldDirectory(watch.directoryHandle, watch.worldRootPath);
+    const migrated: StoredSaveWatch = {
+      ...watch,
+      platform: profile.platform,
+      scope: profile.platform === "xbox" ? "xbox-account" : "steam-world",
+      sourceAccountId: profile.platform === "xbox"
+        ? scopedDirectory.name
+        : undefined,
+      directoryHandle: scopedDirectory,
+      folderName: scopedDirectory.name,
+      worldRootPath: profile.platform === "steam"
+        ? scopedDirectory.name
+        : watch.worldRootPath,
+    };
+    this.watches.set(migrated.profileId, migrated);
+    await this.store.put(migrated);
+    return migrated;
   }
 
   private async observeWatch(watch: StoredSaveWatch) {
@@ -456,15 +556,19 @@ export class SaveWatchService {
     }).FileSystemObserver;
     if (!Observer) return;
 
-    this.observers.get(watch.profileId)?.disconnect();
-    const observer = new Observer(() => this.checkNow());
+    const sourceKey = this.sourceKey(watch);
+    if (this.observers.has(sourceKey)) return;
+    const observer = new Observer(() => this.queueObserverReconciliation());
     try {
       await observer.observe(watch.directoryHandle, { recursive: true });
-      if (!this.started || !this.watches.has(watch.profileId)) {
+      if (
+        !this.started
+        || ![...this.watches.values()].some((candidate) => this.sourceKey(candidate) === sourceKey)
+      ) {
         observer.disconnect();
         return;
       }
-      this.observers.set(watch.profileId, observer);
+      this.observers.set(sourceKey, observer);
     } catch {
       // FileSystemObserver is non-standard. Polling remains the reliable path.
       observer.disconnect();
@@ -476,13 +580,34 @@ export class SaveWatchService {
     this.observers.clear();
   }
 
+  private queueObserverReconciliation() {
+    if (this.observerWakeTimer !== undefined) window.clearTimeout(this.observerWakeTimer);
+    this.observerWakeTimer = window.setTimeout(() => {
+      this.observerWakeTimer = undefined;
+      this.checkNow();
+    }, 400);
+  }
+
+  private sourceKey(watch: StoredSaveWatch) {
+    return watch.scope === "xbox-account" || watch.platform === "xbox"
+      ? `xbox:${watch.sourceAccountId ?? watch.folderName}`
+      : `steam:${watch.worldId}:${watch.folderName}`;
+  }
+
+  private disconnectUnusedObserver(sourceKey: string) {
+    if ([...this.watches.values()].some((watch) => this.sourceKey(watch) === sourceKey)) return;
+    this.observers.get(sourceKey)?.disconnect();
+    this.observers.delete(sourceKey);
+  }
+
   private setWorldState(
     watch: StoredSaveWatch,
-    update: Omit<SaveWatchWorldState, "profileId" | "folderName">,
+    update: Omit<SaveWatchWorldState, "profileId" | "folderName" | "monitoringMode">,
   ) {
     const state: SaveWatchWorldState = {
       profileId: watch.profileId,
       folderName: watch.folderName,
+      monitoringMode: monitoringMode(),
       lastCheckedAt: watch.lastCheckedAt,
       lastUpdatedAt: watch.lastUpdatedAt,
       ...update,
@@ -535,6 +660,16 @@ export class SaveWatchService {
       this.wakePolling = finish;
     });
   }
+
+  private withExclusiveLock<T>(operation: () => Promise<T>) {
+    return navigator.locks?.request
+      ? navigator.locks.request(LOCK_NAME, operation)
+      : operation();
+  }
+}
+
+function monitoringMode(): SaveWatchWorldState["monitoringMode"] {
+  return "FileSystemObserver" in globalThis ? "notifications+polling" : "polling";
 }
 
 class SaveStillChangingError extends Error {}
@@ -556,10 +691,7 @@ export function isTransientWatchError(error: unknown, platform: SavePlatform) {
   ) {
     return true;
   }
-  return platform === "xbox" && (
-    error.code === "WRONG_FOLDER"
-    || error.code === "UNSUPPORTED_1_0_REVISION"
-  );
+  return false;
 }
 
 function delay(milliseconds: number) {
@@ -573,13 +705,6 @@ function watchErrorMessage(error: unknown) {
   return error instanceof Error
     ? error.message
     : "We couldn't check this world. Reconnect its save folder.";
-}
-
-function missingSteamTrigger(): never {
-  throw new SaveImportError(
-    "INCOMPLETE_CLOUD_SYNC",
-    "This Steam world is missing Level/01.sav.",
-  );
 }
 
 export const saveWatchService = new SaveWatchService();

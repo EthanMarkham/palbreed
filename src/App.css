@@ -2355,6 +2355,113 @@
   background: linear-gradient(145deg, rgba(226, 241, 235, 0.7), rgba(255, 255, 255, 0.45));
 }
 
+.path-explanation {
+  margin: 0.7rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.59rem;
+  line-height: 1.55;
+}
+
+.selected-source-card {
+  margin-top: 10px;
+  padding: 0.72rem;
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid rgba(35, 133, 109, 0.22);
+  border-radius: 13px;
+  background: rgba(226, 241, 235, 0.52);
+}
+
+.selected-source-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.selected-source-heading > div {
+  min-width: 0;
+  display: grid;
+}
+
+.selected-source-heading small {
+  color: var(--text-subtle);
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.selected-source-heading strong {
+  overflow: hidden;
+  color: var(--ink);
+  font: 700 0.67rem/1.35 "Space Grotesk", sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-source-heading > span {
+  padding: 0.28rem 0.45rem;
+  border-radius: 999px;
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+  font-size: 0.5rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.selected-source-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.selected-source-facts span {
+  padding: 0.28rem 0.42rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+  border: 1px solid rgba(20, 32, 27, 0.08);
+  border-radius: 7px;
+  color: var(--ink-soft);
+  background: rgba(255, 255, 255, 0.58);
+  font-size: 0.51rem;
+  font-weight: 700;
+}
+
+.selected-source-facts svg { width: 10px; height: 10px; fill: none; stroke: currentColor; }
+.selected-source-card p { margin: 0; color: var(--text-muted); font-size: 0.54rem; }
+.selected-source-card code { color: var(--ink-soft); font: 650 0.53rem/1 ui-monospace, "Cascadia Code", monospace; }
+.retry-source-button { width: 100%; margin-top: 8px; }
+
+.account-choice-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 7px;
+}
+
+.account-choice-list > p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.57rem;
+  line-height: 1.5;
+}
+
+.account-choice-row {
+  padding: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.account-choice-row > div { min-width: 0; display: grid; }
+.account-choice-row strong { color: var(--ink); font-size: 0.64rem; }
+.account-choice-row span { overflow: hidden; color: var(--text-muted); font-size: 0.53rem; text-overflow: ellipsis; white-space: nowrap; }
+
 .path-labels {
   margin-bottom: 0.65rem;
   display: grid;
@@ -2550,7 +2657,6 @@
   height: 10px;
   fill: currentColor;
   stroke: none;
-  animation: watch-pulse 1.8s ease-in-out infinite;
 }
 
 .manual-only-badge {
@@ -2684,6 +2790,11 @@
 .managed-world-row small {
   color: var(--text-muted);
   font-size: 0.54rem;
+}
+
+.managed-world-row .managed-world-source {
+  color: var(--text-subtle);
+  font-size: 0.5rem;
 }
 
 .managed-world-actions {

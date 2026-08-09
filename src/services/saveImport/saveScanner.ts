@@ -5,11 +5,13 @@ import {
   type SavePlatform,
   type SaveSlotCandidate,
 } from "../../domain/saveImport";
+import { pseudonymizeSourceAccountId } from "./sourceIdentity";
 
 type ContainerIndexEntry = {
   name: string;
   number: number;
   folderGuid: string;
+  createdAt: bigint;
 };
 
 export async function scanSaveSelection(
@@ -32,6 +34,13 @@ export async function scanLogicalSaveSelection(
 ): Promise<SaveManifest> {
   if (!selectedFiles.length) {
     throw new SaveImportError("WRONG_FOLDER", "Choose the save folder, not an individual save file.");
+  }
+
+  if (platform === "xbox" && xboxAccountRoots(selectedFiles).length > 1) {
+    throw new SaveImportError(
+      "WRONG_FOLDER",
+      "This wgs folder contains more than one Xbox account. Choose the long account folder that directly contains containers.index so Palpath cannot mix worlds between accounts.",
+    );
   }
 
   const logicalFiles = platform === "xbox"
@@ -61,11 +70,13 @@ export async function scanLogicalSaveSelection(
     );
   }
 
+  const sourceAccountId = platform === "xbox"
+    ? inferXboxAccountId(selectedFiles)
+    : inferSteamAccountId(selectedFiles);
   return {
     platform,
-    accountId: platform === "xbox"
-      ? inferXboxAccountId(selectedFiles)
-      : inferSteamAccountId(selectedFiles),
+    accountId: await pseudonymizeSourceAccountId(platform, sourceAccountId),
+    sourceAccountId,
     slots,
   };
 }
@@ -105,7 +116,15 @@ async function extractXboxLogicalFiles(files: readonly LogicalSaveFile[]): Promi
   for (const indexFile of indexFiles) {
     const indexPath = normalizePath(indexFile.path);
     const accountRoot = indexPath.slice(0, Math.max(0, indexPath.lastIndexOf("/")));
-    const entries = parseContainerIndex(await indexFile.file.arrayBuffer());
+    const parsedEntries = parseContainerIndex(await indexFile.file.arrayBuffer());
+    const entries = [...new Map([...parsedEntries]
+      .sort((left, right) =>
+        left.name.localeCompare(right.name)
+        || left.number - right.number
+        || (left.createdAt < right.createdAt ? -1 : left.createdAt > right.createdAt ? 1 : 0),
+      )
+      .map((entry) => [entry.name.toLowerCase(), entry] as const))
+      .values()];
 
     for (const entry of entries) {
       const folderRoot = joinPath(accountRoot, entry.folderGuid);
@@ -125,10 +144,24 @@ async function extractXboxLogicalFiles(files: readonly LogicalSaveFile[]): Promi
           `Could not read container.${entry.number} for ${entry.name}: ${error instanceof Error ? error.message : "invalid container data"}.`,
         );
       }
-      const blob = blobs
-        .flatMap(({ firstGuid, secondGuid }) => [firstGuid, secondGuid])
-        .map((guid) => filesByPath.get(joinPath(folderRoot, guid).toLowerCase()))
-        .find((candidate): candidate is LogicalSaveFile => Boolean(candidate));
+      const candidatePair = blobs[0];
+      const firstBlob = candidatePair
+        ? filesByPath.get(joinPath(folderRoot, candidatePair.firstGuid).toLowerCase())
+        : undefined;
+      const secondBlob = candidatePair
+        ? filesByPath.get(joinPath(folderRoot, candidatePair.secondGuid).toLowerCase())
+        : undefined;
+      if (
+        firstBlob
+        && secondBlob
+        && candidatePair?.firstGuid !== candidatePair?.secondGuid
+      ) {
+        throw new SaveImportError(
+          "INCOMPLETE_CLOUD_SYNC",
+          `Xbox has two active copies of ${entry.name}. Wait for cloud sync to settle, then retry this same source.`,
+        );
+      }
+      const blob = secondBlob ?? firstBlob;
       if (!blob) {
         missing.push(entry.name);
         continue;
@@ -142,10 +175,10 @@ async function extractXboxLogicalFiles(files: readonly LogicalSaveFile[]): Promi
     }
   }
 
-  if (!logical.length && missing.length) {
+  if (missing.length) {
     throw new SaveImportError(
       "INCOMPLETE_CLOUD_SYNC",
-      "Some Xbox save files are still missing. Let cloud sync finish, close Palworld, and choose the folder again.",
+      "Xbox is still rotating or downloading part of this save. Close Palworld, let Xbox cloud sync finish, then retry this same folder.",
     );
   }
   return logical;
@@ -211,7 +244,13 @@ function buildSlotCandidates(files: readonly LogicalSaveFile[]): SaveSlotCandida
 export function parseContainerIndex(buffer: ArrayBuffer): readonly ContainerIndexEntry[] {
   try {
     const reader = new LittleEndianReader(buffer);
-    reader.skip(4);
+    const version = reader.int32();
+    if (version !== 14) {
+      throw new SaveImportError(
+        "UNSUPPORTED_1_0_REVISION",
+        `This Xbox container index uses unsupported format ${version}.`,
+      );
+    }
     const count = reader.int32();
     if (count < 0 || count > 100_000) throw new Error("Invalid container count.");
     reader.skip(4);
@@ -229,12 +268,13 @@ export function parseContainerIndex(buffer: ArrayBuffer): readonly ContainerInde
       const number = reader.uint8();
       reader.skip(4);
       const folderGuid = reader.guidLittleEndian();
-      reader.skip(8);
+      const createdAt = reader.uint64();
       reader.skip(16);
-      entries.push({ name, number, folderGuid });
+      entries.push({ name, number, folderGuid, createdAt });
     }
     return entries;
   } catch (error) {
+    if (error instanceof SaveImportError) throw error;
     throw new SaveImportError(
       "CORRUPT_SAVE",
       error instanceof Error ? `Could not read containers.index: ${error.message}` : "Could not read containers.index.",
@@ -244,7 +284,8 @@ export function parseContainerIndex(buffer: ArrayBuffer): readonly ContainerInde
 
 function parseContainerFile(buffer: ArrayBuffer) {
   const reader = new LittleEndianReader(buffer);
-  reader.skip(4);
+  const version = reader.int32();
+  if (version !== 4) throw new Error(`Unsupported container format ${version}.`);
   const count = reader.int32();
   if (count < 0 || count > 10_000) throw new Error("Invalid container file count.");
   const files = [];
@@ -285,6 +326,13 @@ class LittleEndianReader {
     return value;
   }
 
+  uint64() {
+    this.ensure(8);
+    const value = this.view.getBigUint64(this.offset, true);
+    this.offset += 8;
+    return value;
+  }
+
   utf16(fixedLength?: number) {
     const length = fixedLength ?? this.int32();
     if (length < 0 || length > 1_000_000) throw new Error("Invalid UTF-16 string length.");
@@ -313,9 +361,17 @@ class LittleEndianReader {
 }
 
 function inferXboxAccountId(files: readonly LogicalSaveFile[]) {
-  const index = files.find((file) => file.file.name.toLowerCase() === "containers.index");
-  const path = normalizePath(index?.path ?? "");
-  return path.split("/").find((part) => part.includes("_"));
+  const accountRoot = xboxAccountRoots(files)[0];
+  const parts = accountRoot?.split("/").filter(Boolean) ?? [];
+  return parts[parts.length - 1];
+}
+
+function xboxAccountRoots(files: readonly LogicalSaveFile[]) {
+  return [...new Map(files.flatMap((file) => {
+    if (file.file.name.toLowerCase() !== "containers.index") return [];
+    const root = dirname(normalizePath(file.path));
+    return [[root.toLowerCase(), root] as const];
+  })).values()];
 }
 
 function inferSteamAccountId(files: readonly LogicalSaveFile[]) {

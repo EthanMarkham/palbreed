@@ -6,6 +6,10 @@ export type StoredSaveWatch = {
   version: 1;
   profileId: string;
   worldId: string;
+  platform?: "xbox" | "steam";
+  scope?: "xbox-account" | "steam-world";
+  /** Raw platform folder identity. This record never leaves IndexedDB. */
+  sourceAccountId?: string;
   accountId?: string;
   folderName: string;
   worldRootPath: string;

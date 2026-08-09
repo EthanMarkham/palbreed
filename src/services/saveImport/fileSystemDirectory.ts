@@ -4,7 +4,11 @@ const MAX_SELECTED_FILES = 25_000;
 const MAX_DIRECTORY_DEPTH = 12;
 
 type DirectoryPickerWindow = Window & {
-  showDirectoryPicker(options?: { id?: string; mode?: "read" | "readwrite" }): Promise<FileSystemDirectoryHandle>;
+  showDirectoryPicker(options?: {
+    id?: string;
+    mode?: "read" | "readwrite";
+    startIn?: FileSystemHandle | string;
+  }): Promise<FileSystemDirectoryHandle>;
 };
 
 type PermissionDirectoryHandle = FileSystemDirectoryHandle & {
@@ -15,11 +19,13 @@ type PermissionDirectoryHandle = FileSystemDirectoryHandle & {
 export function supportsPersistentSaveFolders() {
   return typeof window !== "undefined"
     && "showDirectoryPicker" in window
-    && typeof indexedDB !== "undefined"
-    && Boolean(navigator.locks);
+    && typeof indexedDB !== "undefined";
 }
 
-export async function chooseSaveDirectory(platform?: "xbox" | "steam") {
+export async function chooseSaveDirectory(
+  platform?: "xbox" | "steam",
+  startIn?: FileSystemDirectoryHandle,
+) {
   if (!supportsPersistentSaveFolders()) {
     throw new Error("Automatic refresh requires a current version of Chrome or Edge.");
   }
@@ -28,7 +34,60 @@ export async function chooseSaveDirectory(platform?: "xbox" | "steam") {
     // Steam independent so changing a real source is less tedious.
     id: platform ? `palpath-${platform}-save-folder` : "palpath-save-folder",
     mode: "read",
+    ...(startIn ? { startIn } : {}),
   });
+}
+
+export type XboxAccountDirectory = {
+  directoryHandle: FileSystemDirectoryHandle;
+  path: string;
+};
+
+/**
+ * Finds the narrow WGS account directory that owns containers.index. Reading
+ * and observing this child keeps Palpath out of unrelated Xbox app data.
+ */
+export async function getXboxAccountDirectory(
+  selectedDirectory: FileSystemDirectoryHandle,
+  accountId?: string,
+): Promise<XboxAccountDirectory> {
+  const accounts = await listXboxAccountDirectories(selectedDirectory);
+
+  const matchingAccounts = accountId
+    ? accounts.filter(({ directoryHandle, path }) =>
+        directoryHandle.name.toLowerCase() === accountId.toLowerCase()
+        || path.split("/").some((part) => part.toLowerCase() === accountId.toLowerCase()),
+      )
+    : accounts;
+
+  if (!matchingAccounts.length) {
+    throw new SaveImportError(
+      "WRONG_FOLDER",
+      accountId
+        ? "This folder does not contain the connected Xbox account."
+        : "No Xbox save account was found. Choose the wgs folder, or the long account folder inside it that contains containers.index.",
+    );
+  }
+  if (matchingAccounts.length > 1) {
+    throw new SaveImportError(
+      "WRONG_FOLDER",
+      "This wgs folder contains more than one Xbox account.",
+    );
+  }
+  return matchingAccounts[0];
+}
+
+export async function listXboxAccountDirectories(
+  selectedDirectory: FileSystemDirectoryHandle,
+) {
+  const accounts: XboxAccountDirectory[] = [];
+  await walkXboxAccountDirectories(
+    selectedDirectory,
+    normalizePath(selectedDirectory.name),
+    0,
+    accounts,
+  );
+  return accounts;
 }
 
 export async function readSaveDirectory(
@@ -145,6 +204,38 @@ async function visitDirectory(
     }
     const file = await entry.getFile();
     target.push({ path: entryPath, file, updatedAt: file.lastModified });
+  }
+}
+
+async function walkXboxAccountDirectories(
+  directory: FileSystemDirectoryHandle,
+  path: string,
+  depth: number,
+  target: XboxAccountDirectory[],
+) {
+  if (depth > MAX_DIRECTORY_DEPTH) return;
+  const childDirectories: FileSystemDirectoryHandle[] = [];
+  let containsIndex = false;
+
+  for await (const entry of directory.values()) {
+    if (entry.kind === "file" && entry.name.toLowerCase() === "containers.index") {
+      containsIndex = true;
+    } else if (entry.kind === "directory" && !isBackupDirectory(entry.name)) {
+      childDirectories.push(entry);
+    }
+  }
+
+  if (containsIndex) {
+    target.push({ directoryHandle: directory, path });
+    return;
+  }
+  for (const child of childDirectories) {
+    await walkXboxAccountDirectories(
+      child,
+      joinPath(path, child.name),
+      depth + 1,
+      target,
+    );
   }
 }
 

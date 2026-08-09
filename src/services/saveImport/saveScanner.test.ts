@@ -3,6 +3,7 @@ import type { SaveSlotCandidate } from "../../domain/saveImport";
 import { SaveImportError } from "../../domain/saveImport";
 import {
   assertPalworldOnePointZero,
+  parseContainerIndex,
   scanLogicalSaveSelection,
   scanSaveSelection,
 } from "./saveScanner";
@@ -56,7 +57,8 @@ describe("strict Palworld 1.0 format guard", () => {
 
     expect(manifest.slots).toHaveLength(2);
     expect(manifest.slots.map(({ label }) => label)).toEqual(["World 1", "World 2"]);
-    expect(manifest.accountId).toBe("account");
+    expect(manifest.sourceAccountId).toBe("account");
+    expect(manifest.accountId).toMatch(/^palpath-source-v1:[a-f\d]{64}$/);
     expect(manifest.slots[0]?.worldId).toBe(secondWorld);
     expect(manifest.slots[0]?.updatedAt).toBe(30);
   });
@@ -73,6 +75,43 @@ describe("strict Palworld 1.0 format guard", () => {
       rootPath: `SaveGames/account/${worldId}`,
     });
     expect(manifest.slots[0]?.files.get("level/01.sav")?.updatedAt).toBe(30);
+  });
+
+  it("refuses to merge Xbox worlds from multiple account indexes", async () => {
+    const fakeIndex = (path: string) => ({
+      path,
+      file: {
+        name: "containers.index",
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      } as unknown as File,
+    });
+
+    await expect(scanLogicalSaveSelection([
+      fakeIndex("wgs/account_one/containers.index"),
+      fakeIndex("wgs/account_two/containers.index"),
+    ], "xbox")).rejects.toMatchObject({ code: "WRONG_FOLDER" });
+  });
+});
+
+describe("Xbox WGS format guard", () => {
+  it("accepts the supported containers.index version", () => {
+    const buffer = new ArrayBuffer(40);
+    const view = new DataView(buffer);
+    view.setInt32(0, 14, true);
+    view.setInt32(4, 0, true);
+
+    expect(parseContainerIndex(buffer)).toEqual([]);
+  });
+
+  it("fails closed on an unknown containers.index version", () => {
+    const buffer = new ArrayBuffer(4);
+    new DataView(buffer).setInt32(0, 99, true);
+
+    expect(() => parseContainerIndex(buffer)).toThrowError(
+      expect.objectContaining<Partial<SaveImportError>>({
+        code: "UNSUPPORTED_1_0_REVISION",
+      }),
+    );
   });
 });
 

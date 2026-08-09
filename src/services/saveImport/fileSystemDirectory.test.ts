@@ -3,6 +3,7 @@ import {
   fileSetSignature,
   fileSignature,
   getSteamWorldTrigger,
+  getXboxAccountDirectory,
   readSaveDirectory,
   requestSaveDirectoryPermission,
   selectXboxAccountFiles,
@@ -67,6 +68,36 @@ describe("persistent Steam folder access", () => {
 });
 
 describe("persistent Xbox folder access", () => {
+  it("derives the one account child from wgs without another picker", async () => {
+    const account = fakeDirectory("account_one", {
+      index: fakeFileHandle("containers.index", 20, 100),
+    });
+    const root = fakeDirectory("wgs", { account });
+
+    await expect(getXboxAccountDirectory(root)).resolves.toMatchObject({
+      directoryHandle: account,
+      path: "wgs/account_one",
+    });
+    await expect(getXboxAccountDirectory(account)).resolves.toMatchObject({
+      directoryHandle: account,
+    });
+  });
+
+  it("fails closed when wgs contains multiple Xbox accounts", async () => {
+    const root = fakeDirectory("wgs", {
+      first: fakeDirectory("account_one", {
+        index: fakeFileHandle("containers.index", 20, 100),
+      }),
+      second: fakeDirectory("account_two", {
+        index: fakeFileHandle("containers.index", 20, 100),
+      }),
+    });
+
+    await expect(getXboxAccountDirectory(root)).rejects.toThrow(
+      "contains more than one Xbox account",
+    );
+  });
+
   it("fingerprints every file for only the imported WGS account", async () => {
     const firstAccount = fakeDirectory("account_one", {
       index: fakeFileHandle("containers.index", 20, 100),

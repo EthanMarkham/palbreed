@@ -3,6 +3,7 @@ import type { InventoryDocument, InventoryProfile, OwnedPal } from "../../domain
 import type { Database, Json } from "../supabase/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { InventoryGateway } from "./inventoryGateway";
+import { pseudonymizeSourceAccountId } from "../saveImport/sourceIdentity";
 
 const ownedPalSchema = z.object({
   id: z.string(),
@@ -66,6 +67,10 @@ export class SupabaseInventoryGateway implements InventoryGateway {
   }
 
   async replaceProfile(profile: InventoryProfile): Promise<void> {
+    const cloudAccountId = await pseudonymizeSourceAccountId(
+      profile.platform,
+      profile.accountId,
+    );
     const { error } = await this.client.rpc("replace_inventory_profile", {
       profile_local_id: profile.id,
       profile_name: profile.name,
@@ -73,7 +78,7 @@ export class SupabaseInventoryGateway implements InventoryGateway {
       profile_platform: profile.platform,
       profile_world_id: profile.worldId ?? "",
       profile_slot_id: profile.slotId ?? "",
-      profile_account_id: profile.accountId ?? null,
+      profile_account_id: cloudAccountId ?? null,
       profile_player_id: profile.playerId ?? null,
       profile_player_name: profile.playerName ?? null,
       profile_player_level: profile.playerLevel ?? null,

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readStableSaveDirectory } from "./stableSaveDirectory";
 
 describe("stable manual save refresh", () => {
-  it("retries until the Steam trigger is stable", async () => {
+  it("retries until the complete Steam world snapshot is stable", async () => {
     const worldId = "33333333333333333333333333333333";
     const levelFile = versionedFileHandle("01.sav", [
       [42, 100],
@@ -27,7 +27,7 @@ describe("stable manual save refresh", () => {
       stabilityDelayMs: 0,
     });
 
-    expect(levelFile.calls()).toBe(6);
+    expect(levelFile.calls()).toBe(4);
     expect(files.map(({ path }) => path).sort()).toEqual([
       `SaveGames/account/${worldId}/Level/01.sav`,
       `SaveGames/account/${worldId}/LevelMeta.sav`,
