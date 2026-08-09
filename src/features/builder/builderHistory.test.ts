@@ -124,13 +124,34 @@ describe("Builder search history", () => {
       targetId: target,
       passives: [firstPassive, secondPassive].sort(),
       objective: "cleanest",
-      allowedExtras: 0,
+      allowedExtras: 2,
       searchedAt: "2026-02-03T04:05:06.000Z",
     });
     expect(builderHistoryEntryToSearch(service.getSnapshot()[0])).toEqual({
       target,
       passives: [firstPassive, secondPassive].sort().join(","),
       objective: "cleanest",
+      run: true,
+    });
+  });
+
+  it("persists an exact-passive IV-focused search", () => {
+    const target = breedingRepository.allPals()[0].id;
+    const passive = passiveRepository.all()[0].id;
+    const entry = createBuilderHistoryEntry({
+      target,
+      passives: passive,
+      objective: "ivs",
+      extras: 0,
+    }, "2026-02-03T04:05:06.000Z");
+
+    expect(entry).toMatchObject({ objective: "ivs", allowedExtras: 0 });
+    if (!entry) return;
+    expect(builderHistoryEntryToSearch(entry)).toEqual({
+      target,
+      passives: passive,
+      objective: "ivs",
+      extras: 0,
       run: true,
     });
   });

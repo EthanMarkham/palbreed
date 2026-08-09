@@ -2,10 +2,16 @@ import { describe, expect, it } from "vitest";
 import { passiveRepository } from "../data/passiveRepository";
 import {
   runBuilderSearch,
+  setBuilderAllowsExtraPassives,
   setBuilderPassiveQuery,
   setBuilderPassives,
 } from "./builder/builderNavigation";
-import { getBuilderPassiveIds, parseBuilderSearch } from "./builder/builderSearch";
+import {
+  getBuilderAllowsExtraPassives,
+  getBuilderPassiveGoal,
+  getBuilderPassiveIds,
+  parseBuilderSearch,
+} from "./builder/builderSearch";
 import {
   clearInventoryFilters,
   parseInventorySearch,
@@ -56,7 +62,11 @@ describe("route-backed search state", () => {
     });
     expect(getBuilderPassiveIds(search)).toEqual(passiveIds.slice(0, 4));
     expect(parseBuilderSearch({ passives: "any", extras: "2", run: true })).toEqual({ run: true });
-    expect(parseBuilderSearch({ objective: "ivs", minIv: "90" })).toEqual({});
+    expect(parseBuilderSearch({ objective: "ivs", minIv: "90" })).toEqual({ objective: "ivs" });
+    const exact = parseBuilderSearch({ passives: passiveIds[0], extras: "0" });
+    expect(exact).toEqual({ passives: passiveIds[0], extras: 0 });
+    expect(getBuilderAllowsExtraPassives(exact)).toBe(false);
+    expect(getBuilderPassiveGoal(exact)).toMatchObject({ allowedExtras: 0 });
     expect(parseBuilderSearch({ passives: [`${passiveIds[0]},${passiveIds[1]}`, passiveIds[2]] })).toEqual({
       passives: passiveIds.slice(0, 3).join(","),
     });
@@ -74,6 +84,11 @@ describe("route-backed search state", () => {
     });
     expect(setBuilderPassives(typed, [])).toEqual({
       target: "lamball",
+    });
+    expect(setBuilderAllowsExtraPassives({ target: "lamball", passives: passiveId }, false)).toEqual({
+      target: "lamball",
+      passives: passiveId,
+      extras: 0,
     });
   });
 

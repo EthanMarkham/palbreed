@@ -16,6 +16,7 @@ const rawBuilderSearchSchema = z.object({
   passives: z.union([z.string(), z.array(z.string())]).optional().catch(undefined),
   passiveQuery: optionalStringSearchParam,
   objective: optionalStringSearchParam,
+  extras: z.union([z.string(), z.number(), z.boolean()]).optional().catch(undefined),
   run: z.union([z.string(), z.boolean()]).optional().catch(undefined),
 });
 
@@ -25,6 +26,7 @@ export type BuilderSearchState = {
   passives?: string;
   passiveQuery?: string;
   objective?: Exclude<BuilderObjective, "recommended">;
+  extras?: 0;
   run?: true;
 };
 
@@ -35,7 +37,12 @@ export function parseBuilderSearch(search: Record<string, unknown>): BuilderSear
   const passiveQuery = normalizeSearchQuery(raw.passiveQuery);
   const objective = raw.objective === "fewest"
     || raw.objective === "cleanest"
+    || raw.objective === "ivs"
     ? raw.objective
+    : undefined;
+  const extras = raw.extras === 0 || raw.extras === "0" || raw.extras === false
+    || raw.extras === "false"
+    ? 0 as const
     : undefined;
   const run = raw.run === true || raw.run === "true" || raw.run === "1" ? true : undefined;
   const serializedPassives = passiveSelection.join(",") || undefined;
@@ -46,6 +53,7 @@ export function parseBuilderSearch(search: Record<string, unknown>): BuilderSear
     passives: serializedPassives,
     passiveQuery,
     objective,
+    extras,
     run,
   });
 }
@@ -60,8 +68,13 @@ export function getBuilderPassiveGoal(search: BuilderSearchState): PassiveGoal {
   return {
     kind: "specific",
     requiredIds: selection,
-    allowedExtras: 4 - selection.length,
+    allowedExtras: search.extras === 0 ? 0 : 4 - selection.length,
   };
+}
+
+export function getBuilderAllowsExtraPassives(search: BuilderSearchState): boolean {
+  const selection = normalizePassiveSelection(search.passives);
+  return selection.length > 0 && selection.length < 4 && search.extras !== 0;
 }
 
 export function getBuilderObjective(search: BuilderSearchState): BuilderObjective {

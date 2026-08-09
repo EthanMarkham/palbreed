@@ -10,8 +10,8 @@ import type {
 const historyRowSchema = z.object({
   target_pal_id: z.string(),
   passive_ids: z.array(z.string()),
-  objective: z.enum(["recommended", "fewest", "cleanest"]),
-  allowed_extra_passives: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  objective: z.enum(["recommended", "fewest", "cleanest", "ivs"]),
+  allowed_extra_passives: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
   searched_at: z.string(),
 });
 

@@ -16,7 +16,7 @@ export type BuilderHistoryEntry = Readonly<{
   targetId: PalId;
   passives: "any" | readonly PassiveId[];
   objective: BuilderObjective;
-  allowedExtras: 0 | 1 | 2;
+  allowedExtras: 0 | 1 | 2 | 3;
   searchedAt: string;
 }>;
 
@@ -191,7 +191,7 @@ export function createBuilderHistoryEntry(
     targetId,
     passives,
     objective: getBuilderObjective(search),
-    allowedExtras: 0,
+    allowedExtras: passiveGoal.kind === "any" ? 0 : normalizeAllowedExtras(passiveGoal.allowedExtras),
     searchedAt: normalizedDate,
   };
 }
@@ -201,6 +201,7 @@ export function builderHistoryEntryToSearch(entry: BuilderHistoryEntry): Builder
     target: entry.targetId,
     passives: entry.passives === "any" ? undefined : entry.passives.join(","),
     objective: entry.objective === "recommended" ? undefined : entry.objective,
+    extras: entry.passives !== "any" && entry.allowedExtras === 0 ? 0 : undefined,
     run: true,
   };
 }
@@ -239,7 +240,7 @@ export function normalizeBuilderHistory(
       targetId,
       passives,
       objective: entry.objective,
-      allowedExtras: 0,
+      allowedExtras: passives === "any" ? 0 : normalizeAllowedExtras(entry.allowedExtras),
       searchedAt,
     };
     const key = getBuilderHistoryKey(candidate);
@@ -274,6 +275,11 @@ function normalizePassives(value: "any" | readonly string[]): "any" | readonly P
 function normalizeDate(value: string): string | undefined {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : undefined;
+}
+
+function normalizeAllowedExtras(value: number): 0 | 1 | 2 | 3 {
+  if (value === 1 || value === 2 || value === 3) return value;
+  return 0;
 }
 
 async function loadSupabaseBackend(): Promise<BuilderHistoryBackend | undefined> {

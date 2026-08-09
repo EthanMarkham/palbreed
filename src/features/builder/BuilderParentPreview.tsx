@@ -107,7 +107,7 @@ export default function BuilderParentPreview({
                 {parent.ivScores ? (
                   <BuilderIvScores
                     scores={parent.ivScores}
-                    label="Hidden scores"
+                    label={parent.origin === "planned" ? "Estimated IVs" : "Hidden scores"}
                   />
                 ) : null}
                 <div className="builder-parent-popover-passives">

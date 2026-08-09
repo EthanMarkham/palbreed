@@ -112,11 +112,15 @@ function HistoryRow({
 }
 
 function formatSettings(entry: BuilderHistoryEntry) {
-  return entry.objective === "fewest"
+  const objective = entry.objective === "fewest"
     ? "Fewer breedings"
     : entry.objective === "cleanest"
       ? "Better hatch odds"
-      : "Balanced route";
+      : entry.objective === "ivs"
+        ? "Maximize IVs"
+        : "Balanced route";
+  if (entry.passives === "any") return objective;
+  return `${objective} / ${entry.allowedExtras === 0 ? "Exact passives" : "Extra passives allowed"}`;
 }
 
 function formatDate(value: string) {

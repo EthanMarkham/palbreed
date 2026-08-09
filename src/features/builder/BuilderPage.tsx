@@ -17,10 +17,12 @@ import { usePalBuilder } from "../../services/builder/usePalBuilder";
 import { inventoryService } from "../../services/inventory/inventoryService";
 import { useInventory } from "../../services/inventory/useInventory";
 import BuilderHistoryMenu from "./BuilderHistoryMenu";
+import BuilderIvScores from "./BuilderIvScores";
 import BuilderRouteTree from "./BuilderRouteTree";
 import type { BuilderHistoryEntry } from "./builderHistory";
 import {
   getBuilderObjective,
+  getBuilderAllowsExtraPassives,
   getBuilderPassiveGoal,
   getBuilderPassiveIds,
   type BuilderSearchState,
@@ -32,6 +34,7 @@ type BuilderPageProps = {
   onTargetChange: (value: PalId | undefined) => void;
   onPassivesChange: (value: readonly PassiveId[]) => void;
   onPassiveQueryChange: (value: string) => void;
+  onAllowsExtraPassivesChange: (value: boolean) => void;
   onObjectiveChange: (value: BuilderObjective) => void;
   onHistorySelect: (entry: BuilderHistoryEntry) => void;
   onRun: () => void;
@@ -45,6 +48,7 @@ export default function BuilderPage({
   onTargetChange,
   onPassivesChange,
   onPassiveQueryChange,
+  onAllowsExtraPassivesChange,
   onObjectiveChange,
   onHistorySelect,
   onRun,
@@ -54,15 +58,19 @@ export default function BuilderPage({
   const inventory = profile?.pals ?? EMPTY_INVENTORY;
   const targetId = search.target;
   const passiveSelection = search.passives;
+  const passiveExtras = search.extras;
   const requiredPassiveIds = useMemo(
     () => getBuilderPassiveIds({ passives: passiveSelection }),
     [passiveSelection],
   );
   const passiveGoal = useMemo(
-    () => getBuilderPassiveGoal({ passives: passiveSelection }),
-    [passiveSelection],
+    () => getBuilderPassiveGoal({ passives: passiveSelection, extras: passiveExtras }),
+    [passiveExtras, passiveSelection],
   );
   const objective = getBuilderObjective(search);
+  const allowsExtraPassives = getBuilderAllowsExtraPassives(search);
+  const availablePassiveSlots = Math.max(0, 4 - requiredPassiveIds.length);
+  const canAllowExtraPassives = requiredPassiveIds.length > 0 && availablePassiveSlots > 0;
   const solveInput = useMemo<BuilderInput | undefined>(() => {
     if (!search.run || !targetId || inventorySnapshot.status === "loading") return undefined;
     return {
@@ -130,8 +138,26 @@ export default function BuilderPage({
                   <option value="recommended">Balanced route</option>
                   <option value="fewest">Fewer breedings</option>
                   <option value="cleanest">Better hatch odds</option>
+                  <option value="ivs">Maximize IVs</option>
                 </select>
                 <SelectChevron />
+              </span>
+            </label>
+            <label className={`builder-check-option${!canAllowExtraPassives ? " is-disabled" : ""}`}>
+              <input
+                type="checkbox"
+                checked={allowsExtraPassives}
+                disabled={!canAllowExtraPassives}
+                onChange={(event) => onAllowsExtraPassivesChange(event.target.checked)}
+              />
+              <span className="builder-check-control" aria-hidden="true" />
+              <span>
+                <strong>Allow extra passives</strong>
+                <small>{requiredPassiveIds.length === 0
+                  ? "Choose at least one passive to use this option."
+                  : availablePassiveSlots > 0
+                  ? `Accept up to ${availablePassiveSlots} additional passive${availablePassiveSlots === 1 ? "" : "s"} on the final Pal.`
+                  : "All four passive slots are selected."}</small>
               </span>
             </label>
           </div>
@@ -147,7 +173,7 @@ export default function BuilderPage({
             {isSolving ? "Finding route…" : "Find a breeding route"}
             {isSolving ? <span className="sr-only" role="status">Finding a breeding route. Activate to cancel.</span> : null}
           </button>
-          <p className="model-note">Odds include inherited passives and any required offspring sex. Random Lucky rolls aren't included.</p>
+          <p className="model-note">Odds include inherited passives and any required offspring sex. Balanced routes also favor stronger known IVs; missing IVs use the neutral 50.5 average. Maximize IVs may add up to two breedings and caps estimated route cost; Mushroom Cake's 1.0 stat boost is recommended but not priced because its exact distribution is not published.</p>
         </form>
 
         <div className="feature-card builder-result-card" aria-live="polite">
@@ -207,20 +233,38 @@ function BuilderResultView({
   const passiveSummary = passiveGoal?.kind === "any"
     ? "No passive preference"
     : passiveGoal?.requiredIds.map((id) => passiveRepository.get(id)?.name ?? id).join(" / ") ?? "";
-  const isIvReroll = result.strategy === "iv-reroll";
+  const isIvMax = result.strategy === "iv-max";
+  const isIvBalanced = result.strategy === "iv-balanced";
+  const routeLabel = isIvMax ? "IV-FOCUSED ROUTE" : "BREEDING ROUTE";
+  const routeDescription = isIvMax
+    ? result.ivScores
+      ? `Strongest modeled IV path within route limits · ${passiveSummary}`
+      : `No imported IV data; showing the balanced path · ${passiveSummary}`
+    : isIvBalanced
+      ? `Balanced route and inherited IVs · ${passiveSummary}`
+      : passiveSummary;
   return (
     <div className="build-result">
       <div className="build-summary">
         {target ? <PalAvatar pal={target} className="build-summary-avatar" /> : null}
         <div>
           <span className="result-eyebrow">
-            {isIvReroll ? "BEST-IV REROLL" : "BREEDING ROUTE"}
+            {routeLabel}
           </span>
           <h2>{target?.name}</h2>
-          <p>{isIvReroll ? `Best available parent pairing · ${passiveSummary}` : passiveSummary}</p>
+          <p>{routeDescription}</p>
         </div>
         <div className="build-metrics"><span><strong>{result.steps.length}</strong>breedings</span><span><strong>{formatEggs(result.expectedCakes)}</strong>eggs on average</span></div>
       </div>
+
+      {result.ivScores ? (
+        <div className="builder-route-iv-summary">
+          <BuilderIvScores scores={result.ivScores} label="Estimated offspring IVs" />
+          {isIvMax && result.ivBudget ? (
+            <p>Compared with the balanced route and limited to {result.ivBudget.maxSteps} breedings and about {formatEggs(result.ivBudget.maxExpectedCakes)} expected eggs. Use Mushroom Cake for IV-focused hatches.</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {result.steps.length ? (
         <BuilderRouteTree steps={result.steps} />

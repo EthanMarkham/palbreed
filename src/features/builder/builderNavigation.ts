@@ -48,6 +48,13 @@ export function setBuilderObjective(search: BuilderSearchState, objective: Build
   return compactSearch({ ...search, objective: objective === "recommended" ? undefined : objective, run: undefined });
 }
 
+export function setBuilderAllowsExtraPassives(
+  search: BuilderSearchState,
+  allowed: boolean,
+): BuilderSearchState {
+  return compactSearch({ ...search, extras: allowed ? undefined : 0, run: undefined });
+}
+
 export function runBuilderSearch(search: BuilderSearchState): BuilderSearchState {
   return compactSearch({ ...search, run: true });
 }

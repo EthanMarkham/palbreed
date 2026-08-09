@@ -53,7 +53,7 @@ describe("Pal Builder", () => {
     }
   });
 
-  it("exposes exact hidden scores for owned parents without calculating offspring scores", () => {
+  it("exposes exact parent scores and an expected offspring score", () => {
     const result = buildPal({
       inventory: [
         { ...inventory[0], abilityScores: abilityScores(37) },
@@ -69,7 +69,8 @@ describe("Pal Builder", () => {
       expect(result.steps).toHaveLength(1);
       expect(result.steps[0].firstParent.ivScores).toEqual({ hp: 37, attack: 37, defense: 37 });
       expect(result.steps[0].secondParent.ivScores).toEqual({ hp: 82, attack: 82, defense: 82 });
-      expect(result.steps[0]).not.toHaveProperty("resultIvScores");
+      expect(result.steps[0].resultIvScores).toEqual({ hp: 55.9, attack: 55.9, defense: 55.9 });
+      expect(result.ivScores).toEqual({ hp: 55.9, attack: 55.9, defense: 55.9 });
     }
   });
 
@@ -266,7 +267,7 @@ describe("Pal Builder", () => {
       objective: "fewest",
     });
 
-    expect(result).toMatchObject({ status: "found", strategy: "iv-reroll" });
+    expect(result).toMatchObject({ status: "found" });
     expect(performance.now() - startedAt).toBeLessThan(3_000);
   }, 5_000);
 
@@ -305,7 +306,7 @@ describe("Pal Builder", () => {
       objective: "cleanest",
     });
 
-    expect(result).toMatchObject({ status: "found", strategy: "iv-reroll" });
+    expect(result).toMatchObject({ status: "found" });
     expect(performance.now() - startedAt).toBeLessThan(3_000);
   }, 5_000);
 
@@ -431,7 +432,7 @@ describe("Pal Builder", () => {
 
     expect(result).toMatchObject({
       status: "found",
-      strategy: "iv-reroll",
+      strategy: "standard",
       steps: [{ result: "daedream" }],
     });
   });
@@ -495,6 +496,115 @@ describe("Pal Builder", () => {
         inventorySlot(result.steps[0].secondParent),
       ]).toEqual([1, 2]);
     }
+
+    const balanced = buildPal({
+      inventory: targetInventory,
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "recommended",
+    });
+    expect(balanced.status).toBe("found");
+    if (balanced.status === "found") {
+      expect(balanced.strategy).toBe("iv-balanced");
+      expect([
+        inventorySlot(balanced.steps[0].firstParent),
+        inventorySlot(balanced.steps[0].secondParent),
+      ]).toEqual([3, 4]);
+    }
+
+    const focused = buildPal({
+      inventory: targetInventory,
+      targetId: "daedream",
+      passiveGoal: { kind: "any" },
+      objective: "ivs",
+    });
+    expect(focused.status).toBe("found");
+    if (focused.status === "found") {
+      expect(focused.strategy).toBe("iv-max");
+      expect(focused.steps.length).toBeLessThanOrEqual((focused.ivBudget?.baselineSteps ?? 0) + 2);
+      expect([
+        inventorySlot(focused.steps[0].firstParent),
+        inventorySlot(focused.steps[0].secondParent),
+      ]).toEqual([1, 2]);
+    }
+  });
+
+  it("lets the balanced route spend a reasonable number of eggs for a major IV gain", () => {
+    const desiredPassive = "CraftSpeed_up2";
+    const routeInventory: OwnedPal[] = [
+      {
+        id: "daedream-f-clean",
+        sourceInstanceId: "daedream-f-clean",
+        speciesId: "daedream",
+        gender: "F",
+        passiveIds: [desiredPassive],
+        abilityScores: abilityScores(1),
+        location: "palbox",
+        palboxSlotIndex: 1,
+      },
+      {
+        id: "daedream-m-clean",
+        sourceInstanceId: "daedream-m-clean",
+        speciesId: "daedream",
+        gender: "M",
+        passiveIds: [desiredPassive],
+        abilityScores: abilityScores(1),
+        location: "palbox",
+        palboxSlotIndex: 2,
+      },
+      {
+        id: "daedream-f-strong",
+        sourceInstanceId: "daedream-f-strong",
+        speciesId: "daedream",
+        gender: "F",
+        passiveIds: [desiredPassive, "CraftSpeed_up1"],
+        abilityScores: abilityScores(100),
+        location: "palbox",
+        palboxSlotIndex: 3,
+      },
+      {
+        id: "daedream-m-strong",
+        sourceInstanceId: "daedream-m-strong",
+        speciesId: "daedream",
+        gender: "M",
+        passiveIds: [desiredPassive, "CraftSpeed_up1"],
+        abilityScores: abilityScores(100),
+        location: "palbox",
+        palboxSlotIndex: 4,
+      },
+    ];
+    const passiveGoal = {
+      kind: "specific" as const,
+      requiredIds: [desiredPassive],
+      allowedExtras: 1,
+    };
+    const cleanest = buildPal({
+      inventory: routeInventory,
+      targetId: "daedream",
+      passiveGoal,
+      objective: "cleanest",
+    });
+    const balanced = buildPal({
+      inventory: routeInventory,
+      targetId: "daedream",
+      passiveGoal,
+      objective: "recommended",
+    });
+
+    expect(cleanest.status).toBe("found");
+    expect(balanced.status).toBe("found");
+    if (cleanest.status === "found" && balanced.status === "found") {
+      expect(cleanest.expectedCakes).toBeLessThan(balanced.expectedCakes);
+      expect([
+        inventorySlot(cleanest.steps[0].firstParent),
+        inventorySlot(cleanest.steps[0].secondParent),
+      ]).toEqual([1, 2]);
+      expect([
+        inventorySlot(balanced.steps[0].firstParent),
+        inventorySlot(balanced.steps[0].secondParent),
+      ]).toEqual([3, 4]);
+      expect(balanced.ivScores?.hp).toBeGreaterThan(cleanest.ivScores?.hp ?? 0);
+    }
   });
 
   it("rewards a strong second source when the best per-stat values tie", () => {
@@ -557,7 +667,7 @@ describe("Pal Builder", () => {
     }
   });
 
-  it("does not use IVs to rank routes for a Pal that is not already owned", () => {
+  it("uses IVs to break tied routes even when the target is not already owned", () => {
     const routeInventory: OwnedPal[] = [
       { ...inventory[0], palboxSlotIndex: 1, abilityScores: abilityScores(1) },
       { ...inventory[1], palboxSlotIndex: 2, abilityScores: abilityScores(1) },
@@ -589,7 +699,7 @@ describe("Pal Builder", () => {
       expect([
         inventorySlot(result.steps[0].firstParent),
         inventorySlot(result.steps[0].secondParent),
-      ]).toEqual([1, 2]);
+      ]).toEqual([3, 4]);
     }
   });
 

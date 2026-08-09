@@ -8,6 +8,7 @@ import {
 } from "../features/builder/builderHistory";
 import {
   runBuilderSearch,
+  setBuilderAllowsExtraPassives,
   setBuilderObjective,
   setBuilderPassiveQuery,
   setBuilderPassives,
@@ -41,6 +42,7 @@ function BuilderRoute() {
         onTargetChange={(value) => updateSearch(setBuilderTarget(search, value), "push")}
         onPassivesChange={(value) => updateSearch(setBuilderPassives(search, value), "push")}
         onPassiveQueryChange={(value) => updateSearch(setBuilderPassiveQuery(search, value))}
+        onAllowsExtraPassivesChange={(value) => updateSearch(setBuilderAllowsExtraPassives(search, value), "push")}
         onObjectiveChange={(value) => updateSearch(setBuilderObjective(search, value), "push")}
         onHistorySelect={(entry) => {
           const restoredSearch = builderHistoryEntryToSearch(entry);

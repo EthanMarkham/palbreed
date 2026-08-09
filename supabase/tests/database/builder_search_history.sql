@@ -47,15 +47,15 @@ select results_eq(
   'the latest settings and canonical passive IDs are restored'
 );
 
-select throws_ok(
+savepoint builder_new_options;
+select lives_ok(
   $$ select public.record_builder_search(
-    'lamball', '{}'::text[], 'ivs', 0,
+    'lamball', array['Legend'], 'ivs', 3,
     'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
   ) $$,
-  '22023',
-  'The builder objective is invalid.',
-  'the removed IV objective is rejected'
+  'IV-focused searches and all three open passive slots can be persisted'
 );
+rollback to savepoint builder_new_options;
 
 select hasnt_column(
   'public',
