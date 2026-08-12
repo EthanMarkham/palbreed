@@ -127,11 +127,12 @@ async function extractXboxLogicalFiles(files: readonly LogicalSaveFile[]): Promi
       .values()];
 
     for (const entry of entries) {
+      const logicalPath = `${entry.name.replace(/-/g, "/")}.sav`;
       const folderRoot = joinPath(accountRoot, entry.folderGuid);
       const containerPath = joinPath(folderRoot, `container.${entry.number}`).toLowerCase();
       const containerFile = filesByPath.get(containerPath);
       if (!containerFile) {
-        missing.push(entry.name);
+        missing.push(logicalPath);
         continue;
       }
 
@@ -163,25 +164,37 @@ async function extractXboxLogicalFiles(files: readonly LogicalSaveFile[]): Promi
       }
       const blob = secondBlob ?? firstBlob;
       if (!blob) {
-        missing.push(entry.name);
+        missing.push(logicalPath);
         continue;
       }
 
       logical.push({
-        path: `${entry.name.replace(/-/g, "/")}.sav`,
+        path: logicalPath,
         file: blob.file,
         updatedAt: blob.updatedAt,
       });
     }
   }
 
-  if (missing.length) {
+  const logicalPaths = new Set(logical.map(({ path }) => normalizePath(path).toLowerCase()));
+  const unresolved = missing.filter((path) =>
+    !isSupersededLegacyXboxLevel(path, logicalPaths),
+  );
+  if (unresolved.length) {
     throw new SaveImportError(
       "INCOMPLETE_CLOUD_SYNC",
       "Xbox is still rotating or downloading part of this save. Close Palworld, let Xbox cloud sync finish, then retry this same folder.",
     );
   }
   return logical;
+}
+
+function isSupersededLegacyXboxLevel(path: string, availablePaths: ReadonlySet<string>) {
+  const normalized = normalizePath(path).toLowerCase();
+  if (!normalized.endsWith("/level.sav")) return false;
+  const root = dirname(normalized);
+  return availablePaths.has(joinPath(root, "levelmeta.sav"))
+    && availablePaths.has(joinPath(root, "level/01.sav"));
 }
 
 function buildSlotCandidates(files: readonly LogicalSaveFile[]): SaveSlotCandidate[] {
