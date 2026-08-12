@@ -5,34 +5,23 @@ const MAX_DIRECTORY_DEPTH = 12;
 
 type DirectoryPickerWindow = Window & {
   showDirectoryPicker(options?: {
-    id?: string;
     mode?: "read" | "readwrite";
     startIn?: FileSystemHandle | string;
   }): Promise<FileSystemDirectoryHandle>;
 };
 
-type PermissionDirectoryHandle = FileSystemDirectoryHandle & {
-  queryPermission(options?: { mode?: "read" | "readwrite" }): Promise<PermissionState>;
-  requestPermission(options?: { mode?: "read" | "readwrite" }): Promise<PermissionState>;
-};
-
-export function supportsPersistentSaveFolders() {
+export function supportsDirectoryPicker() {
   return typeof window !== "undefined"
-    && "showDirectoryPicker" in window
-    && typeof indexedDB !== "undefined";
+    && "showDirectoryPicker" in window;
 }
 
 export async function chooseSaveDirectory(
-  platform?: "xbox" | "steam",
   startIn?: FileSystemDirectoryHandle,
 ) {
-  if (!supportsPersistentSaveFolders()) {
-    throw new Error("Automatic refresh requires a current version of Chrome or Edge.");
+  if (!supportsDirectoryPicker()) {
+    throw new Error("Folder selection requires a current version of Chrome or Edge.");
   }
   return (window as unknown as DirectoryPickerWindow).showDirectoryPicker({
-    // Chromium remembers the last location for each picker ID. Keep Xbox and
-    // Steam independent so changing a real source is less tedious.
-    id: platform ? `palpath-${platform}-save-folder` : "palpath-save-folder",
     mode: "read",
     ...(startIn ? { startIn } : {}),
   });
@@ -115,15 +104,6 @@ export async function getWorldDirectory(
   return current;
 }
 
-export async function getSteamWorldTrigger(
-  selectedDirectory: FileSystemDirectoryHandle,
-  worldRootPath: string,
-) {
-  const world = await getWorldDirectory(selectedDirectory, worldRootPath);
-  const level = await world.getDirectoryHandle("Level");
-  return level.getFileHandle("01.sav");
-}
-
 export function fileSignature(file: Pick<File, "lastModified" | "size">) {
   return `${file.lastModified}:${file.size}`;
 }
@@ -161,21 +141,9 @@ export function selectXboxAccountFiles(
   );
 }
 
-export async function querySaveDirectoryPermission(directory: FileSystemDirectoryHandle) {
-  const permissionHandle = directory as Partial<PermissionDirectoryHandle>;
-  if (!permissionHandle.queryPermission) return "denied" as PermissionState;
-  return permissionHandle.queryPermission({ mode: "read" });
-}
-
-export async function requestSaveDirectoryPermission(directory: FileSystemDirectoryHandle) {
-  const permissionHandle = directory as Partial<PermissionDirectoryHandle>;
-  if (!permissionHandle.queryPermission || !permissionHandle.requestPermission) {
-    return "denied" as PermissionState;
-  }
-
-  const currentPermission = await permissionHandle.queryPermission({ mode: "read" });
-  if (currentPermission === "granted") return currentPermission;
-  return permissionHandle.requestPermission({ mode: "read" });
+export function clearRememberedSaveFolders() {
+  if (typeof indexedDB === "undefined") return;
+  indexedDB.deleteDatabase("palpath-save-watch");
 }
 
 async function visitDirectory(

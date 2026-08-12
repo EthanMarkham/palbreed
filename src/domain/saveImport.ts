@@ -24,7 +24,7 @@ export type SaveManifest = {
   platform: SavePlatform;
   /** Pseudonymous identity safe to persist with normalized cloud data. */
   accountId?: string;
-  /** Raw local folder identity. Never persist outside local watcher storage. */
+  /** Raw local folder identity used only while reading the current selection. */
   sourceAccountId?: string;
   slots: readonly SaveSlotCandidate[];
 };

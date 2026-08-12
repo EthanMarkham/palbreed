@@ -14,7 +14,6 @@ import type { InventoryProfile, PalLocation } from "../../domain/inventory";
 import type { PalGender } from "../../domain/pal";
 import type { SearchUpdateMode } from "../../routing/searchParams";
 import { inventoryService } from "../../services/inventory/inventoryService";
-import { saveWatchService } from "../../services/saveImport/saveWatchService";
 import { useInventory } from "../../services/inventory/useInventory";
 import InventoryCollection from "./InventoryCollection";
 import { filterInventoryPals } from "./inventoryCollectionFilter";
@@ -92,9 +91,8 @@ export default function InventoryPage({
     onSearchChange(updateInventorySearch(search, update), "push");
   };
 
-  const removeWorld = async (removed: InventoryProfile) => {
+  const removeWorld = (removed: InventoryProfile) => {
     try {
-      await saveWatchService.disable(removed.id);
       inventoryService.removeProfile(removed.id);
       const nextProfile = inventoryService.getActiveProfile();
       setNotice({ message: `Removed ${removed.name} from Palpath.`, kind: "success" });

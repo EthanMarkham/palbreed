@@ -2,14 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   fileSetSignature,
   fileSignature,
-  getSteamWorldTrigger,
   getXboxAccountDirectory,
   readSaveDirectory,
-  requestSaveDirectoryPermission,
   selectXboxAccountFiles,
 } from "./fileSystemDirectory";
 
-describe("persistent Steam folder access", () => {
+describe("Steam folder reading", () => {
   it("records stable paths and skips backup trees", async () => {
     const worldId = "33333333333333333333333333333333";
     const levelFile = fakeFileHandle("01.sav", 42, 100);
@@ -31,43 +29,11 @@ describe("persistent Steam folder access", () => {
       `SaveGames/account/${worldId}/Level/01.sav`,
       `SaveGames/account/${worldId}/LevelMeta.sav`,
     ]);
-    const trigger = await getSteamWorldTrigger(
-      root,
-      `SaveGames/account/${worldId}`,
-    );
-    expect(fileSignature(await trigger.getFile())).toBe("100:42");
-  });
-
-  it("reuses an already-authorized stored handle without prompting", async () => {
-    let requestCount = 0;
-    const directory = {
-      queryPermission: () => Promise.resolve("granted" as PermissionState),
-      requestPermission: () => {
-        requestCount += 1;
-        return Promise.resolve("granted" as PermissionState);
-      },
-    } as unknown as FileSystemDirectoryHandle;
-
-    await expect(requestSaveDirectoryPermission(directory)).resolves.toBe("granted");
-    expect(requestCount).toBe(0);
-  });
-
-  it("requests access on the stored handle instead of opening a new picker", async () => {
-    let requestCount = 0;
-    const directory = {
-      queryPermission: () => Promise.resolve("prompt" as PermissionState),
-      requestPermission: () => {
-        requestCount += 1;
-        return Promise.resolve("granted" as PermissionState);
-      },
-    } as unknown as FileSystemDirectoryHandle;
-
-    await expect(requestSaveDirectoryPermission(directory)).resolves.toBe("granted");
-    expect(requestCount).toBe(1);
+    expect(fileSignature(await levelFile.getFile())).toBe("100:42");
   });
 });
 
-describe("persistent Xbox folder access", () => {
+describe("Xbox folder reading", () => {
   it("derives the one account child from wgs without another picker", async () => {
     const account = fakeDirectory("account_one", {
       index: fakeFileHandle("containers.index", 20, 100),

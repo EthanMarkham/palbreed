@@ -21,7 +21,7 @@ import {
   chooseSaveDirectory,
   listXboxAccountDirectories,
   readSaveDirectory,
-  supportsPersistentSaveFolders,
+  supportsDirectoryPicker,
 } from "../../services/saveImport/fileSystemDirectory";
 import { createImportedProfileInput } from "../../services/saveImport/importedProfile";
 import { extractPalsFromSlot } from "../../services/saveImport/palSaveParser";
@@ -29,9 +29,7 @@ import {
   scanLogicalSaveSelection,
   scanSaveSelection,
 } from "../../services/saveImport/saveScanner";
-import { saveWatchService } from "../../services/saveImport/saveWatchService";
 import { readStableSaveDirectory } from "../../services/saveImport/stableSaveDirectory";
-import { useSaveWatch } from "../../services/saveImport/useSaveWatch";
 
 const SAVE_PATHS = {
   steam: "%LOCALAPPDATA%\\Pal\\Saved\\SaveGames",
@@ -43,18 +41,9 @@ type ImportStatus = {
   message?: string;
 };
 
-type SaveSourceSelection = {
-  folderName: string;
-  pickedFolderName: string;
-  fileCount?: number;
-  access: "automatic" | "manual";
-  scope: "Xbox account save" | "Xbox account choices" | "Steam save selection";
-};
-
 type XboxAccountOption = {
   directoryHandle: FileSystemDirectoryHandle;
   folderName: string;
-  fileCount: number;
   manifest?: SaveManifest;
   error?: string;
 };
@@ -70,52 +59,40 @@ export default function WorldImportDialog({
   onImported,
   trigger = "inventory",
 }: WorldImportDialogProps) {
-  const saveWatch = useSaveWatch();
   const [isOpen, setIsOpen] = useState(false);
   const [platform, setPlatform] = useState<SavePlatform>("steam");
   const [manifest, setManifest] = useState<SaveManifest>();
   const [directoryHandle, setDirectoryHandle] = useState<FileSystemDirectoryHandle>();
-  const [source, setSource] = useState<SaveSourceSelection>();
+  const [folderName, setFolderName] = useState<string>();
   const [xboxAccountOptions, setXboxAccountOptions] = useState<readonly XboxAccountOption[]>([]);
-  const [importedBySlot, setImportedBySlot] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<ImportStatus>({ kind: "idle" });
-  const [completion, setCompletion] = useState<string>();
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
   const activeManifest = manifest?.platform === platform ? manifest : undefined;
-  const persistentFoldersSupported = supportsPersistentSaveFolders();
+  const canPickDirectory = supportsDirectoryPicker();
 
-  const resetSelection = () => {
+  const resetFlow = (resetPlatform = false) => {
+    if (resetPlatform) setPlatform("steam");
     setManifest(undefined);
-    setXboxAccountOptions([]);
     setDirectoryHandle(undefined);
-    setSource(undefined);
-    setImportedBySlot({});
+    setFolderName(undefined);
+    setXboxAccountOptions([]);
     setStatus({ kind: "idle" });
-    setCompletion(undefined);
     setCopyStatus("idle");
   };
 
   const changePlatform = (nextPlatform: SavePlatform) => {
     if (nextPlatform === platform) return;
     setPlatform(nextPlatform);
-    resetSelection();
+    resetFlow();
   };
 
-  const scanDirectoryHandle = async (
-    pickedHandle: FileSystemDirectoryHandle,
-    pickedFolderName = pickedHandle.name,
-  ) => {
+  const scanDirectoryHandle = async (pickedHandle: FileSystemDirectoryHandle) => {
     setManifest(undefined);
     setXboxAccountOptions([]);
     setDirectoryHandle(pickedHandle);
-    setSource({
-      folderName: pickedHandle.name,
-      pickedFolderName,
-      access: "automatic",
-      scope: platform === "xbox" ? "Xbox account save" : "Steam save selection",
-    });
-    setCompletion(undefined);
-    setStatus({ kind: "working", message: "Scanning this folder locally…" });
+    setFolderName(pickedHandle.name);
+    setStatus({ kind: "working", message: "Looking for Palworld saves..." });
+
     try {
       let sourceHandle = pickedHandle;
       if (platform === "xbox") {
@@ -123,7 +100,7 @@ export default function WorldImportDialog({
         if (!accounts.length) {
           throw new SaveImportError(
             "WRONG_FOLDER",
-            "No Xbox save account was found. Choose wgs, or the long account folder inside it that directly contains containers.index.",
+            "No Xbox save account was found. Choose the wgs folder, or the long account folder inside it that contains containers.index.",
           );
         }
         if (accounts.length > 1) {
@@ -133,45 +110,29 @@ export default function WorldImportDialog({
               return {
                 directoryHandle,
                 folderName: directoryHandle.name,
-                fileCount: files.length,
                 manifest: await scanLogicalSaveSelection(files, "xbox"),
               } satisfies XboxAccountOption;
             } catch (error) {
               return {
                 directoryHandle,
                 folderName: directoryHandle.name,
-                fileCount: files.length,
                 error: importMessage(error),
               } satisfies XboxAccountOption;
             }
           }));
           setXboxAccountOptions(options);
-          setSource({
-            folderName: pickedHandle.name,
-            pickedFolderName,
-            fileCount: options.reduce((count, option) => count + option.fileCount, 0),
-            access: "automatic",
-            scope: "Xbox account choices",
-          });
           setStatus({ kind: "idle" });
           return;
         }
         sourceHandle = accounts[0].directoryHandle;
       }
-      setDirectoryHandle(sourceHandle);
+
       const files = await readSaveDirectory(sourceHandle);
-      const nextManifest = await scanLogicalSaveSelection(files, platform);
-      setManifest(nextManifest);
-      setSource({
-        folderName: sourceHandle.name,
-        pickedFolderName,
-        fileCount: files.length,
-        access: "automatic",
-        scope: platform === "xbox" ? "Xbox account save" : "Steam save selection",
-      });
+      setDirectoryHandle(sourceHandle);
+      setFolderName(sourceHandle.name);
+      setManifest(await scanLogicalSaveSelection(files, platform));
       setStatus({ kind: "idle" });
     } catch (error) {
-      // Recoverable Xbox rotations retry this retained handle, never a picker.
       setStatus({ kind: "error", message: importMessage(error) });
     }
   };
@@ -179,21 +140,15 @@ export default function WorldImportDialog({
   const chooseXboxAccount = (option: XboxAccountOption) => {
     if (!option.manifest) return;
     setDirectoryHandle(option.directoryHandle);
+    setFolderName(option.folderName);
     setManifest(option.manifest);
     setXboxAccountOptions([]);
-    setSource({
-      folderName: option.folderName,
-      pickedFolderName: source?.pickedFolderName ?? option.folderName,
-      fileCount: option.fileCount,
-      access: "automatic",
-      scope: "Xbox account save",
-    });
     setStatus({ kind: "idle" });
   };
 
-  const scanPickedDirectory = async () => {
+  const chooseFolder = async () => {
     try {
-      const handle = await chooseSaveDirectory(platform, directoryHandle);
+      const handle = await chooseSaveDirectory(directoryHandle);
       await scanDirectoryHandle(handle);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
@@ -206,17 +161,9 @@ export default function WorldImportDialog({
     if (!selection.length) return;
     setManifest(undefined);
     setDirectoryHandle(undefined);
-    const pickedFolderName = selection[0]?.webkitRelativePath.split("/")[0]
-      || "Selected folder";
-    setSource({
-      folderName: pickedFolderName,
-      pickedFolderName,
-      fileCount: selection.length,
-      access: "manual",
-      scope: platform === "xbox" ? "Xbox account save" : "Steam save selection",
-    });
-    setCompletion(undefined);
-    setStatus({ kind: "working", message: "Looking for worlds…" });
+    setXboxAccountOptions([]);
+    setFolderName(selection[0]?.webkitRelativePath.split("/")[0] || "Selected folder");
+    setStatus({ kind: "working", message: "Looking for Palworld saves..." });
     try {
       setManifest(await scanSaveSelection(selection, platform));
       setStatus({ kind: "idle" });
@@ -225,24 +172,16 @@ export default function WorldImportDialog({
     }
   };
 
-  const importSlot = async (slot: SaveSlotCandidate) => {
+  const importWorld = async (slot: SaveSlotCandidate) => {
     const selectedManifest = activeManifest;
     if (!selectedManifest) return;
-    const selectedDirectoryHandle = directoryHandle;
-    const isRefresh = Boolean(
-      importedBySlot[slot.id]
-      ?? findImportedProfile(profiles, selectedManifest, slot)?.id,
-    );
-    setCompletion(undefined);
-    setStatus({
-      kind: "working",
-      message: `${isRefresh ? "Refreshing" : "Importing"} ${slot.label}…`,
-    });
+    setStatus({ kind: "working", message: `Importing ${slot.label}...` });
+
     try {
       let importManifest = selectedManifest;
       let importSlot = slot;
-      if (selectedDirectoryHandle) {
-        const files = await readStableSaveDirectory(selectedDirectoryHandle, {
+      if (directoryHandle) {
+        const files = await readStableSaveDirectory(directoryHandle, {
           platform: selectedManifest.platform,
           accountId: selectedManifest.sourceAccountId,
           worldRootPath: slot.rootPath,
@@ -256,7 +195,6 @@ export default function WorldImportDialog({
           );
         }
         importSlot = refreshedSlot;
-        setManifest(importManifest);
       }
 
       const preview = await extractPalsFromSlot(importSlot);
@@ -266,91 +204,16 @@ export default function WorldImportDialog({
       const profile = inventoryService.getActiveProfile();
       if (!profile) throw new Error("We imported the world, but couldn't open it.");
 
-      let syncError: string | undefined;
-      if (persistentFoldersSupported && selectedDirectoryHandle) {
-        try {
-          await saveWatchService.enableAfterImport(
-            profile.id,
-            selectedDirectoryHandle,
-            importSlot,
-            importManifest.sourceAccountId,
-          );
-        } catch (error) {
-          syncError = importMessage(error);
-        }
-      }
-
-      setImportedBySlot((current) => ({
-        ...current,
-        [slot.id]: profile.id,
-        [importSlot.id]: profile.id,
-      }));
       const skipped = preview.unknownPalIds.length + preview.unknownPassiveIds.length;
-      const action = result === "created"
-        ? "Imported"
-        : result === "updated"
-          ? "Updated"
-          : "Already current";
+      const action = result === "created" ? "Imported" : "Updated";
       const message = result === "unchanged"
         ? `${profile.name} is already current.`
-        : `${action} ${preview.pals.length.toLocaleString()} Pals.${skipped
-          ? ` Skipped ${skipped} ${skipped === 1 ? "entry" : "entries"} that Palpath doesn't recognize yet.`
+        : `${action} ${preview.pals.length.toLocaleString()} Pals from ${profile.name}.${skipped
+          ? ` Skipped ${skipped} ${skipped === 1 ? "entry" : "entries"} Palpath doesn't recognize yet.`
           : ""}`;
-      const completionMessage = persistentFoldersSupported && selectedDirectoryHandle && !syncError
-        ? `${message} Local auto-refresh is on while Palpath is open.`
-        : message;
-      setStatus(syncError
-        ? { kind: "error", message: `The world was imported, but sync could not start: ${syncError}` }
-        : { kind: "idle" });
-      setCompletion(completionMessage);
-      onImported(profile.id, completionMessage);
-    } catch (error) {
-      setStatus({ kind: "error", message: importMessage(error) });
-    }
-  };
-
-  const refreshWorld = async (profile: InventoryProfile, resumeAccess = false) => {
-    setCompletion(undefined);
-    setStatus({ kind: "working", message: `Refreshing ${profile.name}…` });
-    try {
-      const result = await saveWatchService.refresh(profile.id, resumeAccess);
-      const message = result === "updated"
-        ? `Updated ${profile.name} from its ${profile.platform === "xbox" ? "Xbox" : "Steam"} save.`
-        : `${profile.name} is already current.`;
       setStatus({ kind: "idle" });
-      setCompletion(message);
+      setIsOpen(false);
       onImported(profile.id, message);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        setStatus({ kind: "idle" });
-        return;
-      }
-      setStatus({ kind: "error", message: importMessage(error) });
-    }
-  };
-
-  const chooseWorldFolder = async (profile: InventoryProfile) => {
-    setCompletion(undefined);
-    setStatus({ kind: "working", message: `Connecting ${profile.name}…` });
-    try {
-      await saveWatchService.chooseFolder(profile.id);
-      setStatus({ kind: "idle" });
-      setCompletion(`${profile.name} is connected and current.`);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        setStatus({ kind: "idle" });
-        return;
-      }
-      setStatus({ kind: "error", message: importMessage(error) });
-    }
-  };
-
-  const stopWatching = async (profile: InventoryProfile) => {
-    setStatus({ kind: "working", message: `Stopping automatic refresh for ${profile.name}…` });
-    try {
-      await saveWatchService.disable(profile.id);
-      setStatus({ kind: "idle" });
-      setCompletion(`${profile.name} will now refresh only when you import it again.`);
     } catch (error) {
       setStatus({ kind: "error", message: importMessage(error) });
     }
@@ -366,289 +229,212 @@ export default function WorldImportDialog({
     <DialogTrigger
       isOpen={isOpen}
       onOpenChange={(open) => {
+        if (!open && status.kind === "working") return;
+        if (open) resetFlow(true);
         setIsOpen(open);
       }}
     >
       <Button
         className={trigger === "header" ? "header-icon-trigger" : "primary-button inventory-import-trigger"}
-        aria-label={profiles.length ? "Manage worlds" : "Import a world"}
+        aria-label="Import a world"
       >
         <UploadIcon />
-        {trigger === "inventory" ? (profiles.length ? "Manage worlds" : "Import world") : null}
+        {trigger === "inventory" ? "Import world" : null}
       </Button>
-      <ModalOverlay className="inventory-import-overlay" isDismissable>
+      <ModalOverlay className="inventory-import-overlay" isDismissable={status.kind !== "working"}>
         <Modal className="inventory-import-modal">
           <Dialog className="inventory-import-dialog">
             <header className="inventory-import-header">
               <div>
-                <span className="section-kicker">WORLDS</span>
-                <Heading slot="title">{profiles.length ? "Manage your worlds" : "Import a world"}</Heading>
-                <p>Connect a read-only local save once. See exactly what Palpath can access and when it last checked.</p>
+                <span className="section-kicker">IMPORT</span>
+                <Heading slot="title">Import a world</Heading>
+                <p>Choose your save folder, then pick the world you want.</p>
               </div>
               <Button
                 slot="close"
                 className="inventory-modal-close"
-                aria-label="Close world manager"
+                aria-label="Close world import"
+                isDisabled={status.kind === "working"}
               >
                 <CloseIcon />
               </Button>
             </header>
 
             <div className="inventory-import-body">
-              {profiles.length ? (
-                <section className="managed-worlds" aria-labelledby="managed-worlds-title">
-                  <div className="subheading">
-                    <strong id="managed-worlds-title">Imported worlds</strong>
-                    <span>{profiles.length}</span>
-                  </div>
-                  <div className="managed-world-list">
-                    {profiles.map((profile) => {
-                      const watch = saveWatch.worlds[profile.id];
-                      return (
-                        <article className="managed-world-row" key={profile.id}>
-                          <span className={`inventory-world-platform is-${profile.platform}`}>
-                            {profile.platform === "steam" ? "ST" : "XB"}
-                          </span>
-                          <div>
-                            <strong>{profile.name}</strong>
-                            <small>{worldStatus(profile, watch)}</small>
-                            {watch ? <small className="managed-world-source">{worldSourceStatus(profile, watch)}</small> : null}
-                          </div>
-                          {persistentFoldersSupported ? (
-                            !saveWatch.ready ? (
-                              <span className="manual-only-badge">Loading sync…</span>
-                            ) : watch ? (
-                              <div className="managed-world-actions">
-                                <Button
-                                  className={`${watch.status === "needs-permission" ? "primary" : "secondary"}-button compact-button`}
-                                  isDisabled={status.kind === "working" || watch.status === "access-blocked"}
-                                  onPress={() => void refreshWorld(profile, watch.status === "needs-permission")}
-                                >
-                                  {watch.status === "needs-permission"
-                                    ? "Resume access"
-                                    : watch.status === "access-blocked" ? "Access blocked" : "Check now"}
-                                </Button>
-                                {watch.status === "needs-permission"
-                                  || watch.status === "access-blocked"
-                                  || watch.status === "needs-folder"
-                                  || watch.status === "error" ? (
-                                  <Button
-                                    className="secondary-button compact-button"
-                                    isDisabled={status.kind === "working"}
-                                    onPress={() => void chooseWorldFolder(profile)}
-                                  >
-                                    Choose another source
-                                  </Button>
-                                ) : null}
-                                <Button
-                                  className="secondary-button compact-button"
-                                  isDisabled={status.kind === "working"}
-                                  onPress={() => void stopWatching(profile)}
-                                >
-                                  Pause auto-refresh
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                className="secondary-button compact-button"
-                                isDisabled={status.kind === "working"}
-                                onPress={() => void chooseWorldFolder(profile)}
-                              >
-                                Connect save
-                              </Button>
-                            )
-                          ) : (
-                            <span className="manual-only-badge">Manual</span>
-                          )}
-                        </article>
-                      );
-                    })}
-                  </div>
-                  <p className="watch-lifetime-note">
-                    Local auto-refresh works while Palpath is open. After a restart, “Resume access”
-                    reauthorizes the remembered folder without making you find it again.
-                  </p>
-                </section>
-              ) : null}
+              <ol className="import-steps" aria-label="Import progress">
+                <li className={!activeManifest ? "is-active" : "is-complete"}>
+                  <span>{activeManifest ? <CheckIcon /> : "1"}</span>
+                  <div><small>Step 1</small><strong>Choose folder</strong></div>
+                </li>
+                <li className={activeManifest ? "is-active" : ""}>
+                  <span>2</span>
+                  <div><small>Step 2</small><strong>Import world</strong></div>
+                </li>
+              </ol>
 
-              <section className={`world-import-section${profiles.length ? " has-managed-worlds" : ""}`}>
-                <div className="subheading import-section-heading">
-                  <strong>{profiles.length ? "Connect another save" : "Choose your save source"}</strong>
-                </div>
-
-                <div className="platform-tabs" role="group" aria-label="Save platform">
-                  <Button
-                    className={platform === "steam" ? "is-active" : ""}
-                    aria-pressed={platform === "steam"}
-                    isDisabled={status.kind === "working"}
-                    onPress={() => changePlatform("steam")}
-                  >
-                    Steam
-                  </Button>
-                  <Button
-                    className={platform === "xbox" ? "is-active" : ""}
-                    aria-pressed={platform === "xbox"}
-                    isDisabled={status.kind === "working"}
-                    onPress={() => changePlatform("xbox")}
-                  >
-                    Xbox / Game Pass
-                  </Button>
-                </div>
-
-                <div className="path-card">
-                  <div className="path-labels">
-                    <span><small>System</small>{platform === "xbox" ? "Xbox / Microsoft Store" : "Windows"}</span>
-                    <span><small>Game</small>Palworld</span>
-                    <span><small>Choose</small>{platform === "xbox" ? "wgs folder" : "SaveGames or world folder"}</span>
-                  </div>
-                  <div className="copy-box">
-                    <code>{SAVE_PATHS[platform]}</code>
-                    <Button aria-live="polite" onPress={() => void copyCurrentPath()}>
-                      {copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Couldn't copy" : "Copy path"}
-                    </Button>
-                  </div>
-                  <p className="path-explanation">
-                    {platform === "xbox"
-                      ? persistentFoldersSupported
-                        ? "Choose wgs once. Xbox splits a world across opaque container files, so dozens of items are normal. Palpath finds the account folder and narrows read-only access to it automatically."
-                        : "This browser supports manual import only. Choose the long account folder inside wgs that directly contains containers.index; use desktop Chrome or Edge for remembered access."
-                      : "Choose SaveGames and Palpath finds the account and world IDs for you. After you connect a world, Palpath retains only that exact world folder."}
-                  </p>
-                </div>
-
-                {source ? (
-                  <div className="selected-source-card" aria-live="polite">
-                    <div className="selected-source-heading">
+              {!activeManifest ? (
+                <section className="import-panel" aria-labelledby="choose-folder-title">
+                  <div className="import-panel-heading">
+                    <div>
+                      <span className="import-step-number">01</span>
                       <div>
-                        <small>Selected source</small>
-                        <strong>{source.folderName}</strong>
+                        <Heading id="choose-folder-title">Choose your save folder</Heading>
+                        <p>Palpath reads it locally and forgets the folder when you close this window.</p>
                       </div>
-                      <span>{activeManifest ? "Verified" : status.kind === "working" ? "Scanning" : "Needs attention"}</span>
                     </div>
-                    <div className="selected-source-facts">
-                      <span><CheckIcon /> Read-only</span>
-                      <span>{source.scope}</span>
-                      <span>{source.fileCount === undefined ? "Counting records…" : `${source.fileCount.toLocaleString()} local file ${source.fileCount === 1 ? "record" : "records"}`}</span>
-                      <span>{source.access === "automatic" ? "Auto-refresh capable" : "Manual import"}</span>
-                    </div>
-                    {source.pickedFolderName !== source.folderName ? (
-                      <p>Chosen once from <code>{source.pickedFolderName}</code>; access was narrowed automatically.</p>
-                    ) : null}
                   </div>
-                ) : null}
 
-                {xboxAccountOptions.length ? (
-                  <div className="account-choice-list">
-                    <div className="subheading">
-                      <strong>Choose an Xbox account</strong>
-                      <span>No second folder picker</span>
-                    </div>
-                    <p>More than one Xbox account was found in wgs. Pick one here; Palpath will retain only that account folder.</p>
-                    {xboxAccountOptions.map((option, index) => (
-                      <article className="account-choice-row" key={option.folderName}>
-                        <div>
-                          <strong>Xbox account {index + 1}</strong>
-                          <span>{option.manifest
-                            ? `${option.manifest.slots.length} ${option.manifest.slots.length === 1 ? "world" : "worlds"} · ${option.fileCount.toLocaleString()} file records`
-                            : option.error}</span>
-                        </div>
-                        <Button
-                          className="secondary-button compact-button"
-                          isDisabled={!option.manifest}
-                          onPress={() => chooseXboxAccount(option)}
-                        >
-                          {option.manifest ? "Use this account" : "Not ready"}
-                        </Button>
-                      </article>
-                    ))}
-                  </div>
-                ) : null}
-
-                {persistentFoldersSupported ? (
-                  <Button
-                    className="primary-button import-button"
-                    isDisabled={status.kind === "working"}
-                    onPress={() => void scanPickedDirectory()}
-                  >
-                    <FolderIcon />
-                    <span>{status.kind === "working"
-                      ? "Scanning locally…"
-                      : source
-                        ? "Choose a different source"
-                        : platform === "xbox" ? "Choose Xbox saves once" : "Choose Steam saves once"}</span>
-                  </Button>
-                ) : (
-                  <FileTrigger acceptDirectory allowsMultiple onSelect={(files) => void scanFallbackFolder(files)}>
-                    <Button className="primary-button import-button" isDisabled={status.kind === "working"}>
-                      <FolderIcon />
-                      <span>{status.kind === "working" ? "Scanning locally…" : source ? "Choose a different folder" : "Choose save folder"}</span>
+                  <div className="platform-tabs" role="group" aria-label="Save platform">
+                    <Button
+                      className={platform === "steam" ? "is-active" : ""}
+                      aria-pressed={platform === "steam"}
+                      isDisabled={status.kind === "working"}
+                      onPress={() => changePlatform("steam")}
+                    >
+                      Steam
                     </Button>
-                  </FileTrigger>
-                )}
-                <p className="privacy-note">
-                  <LockIcon />
-                  Raw saves and folder names stay on this device. Signed-in cloud sync receives normalized world, player, and Pal data.
-                </p>
+                    <Button
+                      className={platform === "xbox" ? "is-active" : ""}
+                      aria-pressed={platform === "xbox"}
+                      isDisabled={status.kind === "working"}
+                      onPress={() => changePlatform("xbox")}
+                    >
+                      Xbox / Game Pass
+                    </Button>
+                  </div>
 
-                {platform === "xbox" ? (
-                  <p className="platform-limit-note">
-                    Xbox app / PC Game Pass on Windows only. This does not read saves directly from an Xbox console or Xbox cloud account.
-                  </p>
-                ) : null}
-                {status.kind !== "idle" && status.message ? (
-                  <StatusBanner kind={status.kind} message={status.message} />
-                ) : null}
-                {status.kind === "error" && directoryHandle && !activeManifest ? (
-                  <Button
-                    className="secondary-button retry-source-button"
-                    onPress={() => void scanDirectoryHandle(directoryHandle, source?.pickedFolderName)}
-                  >
-                    Retry selected source
-                  </Button>
-                ) : null}
-                {completion ? <div className="import-completion" role="status"><CheckIcon />{completion}</div> : null}
-
-                {activeManifest ? (
-                  <div className="world-list">
-                    <div className="subheading">
-                      <strong>Choose a world</strong>
-                      <span>{activeManifest.slots.length} {activeManifest.slots.length === 1 ? "world" : "worlds"} found</span>
+                  <div className="folder-help">
+                    <strong>{platform === "xbox" ? "Choose the wgs folder" : "Choose the SaveGames folder"}</strong>
+                    <p>{platform === "xbox"
+                      ? "Palpath will find the Xbox account and worlds inside it."
+                      : "Palpath will find every account and world inside it."}</p>
+                    <div className="copy-box">
+                      <code>{SAVE_PATHS[platform]}</code>
+                      <Button aria-live="polite" onPress={() => void copyCurrentPath()}>
+                        {copyStatus === "copied" ? "Copied" : copyStatus === "error" ? "Couldn't copy" : "Copy path"}
+                      </Button>
                     </div>
+                  </div>
+
+                  {xboxAccountOptions.length ? (
+                    <div className="account-choice-list">
+                      <div className="subheading">
+                        <strong>Which Xbox account?</strong>
+                        <span>{xboxAccountOptions.length} found</span>
+                      </div>
+                      <p>Choose the account that contains the world you want to import.</p>
+                      {xboxAccountOptions.map((option, index) => (
+                        <article className="account-choice-row" key={option.folderName}>
+                          <div>
+                            <strong>Xbox account {index + 1}</strong>
+                            <span>{option.manifest
+                              ? `${option.manifest.slots.length} ${option.manifest.slots.length === 1 ? "world" : "worlds"}`
+                              : option.error}</span>
+                          </div>
+                          <Button
+                            className="secondary-button compact-button"
+                            isDisabled={!option.manifest}
+                            onPress={() => chooseXboxAccount(option)}
+                          >
+                            Choose
+                          </Button>
+                        </article>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {canPickDirectory ? (
+                    <Button
+                      className="primary-button import-button"
+                      isDisabled={status.kind === "working"}
+                      onPress={() => void chooseFolder()}
+                    >
+                      <FolderIcon />
+                      <span>{status.kind === "working" ? "Scanning folder..." : folderName ? "Choose another folder" : "Choose folder"}</span>
+                    </Button>
+                  ) : (
+                    <FileTrigger acceptDirectory allowsMultiple onSelect={(files) => void scanFallbackFolder(files)}>
+                      <Button className="primary-button import-button" isDisabled={status.kind === "working"}>
+                        <FolderIcon />
+                        <span>{status.kind === "working" ? "Scanning folder..." : folderName ? "Choose another folder" : "Choose folder"}</span>
+                      </Button>
+                    </FileTrigger>
+                  )}
+
+                  <p className="privacy-note">
+                    <LockIcon />
+                    Your save files never leave this device.
+                  </p>
+                  {platform === "xbox" ? (
+                    <p className="platform-limit-note">
+                      For Xbox app / PC Game Pass saves on Windows. Console cloud saves cannot be selected here.
+                    </p>
+                  ) : null}
+                </section>
+              ) : (
+                <section className="import-panel" aria-labelledby="choose-world-title">
+                  <div className="folder-selection">
+                    <span><FolderIcon /></span>
+                    <div>
+                      <small>Selected folder</small>
+                      <strong>{folderName ?? "Save folder"}</strong>
+                    </div>
+                    <Button
+                      className="secondary-button compact-button"
+                      isDisabled={status.kind === "working"}
+                      onPress={() => resetFlow()}
+                    >
+                      Change
+                    </Button>
+                  </div>
+
+                  <div className="import-panel-heading world-heading">
+                    <div>
+                      <span className="import-step-number">02</span>
+                      <div>
+                        <Heading id="choose-world-title">Choose a world</Heading>
+                        <p>{activeManifest.slots.length} {activeManifest.slots.length === 1 ? "world" : "worlds"} found</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="world-list">
                     {activeManifest.slots.map((slot) => {
                       const supported = slot.format === "palworld-1.0";
                       const importedProfile = findImportedProfile(profiles, activeManifest, slot);
-                      const profileId = importedBySlot[slot.id] ?? importedProfile?.id;
-                      const watch = profileId ? saveWatch.worlds[profileId] : undefined;
                       return (
                         <article className="world-row" key={slot.id}>
                           <div>
                             <strong>{importedProfile?.name ?? slot.label}</strong>
-                            <span>{slot.updatedAt ? new Date(slot.updatedAt).toLocaleString() : "Date not available"}</span>
+                            <span>{slot.updatedAt ? `Saved ${new Date(slot.updatedAt).toLocaleString()}` : "Save date unavailable"}</span>
                           </div>
-                          <span className={`format-badge is-${supported ? "supported" : "unsupported"}`}>
-                            {supported ? "Palworld 1.0" : slot.format === "pre-1.0" ? "Older save" : "Not supported"}
-                          </span>
-                          <div className="world-row-actions">
-                            <Button
-                              className="secondary-button compact-button"
-                              isDisabled={!supported || status.kind === "working"}
-                              aria-label={supported ? `Import ${slot.label}` : `${slot.label} requires Palworld 1.0`}
-                              onPress={() => void importSlot(slot)}
-                            >
-                              {profileId
-                                ? directoryHandle ? "Update & keep connected" : "Update from this selection"
-                                : directoryHandle ? "Import & auto-refresh" : "Import"}
-                            </Button>
-                            {watch && watch.status === "watching" ? (
-                              <span className="watching-badge"><PulseIcon />Connected</span>
-                            ) : null}
-                          </div>
+                          {!supported ? (
+                            <span className="format-badge is-unsupported">
+                              {slot.format === "pre-1.0" ? "Older save" : "Not supported"}
+                            </span>
+                          ) : null}
+                          <Button
+                            className="primary-button compact-button world-import-button"
+                            isDisabled={!supported || status.kind === "working"}
+                            aria-label={supported ? `Import ${slot.label}` : `${slot.label} requires Palworld 1.0`}
+                            onPress={() => void importWorld(slot)}
+                          >
+                            {importedProfile ? "Re-import" : "Import world"}
+                          </Button>
                         </article>
                       );
                     })}
                   </div>
-                ) : null}
-              </section>
+                  <p className="privacy-note">
+                    <LockIcon />
+                    Only the imported Pal data is saved. Folder access is not remembered.
+                  </p>
+                </section>
+              )}
+
+              {status.kind !== "idle" && status.message ? (
+                <StatusBanner kind={status.kind} message={status.message} />
+              ) : null}
             </div>
           </Dialog>
         </Modal>
@@ -666,34 +452,6 @@ function findImportedProfile(
     profile.platform === manifest.platform
     && profile.worldId === slot.worldId,
   );
-}
-
-function worldStatus(
-  profile: InventoryProfile,
-  watch: ReturnType<typeof useSaveWatch>["worlds"][string] | undefined,
-) {
-  if (!watch) return `${profile.pals.length.toLocaleString()} Pals · Not connected`;
-  if (watch.status === "checking") return "Checking the local save…";
-  if (watch.status === "waiting") return watch.message;
-  if (watch.status === "needs-permission") return "Access paused · Source remembered";
-  if (watch.status === "access-blocked") return "Browser access is blocked";
-  if (watch.status === "needs-folder") return "Local source was moved or removed";
-  if (watch.status === "error") return watch.message;
-  return `${profile.pals.length.toLocaleString()} Pals · Auto-refresh on while open`;
-}
-
-function worldSourceStatus(
-  profile: InventoryProfile,
-  watch: NonNullable<ReturnType<typeof useSaveWatch>["worlds"][string]>,
-) {
-  const scope = profile.platform === "xbox" ? "One Xbox save account" : "One Steam world";
-  const checked = watch.lastCheckedAt
-    ? `Last checked ${new Date(watch.lastCheckedAt).toLocaleString()}`
-    : "Not checked yet";
-  const mode = watch.monitoringMode === "notifications+polling"
-    ? "File notifications + safety checks"
-    : "Periodic safety checks";
-  return `${scope} · Read-only · ${mode} · ${checked}`;
 }
 
 function importMessage(error: unknown) {
@@ -742,8 +500,4 @@ function CloseIcon() {
 
 function CheckIcon() {
   return <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8.3 3 3L13 4.7" /></svg>;
-}
-
-function PulseIcon() {
-  return <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" /></svg>;
 }

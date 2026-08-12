@@ -63,7 +63,7 @@ describe("strict Palworld 1.0 format guard", () => {
     expect(manifest.slots[0]?.updatedAt).toBe(30);
   });
 
-  it("preserves the exact selected world root for persistent folder polling", async () => {
+  it("preserves the exact selected world root for a stable import read", async () => {
     const worldId = "33333333333333333333333333333333";
     const manifest = await scanLogicalSaveSelection([
       logicalSteamFile(`SaveGames/account/${worldId}/LevelMeta.sav`, 20),
