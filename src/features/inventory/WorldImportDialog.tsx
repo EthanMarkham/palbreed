@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AnimatePresence } from "motion/react";
 import {
   Button,
   Dialog,
@@ -30,6 +31,7 @@ import {
   scanSaveSelection,
 } from "../../services/saveImport/saveScanner";
 import { readStableSaveDirectory } from "../../services/saveImport/stableSaveDirectory";
+import ImportPathLoadingOverlay from "./ImportPathLoadingOverlay";
 
 const SAVE_PATHS = {
   steam: "%LOCALAPPDATA%\\Pal\\Saved\\SaveGames",
@@ -432,10 +434,15 @@ export default function WorldImportDialog({
                 </section>
               )}
 
-              {status.kind !== "idle" && status.message ? (
+              {status.kind === "error" && status.message ? (
                 <StatusBanner kind={status.kind} message={status.message} />
               ) : null}
             </div>
+            <AnimatePresence>
+              {status.kind === "working" && status.message ? (
+                <ImportPathLoadingOverlay key="import-loading" message={status.message} />
+              ) : null}
+            </AnimatePresence>
           </Dialog>
         </Modal>
       </ModalOverlay>
