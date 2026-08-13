@@ -10,6 +10,7 @@ import {
   ModalOverlay,
 } from "react-aria-components";
 import StatusBanner from "../../components/StatusBanner";
+import PathLoadingOverlay from "../../components/PathLoadingOverlay";
 import type { InventoryProfile } from "../../domain/inventory";
 import {
   SaveImportError,
@@ -31,7 +32,6 @@ import {
   scanSaveSelection,
 } from "../../services/saveImport/saveScanner";
 import { readStableSaveDirectory } from "../../services/saveImport/stableSaveDirectory";
-import ImportPathLoadingOverlay from "./ImportPathLoadingOverlay";
 
 const SAVE_PATHS = {
   steam: "%LOCALAPPDATA%\\Pal\\Saved\\SaveGames",
@@ -440,7 +440,7 @@ export default function WorldImportDialog({
             </div>
             <AnimatePresence>
               {status.kind === "working" && status.message ? (
-                <ImportPathLoadingOverlay key="import-loading" message={status.message} />
+                <PathLoadingOverlay key="import-loading" message={status.message} />
               ) : null}
             </AnimatePresence>
           </Dialog>

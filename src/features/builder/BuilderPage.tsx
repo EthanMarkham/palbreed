@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
+import { AnimatePresence } from "motion/react";
 import { useMemo } from "react";
 import PalAvatar from "../../components/PalAvatar";
 import PalSelect from "../../components/PalSelect";
 import PassiveSelector from "../../components/PassiveSelector";
+import PathLoadingOverlay from "../../components/PathLoadingOverlay";
 import { breedingRepository } from "../../data/breedingRepository";
 import { passiveRepository } from "../../data/passiveRepository";
 import type { PalId } from "../../domain/pal";
@@ -169,8 +171,8 @@ export default function BuilderPage({
             aria-label={isSolving ? "Finding a breeding route. Activate to cancel." : undefined}
             title={isSolving ? "Cancel search" : undefined}
           >
-            {isSolving ? <span className="builder-busy-spinner" aria-hidden="true" /> : <SparkIcon />}
-            {isSolving ? "Finding route…" : "Find a breeding route"}
+            {isSolving ? <span className="builder-stop-icon" aria-hidden="true" /> : <SparkIcon />}
+            {isSolving ? "Cancel search" : "Find a breeding route"}
             {isSolving ? <span className="sr-only" role="status">Finding a breeding route. Activate to cancel.</span> : null}
           </button>
           <p className="model-note">Odds include inherited passives and any required offspring sex. Balanced routes also favor stronger known IVs; missing IVs use the neutral 50.5 average. Maximize IVs may add up to two breedings and caps estimated route cost; Mushroom Cake's 1.0 stat boost is recommended but not priced because its exact distribution is not published.</p>
@@ -185,6 +187,16 @@ export default function BuilderPage({
               targetId={targetId}
               passiveGoal={passiveGoal}
             />
+            <AnimatePresence>
+              {isSolving ? (
+                <PathLoadingOverlay
+                  key="route-loading"
+                  context="breeding"
+                  variant="panel"
+                  message="Comparing possible parents and offspring..."
+                />
+              ) : null}
+            </AnimatePresence>
           </div>
         </div>
       </section>
