@@ -2653,8 +2653,10 @@
   border-radius: inherit;
   background:
     radial-gradient(circle at 50% 35%, rgba(216, 242, 154, 0.24), transparent 38%),
-    linear-gradient(145deg, rgba(249, 248, 241, 0.96), rgba(239, 246, 238, 0.97));
-  backdrop-filter: blur(10px);
+    linear-gradient(145deg, rgba(249, 248, 241, 0.985), rgba(239, 246, 238, 0.99));
+  backface-visibility: hidden;
+  contain: paint;
+  transform: translateZ(0);
 }
 
 .path-loading-overlay::before {
@@ -2724,9 +2726,8 @@
   stroke-width: 1;
 }
 
-.lineage-loader-result-node { fill: url(#lineage-loader-child); stroke: rgba(103, 150, 31, 0.36); stroke-width: 1.5; }
-.lineage-loader-result path { fill: none; stroke: #355719; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.lineage-loader-result.is-breeding path { fill: rgba(53, 87, 25, 0.08); }
+.lineage-loader-result-node { fill: url(#lineage-loader-child); stroke: rgba(103, 150, 31, 0.3); stroke-width: 1.5; }
+.lineage-loader-result-core { fill: rgba(53, 87, 25, 0.7); }
 .lineage-loader-lights circle { fill: #f4ffd8; stroke: rgba(116, 177, 48, 0.86); stroke-width: 0.8; }
 
 .path-loading-copy { display: grid; gap: 0.22rem; }

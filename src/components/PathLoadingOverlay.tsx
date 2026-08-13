@@ -47,9 +47,16 @@ export default function PathLoadingOverlay({
     <motion.div
       className={`path-loading-overlay is-${variant}`}
       initial={reduceMotion ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: reduceMotion ? 0.01 : 0.4, ease: "easeOut" }}
+      animate={{
+        opacity: 1,
+        transition: { duration: reduceMotion ? 0.01 : 0.34, ease: "easeOut" },
+      }}
+      exit={reduceMotion
+        ? { opacity: 0, transition: { duration: 0.01 } }
+        : {
+            opacity: [1, 1, 0],
+            transition: { duration: 0.54, times: [0, 0.34, 1], ease: [0.4, 0, 0.2, 1] },
+          }}
       role="status"
       aria-live="polite"
       aria-label={message}
@@ -58,7 +65,7 @@ export default function PathLoadingOverlay({
         className="path-loading-content"
         initial={reduceMotion ? false : { opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -2 }}
+        exit={{ opacity: 0, transition: { duration: reduceMotion ? 0.01 : 0.14, ease: "easeOut" } }}
         transition={{ duration: reduceMotion ? 0.01 : 0.52, ease: [0.22, 1, 0.36, 1] }}
       >
         <span className="path-loading-kicker">
@@ -81,13 +88,6 @@ export default function PathLoadingOverlay({
               <stop offset="0" stopColor="#efffcf" />
               <stop offset="1" stopColor="#b3e75f" />
             </radialGradient>
-            <filter id="lineage-loader-glow" x="-200%" y="-200%" width="500%" height="500%">
-              <feGaussianBlur stdDeviation="2.6" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
           </defs>
 
           <path className="lineage-loader-track" d={UPPER_ROUTE} />
@@ -113,7 +113,7 @@ export default function PathLoadingOverlay({
           <WaypointNode x={LOWER_WAYPOINT.x} y={LOWER_WAYPOINT.y} reduceMotion={reduceMotion} delay={0.94} />
 
           <motion.g
-            className={`lineage-loader-result${isBreeding ? " is-breeding" : ""}`}
+            className="lineage-loader-result"
             initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: reduceMotion ? 0 : 0.8, delay: reduceMotion ? 0 : 1.42, ease: [0.22, 1, 0.36, 1] }}
@@ -124,15 +124,15 @@ export default function PathLoadingOverlay({
               cx={DESTINATION.x}
               cy={DESTINATION.y}
               r="23"
-              animate={reduceMotion ? undefined : { r: [22, 24.5, 22], opacity: [0.36, 0.68, 0.36] }}
+              animate={reduceMotion ? undefined : { r: [21.5, 23.5, 21.5], opacity: [0.28, 0.46, 0.28] }}
               transition={{ duration: 3.4, ease: "easeInOut", repeat: Infinity, delay: 1.5 }}
             />
-            <circle className="lineage-loader-result-node" cx={DESTINATION.x} cy={DESTINATION.y} r="16" />
-            <path d={isBreeding ? "M270 77l7 7-7 7-7-7z" : "m263 84 5 5 10-12"} />
+            <circle className="lineage-loader-result-node" cx={DESTINATION.x} cy={DESTINATION.y} r="15" />
+            <circle className="lineage-loader-result-core" cx={DESTINATION.x} cy={DESTINATION.y} r="4" />
           </motion.g>
 
           {!reduceMotion ? (
-            <g className="lineage-loader-lights" filter="url(#lineage-loader-glow)">
+            <g className="lineage-loader-lights">
               <RouteLight route={UPPER_LIGHT_ROUTE} delay={1.9} />
               <RouteLight route={LOWER_LIGHT_ROUTE} delay={5.3} />
             </g>
@@ -157,11 +157,11 @@ type SampledRoute = {
 
 function RouteLight({ route, delay }: { route: SampledRoute; delay: number }) {
   const opacity = route.times.map((time) => {
-    if (time < 0.07) return (time / 0.07) * 0.76;
-    if (time > 0.9) return ((1 - time) / 0.1) * 0.76;
-    return 0.76;
+    if (time < 0.1) return (time / 0.1) * 0.68;
+    if (time > 0.72) return Math.max(0, ((0.94 - time) / 0.22) * 0.68);
+    return 0.68;
   });
-  const radius = route.times.map((time) => 2.4 + Math.sin(Math.PI * time) * 0.8);
+  const radius = route.times.map((time) => 2.3 + Math.sin(Math.PI * Math.min(time / 0.9, 1)) * 0.65);
 
   return (
     <motion.circle
