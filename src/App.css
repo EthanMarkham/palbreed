@@ -2709,16 +2709,14 @@
   stroke-linejoin: round;
 }
 
-.lineage-loader-track { stroke: rgba(24, 48, 37, 0.1); stroke-width: 6; }
-.lineage-loader-route { stroke: url(#lineage-loader-route); stroke-width: 2.2; }
-.lineage-loader-route.is-resolved { stroke-width: 3; }
+.lineage-loader-track { stroke: rgba(24, 48, 37, 0.085); stroke-width: 5; }
+.lineage-loader-route { stroke: url(#lineage-loader-route); stroke-width: 2; }
 
-.lineage-loader-parent-halo { fill: rgba(35, 133, 109, 0.08); }
-.lineage-loader-parent-node { fill: var(--paper-strong); stroke: rgba(35, 133, 109, 0.3); stroke-width: 1.5; }
-.lineage-loader-parent text { fill: var(--teal-dark); font: 800 8px/1 "Space Grotesk", sans-serif; text-anchor: middle; dominant-baseline: middle; }
-
-.lineage-loader-merge circle { fill: var(--teal); stroke: rgba(255, 255, 255, 0.85); stroke-width: 2; }
-.lineage-loader-merge path { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.lineage-loader-source-halo { fill: rgba(35, 133, 109, 0.12); }
+.lineage-loader-source-ring { fill: var(--paper-strong); stroke: rgba(35, 133, 109, 0.4); stroke-width: 1.5; }
+.lineage-loader-source-core { fill: var(--teal); }
+.lineage-loader-waypoint-halo { fill: rgba(35, 133, 109, 0.055); }
+.lineage-loader-waypoint-node { fill: var(--paper-strong); stroke: rgba(35, 133, 109, 0.3); stroke-width: 1.5; }
 
 .lineage-loader-result-halo {
   fill: rgba(179, 231, 95, 0.14);
@@ -2729,7 +2727,7 @@
 .lineage-loader-result-node { fill: url(#lineage-loader-child); stroke: rgba(103, 150, 31, 0.36); stroke-width: 1.5; }
 .lineage-loader-result path { fill: none; stroke: #355719; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .lineage-loader-result.is-breeding path { fill: rgba(53, 87, 25, 0.08); }
-.lineage-loader-lights circle { fill: #f4ffd8; stroke: #83c739; stroke-width: 1; }
+.lineage-loader-lights circle { fill: #f4ffd8; stroke: rgba(116, 177, 48, 0.86); stroke-width: 0.8; }
 
 .path-loading-copy { display: grid; gap: 0.22rem; }
 .path-loading-copy strong { color: var(--ink); font: 700 1.02rem/1.2 "Space Grotesk", sans-serif; letter-spacing: -0.025em; }
